@@ -1,5 +1,7 @@
 # sphinx-key
 
+These notes were tested for macOS
+
 ### deps
 
 ##### cargo nightly:
@@ -7,6 +9,8 @@
 `rustup install nightly`
 
 `rustup component add rust-src --toolchain nightly`
+
+`rustup default nightly`
 
 ##### python 3.7 or higher is required
 
@@ -26,6 +30,8 @@
 
 ### flash
 
-`espflash /dev/ttyUSB0 target/riscv32imc-esp-espidf/debug/sphinx-key`
+`espflash /dev/tty.SLAB_USBtoUART target/riscv32imc-esp-espidf/debug/sphinx-key`
 
-replace dev/ttyUSB0 with the usb where board is connected
+If the above command does not work, try this one below:
+
+`espflash target/riscv32imc-esp-espidf/debug/sphinx-key`
