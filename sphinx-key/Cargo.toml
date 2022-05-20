@@ -18,6 +18,12 @@ pio = ["esp-idf-sys/pio"]
 [dependencies]
 esp-idf-sys = { version = "0.31.5", features = ["binstart"] }
 sphinx-key-signer = { path = "../signer" }
+embedded-svc = { version = "0.21.2" }
+esp-idf-svc = "0.41"
+esp-idf-hal = "0.37"
+anyhow = {version = "1", features = ["backtrace"]}
+log = "0.4"
+url = "2"
 
 [build-dependencies]
 embuild = "0.29"
