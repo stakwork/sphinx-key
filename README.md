@@ -1,4 +1,4 @@
-# sphinx-key
+# cd sphinx-key
 
 These notes were tested for macOS
 
@@ -35,3 +35,7 @@ These notes were tested for macOS
 If the above command does not work, try this one below:
 
 `espflash target/riscv32imc-esp-espidf/debug/sphinx-key`
+
+### monitor
+
+`espmonitor /dev/ttyUSB0`

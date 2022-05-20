@@ -1,4 +1,5 @@
 use esp_idf_sys as _; // If using the `binstart` feature of `esp-idf-sys`, always keep this module imported
+use sphinx_key_signer;
 
 fn main() {
     // Temporary. Will disappear once ESP-IDF 4.4 is released, but for now it is necessary to call this function once,
@@ -6,4 +7,6 @@ fn main() {
     esp_idf_sys::link_patches();
 
     println!("Hello, world!");
+
+    sphinx_key_signer::say_hi();
 }
