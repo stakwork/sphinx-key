@@ -1,3 +1,3 @@
 pub fn say_hi() {
-    println!("hi!");
+    println!("hi from signer module!");
 }

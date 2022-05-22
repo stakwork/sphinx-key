@@ -24,6 +24,8 @@ esp-idf-hal = "0.37"
 anyhow = {version = "1", features = ["backtrace"]}
 log = "0.4"
 url = "2"
+serde_urlencoded = "0.7.1"
+serde = "1.0.137"
 
 [build-dependencies]
 embuild = "0.29"

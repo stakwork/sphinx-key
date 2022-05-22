@@ -1,8 +1,10 @@
-# cd sphinx-key
+# sphinx-key
 
 These notes were tested for macOS
 
 ### deps
+
+`cd sphinx-key`
 
 ##### cargo nightly:
 
@@ -30,12 +32,12 @@ These notes were tested for macOS
 
 ### flash
 
-`espflash /dev/tty.SLAB_USBtoUART target/riscv32imc-esp-espidf/debug/sphinx-key`
-
-If the above command does not work, try this one below:
-
 `espflash target/riscv32imc-esp-espidf/debug/sphinx-key`
 
 ### monitor
 
-`espmonitor /dev/ttyUSB0`
+```sh
+ls /dev/tty.*
+ls /dev/cu.*
+espmonitor /dev/tty.usbserial-1420
+```
