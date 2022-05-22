@@ -26,6 +26,7 @@ log = "0.4"
 url = "2"
 serde_urlencoded = "0.7.1"
 serde = "1.0.137"
+serde_json = "1.0.81"
 
 [build-dependencies]
 embuild = "0.29"
