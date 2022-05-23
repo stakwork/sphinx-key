@@ -1,3 +1,5 @@
+use crate::conn::Config;
+
 use esp_idf_svc::wifi::*;
 use esp_idf_svc::sysloop::*;
 use esp_idf_svc::netif::*;
@@ -13,91 +15,104 @@ use log::*;
 use anyhow::bail;
 use std::time::Duration;
 use std::sync::Arc;
+use std::thread;
 
-const SSID: &str = "apples&acorns";
-const PASS: &str = "42flutes";
-
-#[cfg(not(feature = "qemu"))]
 #[allow(dead_code)]
-pub fn connect(
+pub fn start_client(
+    netif_stack: Arc<EspNetifStack>,
+    sys_loop_stack: Arc<EspSysLoopStack>,
+    default_nvs: Arc<EspDefaultNvs>,
+    config: &Config,
+) -> Result<Box<EspWifi>> {
+    let mut wifi = Box::new(EspWifi::new(netif_stack, sys_loop_stack, default_nvs)?);
+    let ap_infos = wifi.scan()?;
+    let ssid = config.ssid.as_str();
+    let pass = config.pass.as_str();
+
+    let ours = ap_infos.into_iter().find(|a| a.ssid == ssid);
+    let channel = if let Some(ours) = ours {
+        info!("Found configured access point {} on channel {}", ssid, ours.channel);
+        Some(ours.channel)
+    } else {
+        info!("Configured access point {} not found during scanning, will go with unknown channel", ssid);
+        None
+    };
+
+    wifi.set_configuration(&Configuration::Client(
+        ClientConfiguration {
+            ssid: ssid.into(),
+            password: pass.into(),
+            channel,
+            ..Default::default()
+        }
+    ))?;
+
+    // not working
+    info!("Wifi client configuration set, about to get status");
+    match wifi.wait_status_with_timeout(Duration::from_secs(20), |status| !status.is_transitional()) {
+        Ok(_) => (),
+        Err(e) => warn!("Unexpected Wifi status: {:?}", e),
+    };
+    let status = wifi.get_status();
+    println!("=> wifi STATUS 1 {:?}", status);
+
+    info!("...Wifi client configuration set, AGAIN get status");
+    match wifi.wait_status_with_timeout(Duration::from_secs(20), |status| !status.is_transitional()) {
+        Ok(_) => (),
+        Err(e) => warn!("Unexpected Wifi status: {:?}", e),
+    };
+
+    let status = wifi.get_status();
+    println!("=> wifi STATUS {:?}", status);
+    println!("=> is transitional? {:?}", status.is_transitional());
+    if let Status(
+        ClientStatus::Started(ClientConnectionStatus::Connected(ClientIpStatus::Done(ip_settings))),
+        ApStatus::Stopped,
+    ) = status {
+        info!("Wifi started!");
+        ping(&ip_settings)?;
+    } else {
+        thread::sleep(Duration::from_secs(13));
+        // bail!("Unexpected Client Wifi status: {:?}", status);
+        return Err(anyhow::anyhow!("Unexpected Client Wifi status: {:?}", status));
+    }
+
+    info!("wifi::start_client Ok(())");
+
+    Ok(wifi)
+}
+
+#[allow(dead_code)]
+pub fn start_server(
     netif_stack: Arc<EspNetifStack>,
     sys_loop_stack: Arc<EspSysLoopStack>,
     default_nvs: Arc<EspDefaultNvs>,
 ) -> Result<Box<EspWifi>> {
     let mut wifi = Box::new(EspWifi::new(netif_stack, sys_loop_stack, default_nvs)?);
-
-    info!("Wifi created, about to scan");
-
-    let ap_infos = wifi.scan()?;
-
-    let ours = ap_infos.into_iter().find(|a| a.ssid == SSID);
-
-    let channel = if let Some(ours) = ours {
-        info!(
-            "Found configured access point {} on channel {}",
-            SSID, ours.channel
-        );
-        Some(ours.channel)
-    } else {
-        info!(
-            "Configured access point {} not found during scanning, will go with unknown channel",
-            SSID
-        );
-        None
-    };
-
-    // let conf = Configuration::Client(
-    //     ClientConfiguration {
-    //         ssid: SSID.into(),
-    //         password: PASS.into(),
-    //         channel,
-    //         ..Default::default()
-    //     };
-    // );
-    // let conf = Configuration::AccessPoint(
-    //     AccessPointConfiguration {
-    //         ssid: "aptest111".into(),
-    //         channel: channel.unwrap_or(1),
-    //         ..Default::default()
-    //     },
-    // );
-    let conf = Configuration::Mixed(
-        ClientConfiguration {
-            ssid: SSID.into(),
-            password: PASS.into(),
-            channel,
-            ..Default::default()
-        },
+    wifi.set_configuration(&Configuration::AccessPoint(
         AccessPointConfiguration {
-            ssid: "aptest123".into(),
-            channel: channel.unwrap_or(1),
+            ssid: "sphinxkey".into(),
+            channel: 6,
             ..Default::default()
         },
-    );
-    wifi.set_configuration(&conf)?;
+    ))?;
 
     info!("Wifi configuration set, about to get status");
-
     wifi.wait_status_with_timeout(Duration::from_secs(20), |status| !status.is_transitional())
         .map_err(|e| anyhow::anyhow!("Unexpected Wifi status: {:?}", e))?;
 
     let status = wifi.get_status();
-
     if let Status(
-        ClientStatus::Started(ClientConnectionStatus::Connected(ClientIpStatus::Done(ip_settings))),
+        ClientStatus::Stopped,
         ApStatus::Started(ApIpStatus::Done),
-    ) = status
-    {
-        info!("Wifi connected");
-
-        ping(&ip_settings)?;
+    ) = status {
+        info!("Wifi started!");
     } else {
-        bail!("Unexpected Wifi status: {:?}", status);
+        return Err(anyhow::anyhow!("Unexpected AP Wifi status: {:?}", status));
     }
 
     Ok(wifi)
 }
-
 
 fn ping(ip_settings: &ipv4::ClientSettings) -> Result<()> {
     info!("About to do some pings for {:?}", ip_settings);
@@ -105,10 +120,7 @@ fn ping(ip_settings: &ipv4::ClientSettings) -> Result<()> {
     let ping_summary =
         ping::EspPing::default().ping(ip_settings.subnet.gateway, &Default::default())?;
     if ping_summary.transmitted != ping_summary.received {
-        bail!(
-            "Pinging gateway {} resulted in timeouts",
-            ip_settings.subnet.gateway
-        );
+        return Err(anyhow::anyhow!("Pinging gateway {} resulted in timeouts", ip_settings.subnet.gateway));
     }
 
     info!("Pinging done");

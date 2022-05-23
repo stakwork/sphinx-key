@@ -41,3 +41,8 @@ ls /dev/tty.*
 ls /dev/cu.*
 espmonitor /dev/tty.usbserial-1420
 ```
+
+### clear NVS
+
+espflash target/riscv32imc-esp-espidf/debug/clear
+espmonitor /dev/tty.usbserial-1420

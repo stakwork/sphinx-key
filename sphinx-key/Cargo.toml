@@ -31,3 +31,7 @@ serde_json = "1.0.81"
 [build-dependencies]
 embuild = "0.29"
 anyhow = "1"
+
+[[bin]]
+name = "clear"
+path = "src/clear.rs"
