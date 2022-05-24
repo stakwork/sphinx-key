@@ -92,44 +92,6 @@ fn main() -> Result<()> {
         bail!("Unexpected Wifi status: {:?}", status);
     }
 
-    let peripherals = Peripherals::take().unwrap();
-    let pins = peripherals.pins;
-
-    let mutex: Arc<(Mutex<Option<u32>>, Condvar)> = Arc::new((Mutex::new(None), Condvar::new()));
-
-    let mut wait = mutex.0.lock().unwrap();
-
-    #[cfg(esp32c3)]
-    let mut a2 = pins.gpio2.into_analog_atten_11db()?;
-
-    let mut powered_adc1 = adc::PoweredAdc::new(
-        peripherals.adc1,
-        adc::config::Config::new().calibration(true),
-    )?;
-
-    #[allow(unused)]
-    let cycles = loop {
-        if let Some(cycles) = *wait {
-            break cycles;
-        } else {
-            wait = mutex
-                .1
-                .wait_timeout(wait, Duration::from_secs(1))
-                .unwrap()
-                .0;
-
-            #[cfg(esp32)]
-            log::info!(
-                "Hall sensor reading: {}mV",
-                powered_adc1.read(&mut hall_sensor).unwrap()
-            );
-            log::info!(
-                "A2 sensor reading: {}mV",
-                powered_adc1.read(&mut a2).unwrap()
-            );
-        }
-    };
-
     Ok(())
 }
 
