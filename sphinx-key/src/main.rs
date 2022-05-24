@@ -23,6 +23,15 @@ use embedded_svc::storage::Storage;
 // use log::*;
 // use url;
 
+use anyhow::bail;
+
+const SSID: &str = env!("RUST_ESP32_STD_DEMO_WIFI_SSID");
+const PASS: &str = env!("RUST_ESP32_STD_DEMO_WIFI_PASS");
+
+use esp_idf_hal::prelude::*;
+use esp_idf_hal::adc;
+use embedded_hal::adc::OneShot;
+
 fn main() -> Result<()> {
     esp_idf_sys::link_patches();
     esp_idf_svc::log::EspLogger::initialize_default();
@@ -69,21 +78,57 @@ fn main() -> Result<()> {
 
     info!("Wifi configuration set, about to get status");
 
-    wifi.wait_status_with_timeout(Duration::from_secs(20), |status| !status.is_transitional())
-        .map_err(|e| anyhow::anyhow!("Unexpected Wifi status: {:?}", e))?;
+    wifi.wait_status(|status| !status.is_transitional());
 
     let status = wifi.get_status();
 
     if let Status(
-        ClientStatus::Started(ClientConnectionStatus::Connected(ClientIpStatus::Done(_ip_settings))),
-        ApStatus::Started(ApIpStatus::Done),
-    ) = status
+        ClientStatus::Started(ClientConnectionStatus::Connected(ClientIpStatus::Done(_ip_settings)))
+    , _) = status
     {
         info!("Wifi connected");
 
     } else {
         bail!("Unexpected Wifi status: {:?}", status);
     }
+
+    let peripherals = Peripherals::take().unwrap();
+    let pins = peripherals.pins;
+
+    let mutex: Arc<(Mutex<Option<u32>>, Condvar)> = Arc::new((Mutex::new(None), Condvar::new()));
+
+    let mut wait = mutex.0.lock().unwrap();
+
+    #[cfg(esp32c3)]
+    let mut a2 = pins.gpio2.into_analog_atten_11db()?;
+
+    let mut powered_adc1 = adc::PoweredAdc::new(
+        peripherals.adc1,
+        adc::config::Config::new().calibration(true),
+    )?;
+
+    #[allow(unused)]
+    let cycles = loop {
+        if let Some(cycles) = *wait {
+            break cycles;
+        } else {
+            wait = mutex
+                .1
+                .wait_timeout(wait, Duration::from_secs(1))
+                .unwrap()
+                .0;
+
+            #[cfg(esp32)]
+            log::info!(
+                "Hall sensor reading: {}mV",
+                powered_adc1.read(&mut hall_sensor).unwrap()
+            );
+            log::info!(
+                "A2 sensor reading: {}mV",
+                powered_adc1.read(&mut a2).unwrap()
+            );
+        }
+    };
 
     Ok(())
 }

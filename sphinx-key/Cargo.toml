@@ -21,7 +21,7 @@ sphinx-key-signer = { path = "../signer" }
 embedded-svc = { version = "0.21.2" }
 esp-idf-svc = "0.41"
 esp-idf-hal = "0.37"
-embedded-hal = "=1.0.0-alpha.8"
+embedded-hal = "0.2"
 anyhow = {version = "1", features = ["backtrace"]}
 log = "0.4"
 url = "2"
@@ -37,6 +37,6 @@ anyhow = "1"
 name = "clear"
 path = "src/clear.rs"
 
-[[bin]]
-name = "led"
-path = "src/led.rs"
+# [[bin]]
+# name = "led"
+# path = "src/led.rs"
