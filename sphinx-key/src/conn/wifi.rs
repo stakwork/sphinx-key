@@ -1,4 +1,4 @@
-use crate::conn::Config;
+use crate::core::config::Config;
 
 use esp_idf_svc::wifi::*;
 use esp_idf_svc::sysloop::*;
@@ -12,18 +12,18 @@ use embedded_svc::ping::Ping;
 use embedded_svc::ipv4;
 
 use log::*;
-use anyhow::bail;
 use std::time::Duration;
 use std::sync::Arc;
 use std::thread;
 
 #[allow(dead_code)]
 pub fn start_client(
-    netif_stack: Arc<EspNetifStack>,
-    sys_loop_stack: Arc<EspSysLoopStack>,
     default_nvs: Arc<EspDefaultNvs>,
     config: &Config,
 ) -> Result<Box<EspWifi>> {
+    let netif_stack = Arc::new(EspNetifStack::new()?);
+    let sys_loop_stack = Arc::new(EspSysLoopStack::new()?);
+
     let mut wifi = Box::new(EspWifi::new(netif_stack, sys_loop_stack, default_nvs)?);
     let ap_infos = wifi.scan()?;
     let ssid = config.ssid.as_str();
@@ -47,16 +47,7 @@ pub fn start_client(
         }
     ))?;
 
-    // not working
-    info!("Wifi client configuration set, about to get status");
-    match wifi.wait_status_with_timeout(Duration::from_secs(20), |status| !status.is_transitional()) {
-        Ok(_) => (),
-        Err(e) => warn!("Unexpected Wifi status: {:?}", e),
-    };
-    let status = wifi.get_status();
-    println!("=> wifi STATUS 1 {:?}", status);
-
-    info!("...Wifi client configuration set, AGAIN get status");
+    info!("...Wifi client configuration set, get status");
     match wifi.wait_status_with_timeout(Duration::from_secs(20), |status| !status.is_transitional()) {
         Ok(_) => (),
         Err(e) => warn!("Unexpected Wifi status: {:?}", e),
@@ -84,10 +75,11 @@ pub fn start_client(
 
 #[allow(dead_code)]
 pub fn start_server(
-    netif_stack: Arc<EspNetifStack>,
-    sys_loop_stack: Arc<EspSysLoopStack>,
     default_nvs: Arc<EspDefaultNvs>,
 ) -> Result<Box<EspWifi>> {
+    let netif_stack = Arc::new(EspNetifStack::new()?);
+    let sys_loop_stack = Arc::new(EspSysLoopStack::new()?);
+    
     let mut wifi = Box::new(EspWifi::new(netif_stack, sys_loop_stack, default_nvs)?);
     wifi.set_configuration(&Configuration::AccessPoint(
         AccessPointConfiguration {

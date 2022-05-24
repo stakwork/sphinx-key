@@ -1,12 +1,16 @@
-use crate::conn::{Params, Config};
 use crate::conn::html;
+use crate::core::config::Config;
 
-use url;
 use embedded_svc::httpd::*;
 use esp_idf_svc::httpd as idf;
 use std::sync::{Condvar, Mutex, Arc};
 use embedded_svc::httpd::registry::Registry;
-use esp_idf_sys::{self};
+use serde::Deserialize;
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct Params {
+    pub config: String
+}
 
 #[allow(unused_variables)]
 pub fn config_server(mutex: Arc<(Mutex<Option<Config>>, Condvar)>) -> Result<idf::Server> {
@@ -15,7 +19,7 @@ pub fn config_server(mutex: Arc<(Mutex<Option<Config>>, Condvar)>) -> Result<idf
         .at("/")
         .get(|_| Ok(html::HTML.into()))?
         .at("/config")
-        .post(move |mut request| {
+        .post(move |request| {
             let bod = &request.query_string()
                 .ok_or(anyhow::anyhow!("failed to parse query string"))?;
             println!("bod {:?}", bod);
