@@ -46,13 +46,9 @@ fn main() -> Result<()> {
     let default_nvs = Arc::new(EspDefaultNvs::new()?);
 
     let mut wifi = Box::new(EspWifi::new(netif_stack, sys_loop_stack, default_nvs)?);
-
-    info!("Wifi created, about to scan");
-
+    info!("About to scan for wifi access points");
     let ap_infos = wifi.scan()?;
-
     let ours = ap_infos.into_iter().find(|a| a.ssid == SSID);
-
     let channel = if let Some(ours) = ours {
         info!(
             "Found configured access point {} on channel {}",
@@ -66,7 +62,6 @@ fn main() -> Result<()> {
         );
         None
     };
-
     wifi.set_configuration(&Configuration::Client(
         ClientConfiguration {
             ssid: SSID.into(),
@@ -76,22 +71,42 @@ fn main() -> Result<()> {
         },
     ))?;
 
-    info!("Wifi configuration set, about to get status");
-
+    info!("Client configuration set, about to get status");
     wifi.wait_status(|status| !status.is_transitional());
+    let status = wifi.get_status();
+    if let Status(
+        ClientStatus::Started(ClientConnectionStatus::Connected(ClientIpStatus::Done(_ip_settings)))
+    , ApStatus::Stopped) = status
+    {
+        info!("Client connected");
+    }
+    else
+    {
+        bail!("Unexpected Client status: {:?}", status);
+    }
+
+    wifi.set_configuration(&Configuration::AccessPoint(
+        AccessPointConfiguration {
+            ssid: "Sphinx".into(),
+            channel: 1,
+            ..Default::default()
+        },
+    ))?;
+
+    info!("AP configuration set, about to get status");
+
+    wifi.wait_status_with_timeout(Duration::from_secs(20), |status| !status.is_transitional())
+        .map_err(|e| anyhow::anyhow!("Unexpected Wifi status: {:?}", e))?;
 
     let status = wifi.get_status();
 
-    if let Status(
-        ClientStatus::Started(ClientConnectionStatus::Connected(ClientIpStatus::Done(_ip_settings)))
-    , _) = status
+    if let Status( ClientStatus::Stopped, ApStatus::Started(ApIpStatus::Done)) = status
     {
-        info!("Wifi connected");
+        info!("AP connected");
 
     } else {
-        bail!("Unexpected Wifi status: {:?}", status);
+        bail!("Unexpected AP status: {:?}", status);
     }
 
     Ok(())
 }
-
