@@ -24,96 +24,67 @@ use embedded_svc::storage::Storage;
 // use url;
 
 fn main() -> Result<()> {
-    // Temporary. Will disappear once ESP-IDF 4.4 is released, but for now it is necessary to call this function once,
-    // or else some patches to the runtime implemented by esp-idf-sys might not link properly.
     esp_idf_sys::link_patches();
-
     esp_idf_svc::log::EspLogger::initialize_default();
 
     sphinx_key_signer::say_hi();
 
-    thread::sleep(Duration::from_secs(1));
-
-    let default_nvs = Arc::new(EspDefaultNvs::new()?);
-    // let storage = Arc::new(Mutex::new(EspNvsStorage::new_default(default_nvs.clone(), "sphinx", true).expect("NVS FAIL")));
-    let mut store = EspNvsStorage::new_default(default_nvs.clone(), "sphinx", true).expect("no storage");
-    // uncomment to clear:
-    // store.remove("config").expect("couldnt remove config 1");
-    let existing: Option<conn::Config> = store.get("config").expect("failed");
-    if let Some(exist) = existing {
-        println!("=============> START CLIENT NOW <============== {:?}", exist);
-        // store.remove("config").expect("couldnt remove config");
-        if let Err(e) = start_client(default_nvs.clone(), &exist) {
-            error!("CLIENT ERROR {:?}", e);
-        }
-    } else {
-        println!("=============> START SERVER NOW AND WAIT <==============");
-        if let Ok((mut wifi, config)) = start_server_and_wait(default_nvs.clone()) {
-            store.put("config", &config).expect("could not store config");
-            println!("CONFIG SAVED");
-            drop(wifi);
-            thread::sleep(Duration::from_secs(1));
-        }
-    }
-
-    Ok(())
-}
-
-fn start_server_and_wait(default_nvs: Arc<EspDefaultNvs>) -> Result<(Box<EspWifi>, conn::Config)> {
+    #[allow(unused)]
     let netif_stack = Arc::new(EspNetifStack::new()?);
+    #[allow(unused)]
     let sys_loop_stack = Arc::new(EspSysLoopStack::new()?);
+    #[allow(unused)]
+    let default_nvs = Arc::new(EspDefaultNvs::new()?);
 
-    let mutex = Arc::new((Mutex::new(None), Condvar::new()));
+    let mut wifi = Box::new(EspWifi::new(netif_stack, sys_loop_stack, default_nvs)?);
 
-    #[allow(clippy::redundant_clone)]
-    #[allow(unused_mut)]
-    let mut wifi = conn::wifi::start_server(
-        netif_stack.clone(),
-        sys_loop_stack.clone(),
-        default_nvs.clone(),
-    )?;
+    info!("Wifi created, about to scan");
 
-    let httpd = conn::http::config_server(mutex.clone());
-    
-    let mut wait = mutex.0.lock().unwrap();
+    let ap_infos = wifi.scan()?;
 
-    let config: &conn::Config = loop {
-        if let Some(conf) = &*wait {
-            break conf;
-        } else {
-            wait = mutex
-                .1
-                .wait_timeout(wait, Duration::from_secs(1))
-                .unwrap()
-                .0;
-        }
+    let ours = ap_infos.into_iter().find(|a| a.ssid == SSID);
+
+    let channel = if let Some(ours) = ours {
+        info!(
+            "Found configured access point {} on channel {}",
+            SSID, ours.channel
+        );
+        Some(ours.channel)
+    } else {
+        info!(
+            "Configured access point {} not found during scanning, will go with unknown channel",
+            SSID
+        );
+        None
     };
 
-    drop(httpd);
-    // drop(wifi);
-    // thread::sleep(Duration::from_secs(1));
-    println!("===> config! {:?}", config);
-    Ok((wifi, config.clone()))
-}
+    wifi.set_configuration(&Configuration::Client(
+        ClientConfiguration {
+            ssid: SSID.into(),
+            password: PASS.into(),
+            channel,
+            ..Default::default()
+        },
+    ))?;
 
-fn start_client(default_nvs: Arc<EspDefaultNvs>, config: &conn::Config)  -> Result<()> {
-    let netif_stack = Arc::new(EspNetifStack::new()?);
-    let sys_loop_stack = Arc::new(EspSysLoopStack::new()?);
+    info!("Wifi configuration set, about to get status");
 
-    let wifi = conn::wifi::start_client(
-        netif_stack.clone(),
-        sys_loop_stack.clone(),
-        default_nvs.clone(),
-        config
-    )?;
+    wifi.wait_status_with_timeout(Duration::from_secs(20), |status| !status.is_transitional())
+        .map_err(|e| anyhow::anyhow!("Unexpected Wifi status: {:?}", e))?;
 
-    println!("CLIENT CONNECTED!!!!!! {:?}", wifi.get_status());
+    let status = wifi.get_status();
 
-    let mut i = 0;
-    loop {
-        thread::sleep(Duration::from_secs(5));
-        i = i + 1;
-        println!("wait forever... {}", i);
+    if let Status(
+        ClientStatus::Started(ClientConnectionStatus::Connected(ClientIpStatus::Done(_ip_settings))),
+        ApStatus::Started(ApIpStatus::Done),
+    ) = status
+    {
+        info!("Wifi connected");
+
+    } else {
+        bail!("Unexpected Wifi status: {:?}", status);
     }
+
     Ok(())
 }
+
