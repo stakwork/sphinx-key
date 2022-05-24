@@ -15,7 +15,6 @@ use esp_idf_svc::nvs::*;
 use esp_idf_svc::nvs_storage::EspNvsStorage;
 use embedded_svc::storage::Storage;
 use embedded_svc::wifi::Wifi;
-use embedded_svc::event_bus::EventBus;
 
 fn main() -> Result<()> {
     // Temporary. Will disappear once ESP-IDF 4.4 is released, but for now it is necessary to call this function once,
@@ -35,9 +34,11 @@ fn main() -> Result<()> {
         println!("=============> START CLIENT NOW <============== {:?}", exist);
         // store.remove("config").expect("couldnt remove config");
         let wifi = start_client(default_nvs.clone(), &exist)?;
+
+        let mqtt = conn::mqtt::make_client(&exist.broker)?;
         // if the subscription goes out of scope its dropped
         // the sub needs to publish back to mqtt???
-        let (eventloop, _sub) = make_eventloop()?;
+        let (eventloop, _sub) = make_eventloop(&mqtt)?;
         let mqtt_client = conn::mqtt::mqtt_client(&exist.broker, eventloop)?;
        
         println!("{:?}", wifi.get_status());
