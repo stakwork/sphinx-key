@@ -4,6 +4,7 @@ use embedded_svc::event_bus::Postbox;
 use embedded_svc::event_bus::EventBus;
 use embedded_svc::mqtt::client::utils::ConnState;
 use embedded_svc::mqtt::client::{Client, Connection, MessageImpl, Publish, QoS};
+use embedded_svc::mqtt::client::utils::Connection as MqttConnection;
 use esp_idf_svc::mqtt::client::*;
 use anyhow::Result;
 use esp_idf_svc::eventloop::*;
@@ -11,8 +12,10 @@ use log::*;
 use std::thread;
 use esp_idf_sys::{self};
 use esp_idf_sys::EspError;
+use esp_idf_hal::mutex::Condvar;
+use std::sync::{Arc, Mutex};
 
-pub fn make_client(broker: &str) -> Result<EspMqttClient<ConnState<MessageImpl, EspError>>> {
+pub fn make_client(broker: &str) -> Result<(EspMqttClient<ConnState<MessageImpl, EspError>>, MqttConnection<Condvar, MessageImpl, EspError>)> {
     let conf = MqttClientConfiguration {
         client_id: Some("rust-esp32-std-demo-1"),
         // FIXME - mqtts
@@ -22,14 +25,15 @@ pub fn make_client(broker: &str) -> Result<EspMqttClient<ConnState<MessageImpl, 
 
     let b = format!("mqtt://{}", broker);
     println!("===> CONNECT TO {}", b);
-    let (mut client, mut connection) = EspMqttClient::new_with_conn(b, &conf)?;
-
+    // let (mut client, mut connection) = EspMqttClient::new_with_conn(b, &conf)?;
+    let cc = EspMqttClient::new_with_conn(b, &conf)?;
+// 
     info!("MQTT client started");
 
-    Ok(client)
+    Ok(cc)
 }
 
-pub fn start_listening(client: &EspMqttClient<ConnState<MessageImpl, EspError>>) -> Result<()> {
+pub fn start_listening(mqtt: Arc<Mutex<EspMqttClient<ConnState<MessageImpl, EspError>>>>, mut connection: MqttConnection<Condvar, MessageImpl, EspError>, mut eventloop: EspBackgroundEventLoop) -> Result<()> {
     // Need to immediately start pumping the connection for messages, or else subscribe() and publish() below will not work
     // Note that when using the alternative constructor - `EspMqttClient::new` - you don't need to
     // spawn a new thread, as the messages will be pumped with a backpressure into the callback you provide.
@@ -49,6 +53,8 @@ pub fn start_listening(client: &EspMqttClient<ConnState<MessageImpl, EspError>>)
 
         info!("MQTT connection loop exit");
     });
+
+    let mut client = mqtt.lock().unwrap();
 
     client.subscribe("rust-esp32-std-demo", QoS::AtMostOnce)?;
 

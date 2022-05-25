@@ -7,7 +7,7 @@ use crate::core::{events::*, config::*};
 use sphinx_key_signer;
 use esp_idf_sys as _; // If using the `binstart` feature of `esp-idf-sys`, always keep this module imported
 use std::thread;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use anyhow::Result;
 
@@ -35,11 +35,13 @@ fn main() -> Result<()> {
         // store.remove("config").expect("couldnt remove config");
         let wifi = start_client(default_nvs.clone(), &exist)?;
 
-        let mqtt = conn::mqtt::make_client(&exist.broker)?;
+        let mqtt_and_conn = conn::mqtt::make_client(&exist.broker)?;
+
+        let mqtt = Arc::new(Mutex::new(mqtt_and_conn.0));
         // if the subscription goes out of scope its dropped
         // the sub needs to publish back to mqtt???
-        let (eventloop, _sub) = make_eventloop(&mqtt)?;
-        let mqtt_client = conn::mqtt::mqtt_client(&exist.broker, eventloop)?;
+        let (eventloop, _sub) = make_eventloop(mqtt.clone())?;
+        let mqtt_client = conn::mqtt::start_listening(mqtt, mqtt_and_conn.1, eventloop)?;
        
         println!("{:?}", wifi.get_status());
         for s in 0..60 {
