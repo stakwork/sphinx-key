@@ -33,7 +33,7 @@ fn main() -> Result<()> {
     if let Some(exist) = existing {
         println!("=============> START CLIENT NOW <============== {:?}", exist);
         // store.remove("config").expect("couldnt remove config");
-        let wifi = start_client(default_nvs.clone(), &exist)?;
+        let wifi = start_wifi_client(default_nvs.clone(), &exist)?;
 
         let mqtt_and_conn = conn::mqtt::make_client(&exist.broker)?;
 
@@ -41,7 +41,7 @@ fn main() -> Result<()> {
         // if the subscription goes out of scope its dropped
         // the sub needs to publish back to mqtt???
         let (eventloop, _sub) = make_eventloop(mqtt.clone())?;
-        let mqtt_client = conn::mqtt::start_listening(mqtt, mqtt_and_conn.1, eventloop)?;
+        let _mqtt_client = conn::mqtt::start_listening(mqtt, mqtt_and_conn.1, eventloop)?;
        
         println!("{:?}", wifi.get_status());
         for s in 0..60 {
@@ -51,7 +51,7 @@ fn main() -> Result<()> {
         drop(wifi);
     } else {
         println!("=============> START SERVER NOW AND WAIT <==============");
-        if let Ok((wifi, config)) = start_server_and_wait(default_nvs.clone()) {
+        if let Ok((wifi, config)) = start_config_server_and_wait(default_nvs.clone()) {
             store.put("config", &config).expect("could not store config");
             println!("CONFIG SAVED");
             drop(wifi);

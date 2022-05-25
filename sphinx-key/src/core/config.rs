@@ -24,7 +24,7 @@ arp -a
 http://192.168.71.1/?broker=52.91.253.115%3A1883
 */
 
-pub fn start_client(default_nvs: Arc<EspDefaultNvs>, config: &Config)  -> Result<Box<EspWifi>> {
+pub fn start_wifi_client(default_nvs: Arc<EspDefaultNvs>, config: &Config)  -> Result<Box<EspWifi>> {
     let wifi = conn::wifi::start_client(
         default_nvs,
         config
@@ -33,13 +33,13 @@ pub fn start_client(default_nvs: Arc<EspDefaultNvs>, config: &Config)  -> Result
     Ok(wifi)
 }
 
-pub fn start_server_and_wait(default_nvs: Arc<EspDefaultNvs>) -> Result<(Box<EspWifi>, Config)> {
+pub fn start_config_server_and_wait(default_nvs: Arc<EspDefaultNvs>) -> Result<(Box<EspWifi>, Config)> {
 
     let mutex = Arc::new((Mutex::new(None), Condvar::new()));
 
     #[allow(clippy::redundant_clone)]
     #[allow(unused_mut)]
-    let mut wifi = conn::wifi::start_server(
+    let mut wifi = conn::wifi::start_access_point(
         default_nvs.clone(),
     )?;
 
