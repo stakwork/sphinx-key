@@ -1,4 +1,4 @@
-use crate::core::events::{Message, MSG_SIZE};
+use crate::core::events::Message;
 
 use embedded_svc::event_bus::Postbox;
 use embedded_svc::mqtt::client::utils::ConnState;
@@ -39,15 +39,6 @@ pub fn make_client(broker: &str) -> Result<(
     Ok(cc)
 }
 
-fn slice_to_arr(v: &[u8]) -> [u8; MSG_SIZE] {
-    let mut buf = [0; MSG_SIZE];
-    let l = if v.len() < MSG_SIZE { v.len() } else { MSG_SIZE };
-    for i in 0..l {
-        buf[i] = v[i]
-    }
-    buf
-}
-
 pub fn start_listening(
     mqtt: Arc<Mutex<EspMqttClient<ConnState<MessageImpl, EspError>>>>,
     mut connection: MqttConnection<Condvar, MessageImpl, EspError>, 
@@ -63,9 +54,10 @@ pub fn start_listening(
                 Err(e) => info!("MQTT Message ERROR: {}", e),
                 Ok(msg) => {
                     if let Event::Received(msg) = msg {
-                        let d = slice_to_arr(msg.data().as_ref());
-                        if let Err(e) = eventloop.post(&Message::new(d), None) {
-                            warn!("failed to post to eventloop {:?}", e);
+                        if let Ok(m) = Message::new_from_slice(&msg.data()) {
+                            if let Err(e) = eventloop.post(&m, None) {
+                                warn!("failed to post to eventloop {:?}", e);
+                            }
                         }
                         info!("MQTT Message: {:?}", msg);
                     }

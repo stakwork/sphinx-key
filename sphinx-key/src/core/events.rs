@@ -9,6 +9,7 @@ use esp_idf_svc::mqtt::client::*;
 use esp_idf_sys::EspError;
 use std::sync::{Arc, Mutex};
 use log::*;
+use std::cmp::min;
 
 pub const MSG_SIZE: usize = 256;
 
@@ -16,14 +17,30 @@ pub const MSG_SIZE: usize = 256;
 pub struct Message([u8; MSG_SIZE]);
 
 impl Message {
-    pub fn new(bytes: [u8; MSG_SIZE]) -> Self {
+    pub fn _new(bytes: [u8; MSG_SIZE]) -> Self {
         Self(bytes)
+    }
+    // the first byte is the length of the message
+    pub fn new_from_slice(src: &[u8]) -> std::result::Result<Self, anyhow::Error> {
+        if src.len() > MSG_SIZE - 1 {
+            return Err(anyhow::anyhow!("message too long"));
+        }
+        let mut dest = [0; MSG_SIZE];
+        dest[0] = src.len() as u8;
+        for i in 0..min(src.len(), MSG_SIZE) {
+            dest[i+1] = src[i];
+        }
+        Ok(Self(dest))
+    }
+    pub fn read_bytes(&self) -> Vec<u8> {
+        let l = self.0[0] as usize;
+        self.0[1..l+1].to_vec()
     }
 }
 
 impl EspTypedEventSource for Message {
     fn source() -> *const c_types::c_char {
-        b"DEMO-SERVICE\0".as_ptr() as *const _
+        b"SPHINX\0".as_ptr() as *const _
     }
 }
 
@@ -54,12 +71,14 @@ pub fn make_eventloop(client: Arc<Mutex<EspMqttClient<ConnState<MessageImpl, Esp
     info!("About to subscribe to the background event loop");
     let subscription = eventloop.subscribe(move |message: &Message| {
         info!("!!! Got message from the event loop"); //: {:?}", message.0);
+        let msg = message.read_bytes();
+        let msg_str = String::from_utf8_lossy(&msg[..]);
         match client.lock() {
             Ok(mut m_) => if let Err(err) = m_.publish(
                 RETURN_TOPIC,
                 QoS::AtMostOnce,
                 false,
-                "The processed message: ***".as_bytes(),
+                format!("The processed message: {}", msg_str).as_bytes(),
             ) {
                 log::warn!("failed to mqtt publish! {:?}", err);
             },
