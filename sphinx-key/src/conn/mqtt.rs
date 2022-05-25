@@ -1,8 +1,10 @@
 use crate::core::events::Message;
+use crate::core::util::fill_buffer;
+use crate::MSG_SIZE;
 
 use embedded_svc::event_bus::Postbox;
 use embedded_svc::mqtt::client::utils::ConnState;
-use embedded_svc::mqtt::client::{Client, Connection, MessageImpl, Publish, QoS};
+use embedded_svc::mqtt::client::{Client, Connection, Event::Received, Message as MqttMessage, MessageImpl, Publish, QoS};
 use embedded_svc::mqtt::client::utils::Connection as MqttConnection;
 use esp_idf_svc::mqtt::client::*;
 use anyhow::Result;
@@ -13,6 +15,7 @@ use esp_idf_sys::{self};
 use esp_idf_sys::EspError;
 use esp_idf_hal::mutex::Condvar;
 use std::sync::{Arc, Mutex};
+
 
 pub const TOPIC: &str = "sphinx";
 pub const RETURN_TOPIC: &str = "sphinx-return";
@@ -53,10 +56,14 @@ pub fn start_listening(
             match msg {
                 Err(e) => info!("MQTT Message ERROR: {}", e),
                 Ok(msg) => {
-                    if let Err(e) = eventloop.post(&Message::new([0; 256]), None) {
-                        warn!("failed to post to eventloop {:?}", e);
+                    if let Received(msg) = msg {
+                        let mut buffer = [0u8; MSG_SIZE];
+                        fill_buffer(&msg.data(), & mut buffer);
+                        if let Err(e) = eventloop.post(&Message::new(buffer), None) {
+                            warn!("failed to post to eventloop {:?}", e);
+                        }
+                        info!("MQTT Message: {:?}", msg);
                     }
-                    info!("MQTT Message: {:?}", msg);
                 },
             }
         }
