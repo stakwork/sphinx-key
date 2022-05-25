@@ -21,12 +21,12 @@ impl Message {
         Self(bytes)
     }
     // the first byte is the length of the message
-    pub fn new_from_slice(src: &[u8]) -> std::result::Result<Self, anyhow::Error> {
+    pub fn new_from_slice(src: &[u8]) -> Result<Self> {
         if src.len() > MSG_SIZE - 1 {
             return Err(anyhow::anyhow!("message too long"));
         }
         let mut dest = [0; MSG_SIZE];
-        dest[0] = src.len() as u8;
+        dest[0] = src.len() as u8; // this would crash if MSG_SIZE>256
         for i in 0..min(src.len(), MSG_SIZE) {
             dest[i+1] = src[i];
         }
