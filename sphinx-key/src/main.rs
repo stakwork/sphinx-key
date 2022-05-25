@@ -7,7 +7,7 @@ use crate::core::{events::*, config::*};
 use sphinx_key_signer;
 use esp_idf_sys as _; // If using the `binstart` feature of `esp-idf-sys`, always keep this module imported
 use std::thread;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use anyhow::Result;
 
@@ -15,7 +15,6 @@ use esp_idf_svc::nvs::*;
 use esp_idf_svc::nvs_storage::EspNvsStorage;
 use embedded_svc::storage::Storage;
 use embedded_svc::wifi::Wifi;
-use embedded_svc::event_bus::EventBus;
 
 fn main() -> Result<()> {
     // Temporary. Will disappear once ESP-IDF 4.4 is released, but for now it is necessary to call this function once,
@@ -34,11 +33,15 @@ fn main() -> Result<()> {
     if let Some(exist) = existing {
         println!("=============> START CLIENT NOW <============== {:?}", exist);
         // store.remove("config").expect("couldnt remove config");
-        let wifi = start_client(default_nvs.clone(), &exist)?;
+        let wifi = start_wifi_client(default_nvs.clone(), &exist)?;
+
+        let mqtt_and_conn = conn::mqtt::make_client(&exist.broker)?;
+
+        let mqtt = Arc::new(Mutex::new(mqtt_and_conn.0));
         // if the subscription goes out of scope its dropped
         // the sub needs to publish back to mqtt???
-        let (eventloop, _sub) = make_eventloop()?;
-        let mqtt_client = conn::mqtt::mqtt_client(&exist.broker, eventloop)?;
+        let (eventloop, _sub) = make_eventloop(mqtt.clone())?;
+        let _mqtt_client = conn::mqtt::start_listening(mqtt, mqtt_and_conn.1, eventloop)?;
        
         println!("{:?}", wifi.get_status());
         for s in 0..60 {
@@ -48,7 +51,7 @@ fn main() -> Result<()> {
         drop(wifi);
     } else {
         println!("=============> START SERVER NOW AND WAIT <==============");
-        if let Ok((wifi, config)) = start_server_and_wait(default_nvs.clone()) {
+        if let Ok((wifi, config)) = start_config_server_and_wait(default_nvs.clone()) {
             store.put("config", &config).expect("could not store config");
             println!("CONFIG SAVED");
             drop(wifi);

@@ -1,10 +1,16 @@
+use crate::conn::mqtt::RETURN_TOPIC;
 
 use esp_idf_svc::eventloop::*;
 use embedded_svc::httpd::Result;
 use esp_idf_sys::{self, c_types};
+use embedded_svc::mqtt::client::utils::ConnState;
+use embedded_svc::mqtt::client::{MessageImpl, Publish, QoS};
+use esp_idf_svc::mqtt::client::*;
+use esp_idf_sys::EspError;
+use std::sync::{Arc, Mutex};
 use log::*;
 
-const MSG_SIZE: usize = 256;
+pub const MSG_SIZE: usize = 256;
 
 #[derive(Copy, Clone, Debug)]
 pub struct Message([u8; MSG_SIZE]);
@@ -39,15 +45,27 @@ impl EspTypedEventDeserializer<Message> for Message {
     }
 }
 
-pub fn make_eventloop() -> Result<(EspBackgroundEventLoop, EspBackgroundSubscription)> {
+pub fn make_eventloop(client: Arc<Mutex<EspMqttClient<ConnState<MessageImpl, EspError>>>>) -> Result<(EspBackgroundEventLoop, EspBackgroundSubscription)> {
     use embedded_svc::event_bus::EventBus;
 
     info!("About to start a background event loop");
     let mut eventloop = EspBackgroundEventLoop::new(&Default::default())?;
 
     info!("About to subscribe to the background event loop");
-    let subscription = eventloop.subscribe(|message: &Message| {
+    let subscription = eventloop.subscribe(move |message: &Message| {
         info!("!!! Got message from the event loop"); //: {:?}", message.0);
+        match client.lock() {
+            Ok(mut m_) => if let Err(err) = m_.publish(
+                RETURN_TOPIC,
+                QoS::AtMostOnce,
+                false,
+                "The processed message: ***".as_bytes(),
+            ) {
+                log::warn!("failed to mqtt publish! {:?}", err);
+            },
+            Err(_) => log::warn!("failed to lock Mutex<Client>")
+        };
+        
     })?;
     // let subscription = eventloop.subscribe(cb)?;
 

@@ -16,7 +16,6 @@ use std::time::Duration;
 use std::sync::Arc;
 use std::thread;
 
-#[allow(dead_code)]
 pub fn start_client(
     default_nvs: Arc<EspDefaultNvs>,
     config: &Config,
@@ -73,8 +72,7 @@ pub fn start_client(
     Ok(wifi)
 }
 
-#[allow(dead_code)]
-pub fn start_server(
+pub fn start_access_point(
     default_nvs: Arc<EspDefaultNvs>,
 ) -> Result<Box<EspWifi>> {
     let netif_stack = Arc::new(EspNetifStack::new()?);
