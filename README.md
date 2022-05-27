@@ -46,3 +46,15 @@ espmonitor /dev/tty.usbserial-1420
 
 espflash target/riscv32imc-esp-espidf/debug/clear
 espmonitor /dev/tty.usbserial-1420
+
+### cargo generate esp-rs
+
+cargo generate --git https://github.com/esp-rs/esp-idf-template cargo
+
+std support: true
+
+v4.4
+
+esp32c3
+
+nightly

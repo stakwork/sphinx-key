@@ -4,3 +4,4 @@ target
 Cargo.lock
 .DS_Store
 sphinx-key/Cargo.lock
+notes.md
