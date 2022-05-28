@@ -1,21 +1,17 @@
 [build]
 target = "riscv32imc-esp-espidf"
 
-[target.xtensa-esp32-espidf]
-linker = "ldproxy"
-
-[target.xtensa-esp32s2-espidf]
-linker = "ldproxy"
-
-[target.xtensa-esp32s3-espidf]
-linker = "ldproxy"
-
 [target.riscv32imc-esp-espidf]
 linker = "ldproxy"
 
 # Future - necessary for the experimental "native build" of esp-idf-sys with ESP32C3
 # See also https://github.com/ivmarkov/embuild/issues/16
 rustflags = ["-C", "default-linker-libraries"]
+
+# [target.riscv32imc-esp-espidf.rustsecp256k1_v0_5_0]
+# linker = "/Users/evanfeenstra/code/sphinx-key/sphinx-key/signer/.embuild/espressif/tools/riscv32-esp-elf/esp-2021r2-patch3-8.4.0/riscv32-esp-elf/bin/riscv32-esp-elf-gcc"
+# rustc-link-search = ["/Users/evanfeenstra/code/sphinx-key/rust-secp256k1/target/riscv32imc-esp-espidf/debug/libsecp256k1_sys.rlib"]
+# rustc-link-lib = ["rustsecp256k1_v0_5_0"]
 
 [unstable]
 

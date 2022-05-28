@@ -17,7 +17,8 @@ pio = ["esp-idf-sys/pio"]
 
 [dependencies]
 esp-idf-sys = { version = "0.31.5", features = ["binstart"] }
-vls-protocol-signer = { path = "../../validating-lightning-signer/vls-protocol-signer", default-features = false, features = ["secp-lowmemory"] }
+# vls-protocol-signer = { path = "../../validating-lightning-signer/vls-protocol-signer", features = ["secp-lowmemory"] }
+secp256k1-sys = { path = "../../rust-secp256k1/secp256k1-sys" }
 
 [build-dependencies]
 embuild = "0.29"
