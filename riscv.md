@@ -16,6 +16,8 @@ git checkout 50b7c256377494d942826705a1275055e6f93925
 cd secp256k1-sys
 ```
 
+Put the toolchain and config files in BOTH the secp256k1 parent dir, and the secp256k1-sys child dir.
+
 rust-toolchain.toml:
 ```yaml
 [toolchain]
