@@ -24,6 +24,8 @@ pub fn make_client(broker: &str) -> Result<(
 )> {
     let conf = MqttClientConfiguration {
         client_id: Some(CLIENT_ID),
+        buffer_size: 2048,
+        task_stack: 12288,
         // FIXME - mqtts
         // crt_bundle_attach: Some(esp_idf_sys::esp_crt_bundle_attach),
         ..Default::default()
@@ -54,12 +56,12 @@ pub fn start_listening(
                 Err(e) => info!("MQTT Message ERROR: {}", e),
                 Ok(msg) => {
                     if let Event::Received(msg) = msg {
+                        info!("MQTT MESSAGE RECEIVED!");
                         if let Ok(m) = Message::new_from_slice(&msg.data()) {
                             if let Err(e) = eventloop.post(&m, None) {
                                 warn!("failed to post to eventloop {:?}", e);
                             }
                         }
-                        info!("MQTT Message: {:?}", msg);
                     }
                 },
             }

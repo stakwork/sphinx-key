@@ -12,14 +12,12 @@ opt-level = "s"
 debug = true # Symbols are nice and they don't increase the size on Flash
 opt-level = "z"
 
-[features]
-pio = ["esp-idf-sys/pio"]
-
 [dependencies]
-esp-idf-sys = { version = "0.31.5", features = ["binstart"] }
-vls-protocol-signer = { path = "../../validating-lightning-signer/vls-protocol-signer", features = ["secp-lowmemory"] }
-# secp256k1-sys = { path = "../../rust-secp256k1/secp256k1-sys" }
+vls-protocol-signer = { path = "../../validating-lightning-signer/vls-protocol-signer", default-features = false, features = ["secp-lowmemory", "vls-std"] }
+anyhow = {version = "1", features = ["backtrace"]}
+log = "0.4"
 
-[build-dependencies]
-embuild = "0.29"
-anyhow = "1"
+[patch.crates-io]
+# Low-memory version of secp256k1 with static precomputation
+secp256k1 = { git = "https://github.com/devrandom/rust-secp256k1.git", rev = "4e745ebe7e4c9cd0a7e9c8d5c42e989522e52f71" }
+

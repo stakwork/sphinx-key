@@ -1,6 +1,0 @@
-[package]
-name = "sphinx-key-signer"
-version = "0.1.0"
-authors = ["Evan Feenstra <evanfeenstra@gmail.com>"]
-edition = "2018"
-resolver = "2"

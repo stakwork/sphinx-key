@@ -36,6 +36,9 @@ impl Message {
         let l = self.0[0] as usize;
         self.0[1..l+1].to_vec()
     }
+    pub fn read_string(&self) -> String {
+        String::from_utf8_lossy(&self.0).to_string()
+    }
 }
 
 impl EspTypedEventSource for Message {
@@ -66,13 +69,18 @@ pub fn make_eventloop(client: Arc<Mutex<EspMqttClient<ConnState<MessageImpl, Esp
     use embedded_svc::event_bus::EventBus;
 
     info!("About to start a background event loop");
-    let mut eventloop = EspBackgroundEventLoop::new(&Default::default())?;
+    let mut eventloop = EspBackgroundEventLoop::new(
+        &BackgroundLoopConfiguration {
+            task_stack_size: 8192,
+            .. Default::default()
+        },
+    )?;
 
     info!("About to subscribe to the background event loop");
     let subscription = eventloop.subscribe(move |message: &Message| {
         info!("!!! Got message from the event loop"); //: {:?}", message.0);
-        let msg = message.read_bytes();
-        let msg_str = String::from_utf8_lossy(&msg[..]);
+        let msg_str = message.read_string();
+        // let msg_str = String::from_utf8_lossy(&msg[..]);
         match client.lock() {
             Ok(mut m_) => if let Err(err) = m_.publish(
                 RETURN_TOPIC,
