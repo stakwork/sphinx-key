@@ -1,8 +1,10 @@
-
+#![feature(once_cell)]
 mod conn;
 mod core;
+mod periph;
 
 use crate::core::{events::*, config::*};
+use crate::periph::led::Led;
 
 use sphinx_key_signer;
 use esp_idf_sys as _; // If using the `binstart` feature of `esp-idf-sys`, always keep this module imported
@@ -42,10 +44,12 @@ fn main() -> Result<()> {
         // the sub needs to publish back to mqtt???
         let (eventloop, _sub) = make_eventloop(mqtt.clone())?;
         let _mqtt_client = conn::mqtt::start_listening(mqtt, mqtt_and_conn.1, eventloop)?;
+        let mut blue = Led::new(0x000001, 100);
        
         println!("{:?}", wifi.get_status());
-        for s in 0..60 {
-            log::info!("Shutting down in {} secs", 60 - s);
+        loop {
+            log::info!("Listening...");
+            blue.blink();
             thread::sleep(Duration::from_secs(1));
         }
         drop(wifi);

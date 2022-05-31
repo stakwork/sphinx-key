@@ -36,7 +36,3 @@ anyhow = "1"
 [[bin]]
 name = "clear"
 path = "src/clear.rs"
-
-[[bin]]
-name = "led"
-path = "src/led.rs"

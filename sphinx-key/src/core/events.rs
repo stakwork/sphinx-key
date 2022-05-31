@@ -1,4 +1,5 @@
 use crate::conn::mqtt::RETURN_TOPIC;
+use crate::periph::led::Led;
 
 use esp_idf_svc::eventloop::*;
 use embedded_svc::httpd::Result;
@@ -75,10 +76,12 @@ pub fn make_eventloop(client: Arc<Mutex<EspMqttClient<ConnState<MessageImpl, Esp
             .. Default::default()
         },
     )?;
+    let mut green = Led::new(0x000100, 10);
 
     info!("About to subscribe to the background event loop");
     let subscription = eventloop.subscribe(move |message: &Message| {
         info!("!!! Got message from the event loop"); //: {:?}", message.0);
+        green.blink();
         let msg_str = message.read_string();
         // let msg_str = String::from_utf8_lossy(&msg[..]);
         match client.lock() {
