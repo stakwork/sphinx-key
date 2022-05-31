@@ -49,12 +49,37 @@ espmonitor /dev/tty.usbserial-1420
 
 ### cargo generate esp-rs
 
-cargo generate --git https://github.com/esp-rs/esp-idf-template cargo
+`cargo generate --git https://github.com/esp-rs/esp-idf-template cargo`
 
+```
 std support: true
-
 v4.4
-
 esp32c3
-
 nightly
+```
+
+`cargo build`
+
+### build with CC option
+
+In this new esp-rs repo, find the path to your `riscv32-esp-elf-gcc` binary within the `.embuild` dir:
+
+`export CC=/Users/evanfeenstra/code/sphinx-key/sphinx-key/signer/.embuild/espressif/tools/riscv32-esp-elf/esp-2021r2-patch3-8.4.0/riscv32-esp-elf/bin/riscv32-esp-elf-gcc`
+
+### get std features of vls:
+
+Download a local copy of the `validating-lightning-signer` repo in the parent directory of this repo.
+
+`git clone https://gitlab.com/lightning-signer/validating-lightning-signer.git`
+
+in validating-lightning-signer/vls-protocol-signer/Cargo.toml `[features]`
+
+add: `vls-std = ["vls-protocol/std"]`
+
+### build sphinx-key
+
+then in the sphinx-key dir, with the CC variable set as above:
+
+`cargo build`
+
+and flash using the instructions further above
