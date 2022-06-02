@@ -104,8 +104,10 @@
   <script src="https://unpkg.com/paho-mqtt@1.1.0"></script>
   <script src="https://unpkg.com/vue@2.5.9"></script>
   <script>
-    const IP = '52.91.253.115'
-    const PORT = 1888
+    const params = getParams()
+    const IP = params.ip || '52.91.253.115'
+    const PORT = params.port || 1888
+    console.log(IP, PORT)
     var app = new Vue({
       el: '#app',
       created() {
@@ -196,6 +198,14 @@
         connected() { return this.connection.state == 'connected'; },
       }
     });
+    function getParams() {
+      const ps = new URLSearchParams(window.location.search);
+      const r = {};
+      for (const [k, v] of ps) {
+        r[k] = v;
+      }
+      return r;
+    }
   </script>
 </body>
 
