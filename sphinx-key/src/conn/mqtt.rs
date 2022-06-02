@@ -78,7 +78,7 @@ pub fn start_listening(
     client.subscribe(TOPIC, QoS::AtMostOnce)?;
 
     client.publish(
-        TOPIC,
+        RETURN_TOPIC,
         QoS::AtMostOnce,
         false,
         format!("Hello from {}!", CLIENT_ID).as_bytes(),
