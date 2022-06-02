@@ -24,7 +24,7 @@ fn main() {
     rt.build().unwrap().block_on(async {
         let (msg_tx, mut msg_rx): (mpsc::UnboundedSender<Vec<u8>>, mpsc::UnboundedReceiver<Vec<u8>>) = mpsc::unbounded_channel();
         let (mut tx, mut rx) = builder.connect("localclient", 200).await.unwrap();
-        tx.subscribe([SUB_TOPIC, TRIGGER_TOPIC]).await.unwrap();
+        tx.subscribe([TRIGGER_TOPIC]).await.unwrap();
 
         let console_task = tokio::spawn(console);
 
