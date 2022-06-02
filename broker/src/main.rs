@@ -1,9 +1,7 @@
-mod msg;
-
+use sphinx_key_parser::MsgDriver;
 use librumqttd::{async_locallink::construct_broker, Config};
 use std::thread;
-use tokio::time::{sleep, Duration};
-use vls_protocol::msgs::{self, Message};
+use vls_protocol::msgs;
 use vls_protocol::serde_bolt::WireString;
 use tokio::sync::mpsc;
 
@@ -31,10 +29,9 @@ fn main() {
         let console_task = tokio::spawn(console);
 
         let pub_task = tokio::spawn(async move {
-
             while let Some(_) = msg_rx.recv().await {
                 let sequence = 0;
-                let mut md = msg::MsgDriver::new_empty(); 
+                let mut md = MsgDriver::new_empty(); 
                 msgs::write_serial_request_header(&mut md, sequence, 0).expect("failed to write_serial_request_header");
                 let ping = msgs::Ping {
                     id: 0,

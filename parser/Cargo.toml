@@ -1,0 +1,12 @@
+[package]
+name = "sphinx-key-parser"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+vls-protocol = { path = "../../validating-lightning-signer/vls-protocol" }
+
+[features]
+default = ["std"]
+std = ["vls-protocol/std"]
+

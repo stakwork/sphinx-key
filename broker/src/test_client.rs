@@ -1,8 +1,11 @@
-use tokio::{task, time};
 
+use sphinx_key_parser::MsgDriver;
+
+use tokio::{task, time};
 use rumqttc::{self, AsyncClient, MqttOptions, QoS, Event, Packet};
 use std::error::Error;
 use std::time::Duration;
+use vls_protocol::msgs;
 
 #[tokio::main(worker_threads = 1)]
 async fn main() -> Result<(), Box<dyn Error>> {
@@ -24,9 +27,16 @@ async fn main() -> Result<(), Box<dyn Error>> {
         // println!("{:?}", event.unwrap());
         if let Event::Incoming(packet) = event.unwrap() {
             if let Packet::Publish(p) = packet {
-                println!("incoming {:?}", p.payload);
+                // println!("incoming {:?}", p.payload);
+                let mut m = MsgDriver::new(p.payload.to_vec());
+                let (sequence, dbid) = msgs::read_serial_request_header(&mut m).expect("read ping header");
+                assert_eq!(dbid, 0);
+                assert_eq!(sequence, 0);
+                let ping: msgs::Ping =
+                    msgs::read_message(&mut m).expect("failed to read ping message");
+                println!("INCOMING: {:?}", ping);
             }
-        } 
+        }
     }
 }
 

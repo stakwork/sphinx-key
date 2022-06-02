@@ -1,0 +1,11 @@
+[workspace]
+
+members = [
+    "signer",
+    "broker",
+    "parser"
+]
+
+exclude = [
+    "sphinx-key",
+]

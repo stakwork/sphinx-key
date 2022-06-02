@@ -17,6 +17,8 @@ use std::sync::{Arc, Mutex};
 pub const TOPIC: &str = "sphinx";
 pub const RETURN_TOPIC: &str = "sphinx-return";
 pub const CLIENT_ID: &str = "sphinx-1";
+pub const USERNAME: &str = "sphinx-key";
+pub const PASSWORD: &str = "sphinx-key-pass";
 
 pub fn make_client(broker: &str) -> Result<(
     EspMqttClient<ConnState<MessageImpl, EspError>>, 
@@ -26,6 +28,8 @@ pub fn make_client(broker: &str) -> Result<(
         client_id: Some(CLIENT_ID),
         buffer_size: 2048,
         task_stack: 12288,
+        username: Some(USERNAME),
+        password: Some(PASSWORD),
         // FIXME - mqtts
         // crt_bundle_attach: Some(esp_idf_sys::esp_crt_bundle_attach),
         ..Default::default()
