@@ -3,7 +3,8 @@
 members = [
     "signer",
     "broker",
-    "parser"
+    "parser",
+    "tester"
 ]
 
 exclude = [

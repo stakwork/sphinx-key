@@ -1,0 +1,16 @@
+[package]
+name = "sphinx-key-tester"
+version = "0.1.0"
+authors = ["Evan Feenstra <evanfeenstra@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+sphinx-key-signer = { path = "../signer" }
+sphinx-key-parser = { path = "../parser" }
+vls-protocol = { path = "../../validating-lightning-signer/vls-protocol" }
+vls-protocol-signer = { path = "../../validating-lightning-signer/vls-protocol-signer", default-features = false, features = ["secp-lowmemory", "vls-std"] }
+anyhow = {version = "1", features = ["backtrace"]}
+log = "0.4"
+rumqttc = "0.12.0"
+tokio = { version = "1.4.0", features = ["rt", "rt-multi-thread", "macros"] }
+pretty_env_logger = "0.4.0"
