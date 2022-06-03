@@ -9,13 +9,17 @@ default-run = "sphinx-key-broker"
 rumqttd = "0.11.0"
 pretty_env_logger = "0.4.0"
 confy = "0.4.0"
-tokio = "1.18"
+tokio = { version = "1.4.0", features = ["rt", "rt-multi-thread", "macros"] }
 vls-protocol = { path = "../../validating-lightning-signer/vls-protocol" }
+vls-proxy = { path = "../../validating-lightning-signer/vls-proxy" }
 sphinx-key-parser = { path = "../parser" }
 secp256k1 = { version = "0.20", features = ["rand-std", "bitcoin_hashes"] }
 anyhow = {version = "1", features = ["backtrace"]}
 log = "0.4"
+fern = { version = "0.6", features = ["colored"] }
 rumqttc = "0.12.0"
+clap = "=3.0.0-beta.2"
+clap_derive = "=3.0.0-beta.5"
 
 [features]
 default = ["std"]

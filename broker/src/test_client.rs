@@ -27,7 +27,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
         // println!("{:?}", event.unwrap());
         if let Event::Incoming(packet) = event.unwrap() {
             if let Packet::Publish(p) = packet {
-                // println!("incoming {:?}", p.payload);
                 let mut m = MsgDriver::new(p.payload.to_vec());
                 let (sequence, dbid) = msgs::read_serial_request_header(&mut m).expect("read ping header");
                 assert_eq!(dbid, 0);

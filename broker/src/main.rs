@@ -1,68 +1,68 @@
-use sphinx_key_parser::MsgDriver;
-use librumqttd::{async_locallink::construct_broker, Config};
-use std::thread;
-use vls_protocol::msgs;
-use vls_protocol::serde_bolt::WireString;
-use tokio::sync::mpsc;
+mod mqtt;
+mod run_test;
+mod unix_fd;
 
-const SUB_TOPIC: &str = "sphinx-return";
-const TRIGGER_TOPIC: &str = "trigger";
-const PUB_TOPIC: &str = "sphinx";
+use crate::unix_fd::SignerLoop;
+use clap::{App, AppSettings, Arg};
+use crate::mqtt::start_broker;
+use std::env;
+use tokio::sync::{mpsc, oneshot};
+use vls_proxy::client::UnixClient;
+use vls_proxy::connection::{open_parent_fd, UnixConnection};
+use vls_proxy::util::setup_logging;
 
-fn main() {
-    pretty_env_logger::init();
-    let config: Config = confy::load_path("config/rumqttd.conf").unwrap();
-
-    let (mut router, console, servers, builder) = construct_broker(config);
-
-    thread::spawn(move || {
-        router.start().unwrap();
-    });
-
-    let mut rt = tokio::runtime::Builder::new_multi_thread();
-    rt.enable_all();
-    rt.build().unwrap().block_on(async {
-        let (msg_tx, mut msg_rx): (mpsc::UnboundedSender<Vec<u8>>, mpsc::UnboundedReceiver<Vec<u8>>) = mpsc::unbounded_channel();
-        let (mut tx, mut rx) = builder.connect("localclient", 200).await.unwrap();
-        tx.subscribe([TRIGGER_TOPIC]).await.unwrap();
-
-        let console_task = tokio::spawn(console);
-
-        let pub_task = tokio::spawn(async move {
-            while let Some(_) = msg_rx.recv().await {
-                let sequence = 0;
-                let mut md = MsgDriver::new_empty(); 
-                msgs::write_serial_request_header(&mut md, sequence, 0).expect("failed to write_serial_request_header");
-                let ping = msgs::Ping {
-                    id: 0,
-                    message: WireString("ping".as_bytes().to_vec()),
-                };
-                msgs::write(&mut md, ping).expect("failed to serial write");
-                tx.publish(PUB_TOPIC, false, md.bytes()).await.unwrap();
-            }
-        });
-
-        let sub_task = tokio::spawn(async move {
-            loop {
-                let message = rx.recv().await.unwrap();
-                // println!("T = {}, P = {:?}", message.topic, message.payload.len());
-                // println!("count {}", message.payload.len());
-                for payload in message.payload {
-                    if let Err(e) = msg_tx.send(payload.to_vec()) {
-                        println!("pub err {:?}", e);
-                    }
-                }
-            }
-        });
-
-        servers.await;
-        println!("server awaited");
-        pub_task.await.unwrap();
-        println!("pub awaited");
-        sub_task.await.unwrap();
-        println!("sub awaited");
-        console_task.await.unwrap();
-    });
+pub struct Channel {
+    pub sequence: u16,
+    pub sender: mpsc::Sender<ChannelRequest>,
 }
 
+/// Responses are received on the oneshot sender
+pub struct ChannelRequest {
+    pub message: Vec<u8>,
+    pub reply_tx: oneshot::Sender<ChannelReply>,
+}
 
+// mpsc reply
+pub struct ChannelReply {
+    pub reply: Vec<u8>,
+}
+
+fn main() -> anyhow::Result<()> {
+    let parent_fd = open_parent_fd();
+
+    setup_logging("hsmd  ", "info");
+    let app = App::new("signer")
+        .setting(AppSettings::NoAutoVersion)
+        .about("CLN:mqtt - connects to an embedded VLS over a MQTT connection")
+        .arg(
+            Arg::new("--dev-disconnect")
+                .about("ignored dev flag")
+                .long("dev-disconnect")
+                .takes_value(true),
+        )
+        .arg(Arg::from("--log-io ignored dev flag"))
+        .arg(Arg::from("--version show a dummy version"))
+        .arg(Arg::from("--test run a test against the embedded device"));
+    let matches = app.get_matches();
+    if matches.is_present("version") {
+        // Pretend to be the right version, given to us by an env var
+        let version =
+            env::var("GREENLIGHT_VERSION").expect("set GREENLIGHT_VERSION to match c-lightning");
+        println!("{}", version);
+        return Ok(());
+    }
+
+    if matches.is_present("test") {
+        run_test::run_test();
+    } else {
+        let (tx, rx) = mpsc::channel(1000);
+        let _runtime = start_broker(true, rx);
+        // listen to reqs from CLN
+        let conn = UnixConnection::new(parent_fd);
+        let client = UnixClient::new(conn);
+        let mut signer_loop = SignerLoop::new(client, tx);
+        signer_loop.start();
+    }
+
+    Ok(())
+}
