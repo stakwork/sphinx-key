@@ -1,35 +1,40 @@
 ```
-                            POWER UP ───────────────────────────────────────── SOLID RED
-                                 │
-                                 │
-                                 │
-                                 ▼
-    ┌──────────────────────►SERVING WIFI AP  ───────────────────────────────── YELLOW BLINK
-    │                            │
-    │                            │
-    │                            │
-    │                            ▼
-    │                       CONNECTION RECEIVED ────────────────────────────── YELLOW SOLID
-    │                            │
-    │                            │
-    │                            │
-    │                            ▼
-FAILED TO CONNECT           GOT THE CREDENTIALS, KEYS    ───────────────────── ORANGE BLINK
-TO WIFI                     ATTEMPTING TO CONNECT TO WIFI
-    ▲                            │
-    └────────────────────────────┤
-                                 │
-                                 ▼
-FAILED TO CONNECT MQT──────►CONNECTING TO MQTT BROKER ──────────────────────── VIOLET BLINK
-    ▲                            │
-    └────────────────────────────┤
-                                 │
-                                 ▼
-                            CONNECTED TO MQTT BROKER, ──────────────────────── BLUE BLINK
-                            LISTENING TO MESSAGES
-                                 │
-                                 │
-                                 │
-                                 ▼
-                            SIGNED A MESSAGE ───────────────────────────────── GREEN BLINK
+                               POWER UP ────────────────────────── SOLID RED
+                                    │
+                                    ▼
+                      YES  ┌───────────────────┐
+                     ┌─────┤NVS GOT WIFI, KEYS?│
+                     │     └────────┬──────────┘
+                     │              │NO
+                     │              │
+                     │              ▼
+    ┌─► RESET ─────► │         SERVING WIFI AP  ────────────────── YELLOW BLINK
+    │   WIFI         │              │
+    │                │              │
+    │                │              │
+    │                │              ▼
+    │                │         CONNECTION RECEIVED ─────────────── YELLOW SOLID
+    │                │              │
+    │                │              │
+    │                │              │
+    │                │              ▼
+    │                └───────► GOT THE CREDENTIALS, KEYS    ────── ORANGE BLINK
+    │                          ATTEMPTING TO CONNECT TO WIFI
+    │                               │
+    │BUTTON PRESS                   │
+    │                               │
+    │                               ▼
+┌───┴────────────────┬────►    WIFI CONNECTED,
+│WIFI CONNECTIOW DOWN│         CONNECTING TO MQTT BROKER ───────── VIOLET BLINK
+│        ==          │              │
+│  SLOW BLINK RED    │              │
+└────────────────────┘              │
+                                    ▼
+┌─────────────────────┬───►    CONNECTED TO MQTT BROKER, ───────── BLUE BLINK
+│ MQTT CONNECTION DOWN│        LISTENING TO MESSAGES
+│        ==           │             │
+│   FAST BLINK RED    │             │
+└─────────────────────┘             │
+                                    ▼
+                               SIGNED A MESSAGE ────────────────── GREEN BLINK
 ```
