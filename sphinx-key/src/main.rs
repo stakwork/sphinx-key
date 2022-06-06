@@ -6,10 +6,9 @@ mod periph;
 use crate::core::{events::*, config::*};
 use crate::periph::led::Led;
 
-use sphinx_key_signer;
 use esp_idf_sys as _; // If using the `binstart` feature of `esp-idf-sys`, always keep this module imported
 use std::thread;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, mpsc};
 use std::time::Duration;
 use anyhow::Result;
 
@@ -25,8 +24,6 @@ fn main() -> Result<()> {
 
     esp_idf_svc::log::EspLogger::initialize_default();
 
-    sphinx_key_signer::say_hi();
-
     thread::sleep(Duration::from_secs(1));
 
     let default_nvs = Arc::new(EspDefaultNvs::new()?);
@@ -37,22 +34,23 @@ fn main() -> Result<()> {
         // store.remove("config").expect("couldnt remove config");
         let wifi = start_wifi_client(default_nvs.clone(), &exist)?;
 
-        let mqtt_and_conn = conn::mqtt::make_client(&exist.broker)?;
-
-        let mqtt = Arc::new(Mutex::new(mqtt_and_conn.0));
-        // if the subscription goes out of scope its dropped
-        // the sub needs to publish back to mqtt???
-        let (eventloop, _sub) = make_eventloop(mqtt.clone())?;
-        let _mqtt_client = conn::mqtt::start_listening(mqtt, mqtt_and_conn.1, eventloop)?;
+        let (tx, rx) = mpsc::channel();
+        // _conn needs to stay in scope or its dropped
+        let (mqtt, connection) = conn::mqtt::make_client(&exist.broker)?;
+        let mqtt_client = conn::mqtt::start_listening(mqtt, connection, tx)?;
+        
+        // this blocks forever... the "main thread"
+        log::info!(">>>>>>>>>>> blocking forever...");
+        make_test_event_loop(mqtt_client, rx)?;
+        
         let mut blue = Led::new(0x000001, 100);
-       
         println!("{:?}", wifi.get_status());
         loop {
             log::info!("Listening...");
             blue.blink();
             thread::sleep(Duration::from_secs(1));
         }
-        drop(wifi);
+        // drop(wifi);
     } else {
         println!("=============> START SERVER NOW AND WAIT <==============");
         if let Ok((wifi, config)) = start_config_server_and_wait(default_nvs.clone()) {

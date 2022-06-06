@@ -1,23 +1,70 @@
-use sphinx_key_parser::MsgDriver;
 use lightning_signer::persist::{DummyPersister, Persist};
 use lightning_signer::Arc;
-use vls_protocol::model::PubKey;
-use vls_protocol::msgs;
+use sphinx_key_parser::MsgDriver;
+use vls_protocol::msgs::{self, read_serial_request_header, write_serial_response_header, Message};
 use vls_protocol::serde_bolt::WireString;
-use vls_protocol_signer::handler::{Handler, RootHandler};
 use vls_protocol_signer::lightning_signer;
 use vls_protocol_signer::vls_protocol;
 
-pub fn parse_ping(msg_bytes: Vec<u8>) -> msgs::Ping {
-    let mut m = MsgDriver::new(msg_bytes);
-    let (sequence, dbid) = msgs::read_serial_request_header(&mut m).expect("read ping header");
-    let ping: msgs::Ping =
-        msgs::read_message(&mut m).expect("failed to read ping message");
-    ping
+pub use vls_protocol_signer::handler::{Handler, RootHandler};
+
+pub struct InitResponse {
+    pub root_handler: RootHandler,
+    pub init_reply: Vec<u8>,
 }
 
-pub fn say_hi() {
+pub fn init(bytes: Vec<u8>) -> anyhow::Result<InitResponse> {
     let persister: Arc<dyn Persist> = Arc::new(DummyPersister);
+    let mut md = MsgDriver::new(bytes);
+    let (sequence, dbid) = read_serial_request_header(&mut md).expect("read init header");
+    assert_eq!(dbid, 0);
+    assert_eq!(sequence, 0);
+    let init: msgs::HsmdInit2 = msgs::read_message(&mut md).expect("failed to read init message");
+    log::info!("init {:?}", init);
+    let allowlist = init
+        .dev_allowlist
+        .iter()
+        .map(|s| from_wire_string(s))
+        .collect::<Vec<_>>();
+    let seed = init.dev_seed.as_ref().map(|s| s.0).expect("no seed");
+    let root_handler = RootHandler::new(0, Some(seed), persister, allowlist);
+    let init_reply = root_handler
+        .handle(Message::HsmdInit2(init))
+        .expect("handle init");
+    let mut reply = MsgDriver::new_empty();
+    write_serial_response_header(&mut reply, sequence).expect("write init header");
+    msgs::write_vec(&mut reply, init_reply.as_vec()).expect("write init reply");
+    Ok(InitResponse {
+        root_handler,
+        init_reply: reply.bytes(),
+    })
+}
 
-    println!("Hello, world!");
+pub fn handle(_root_handler: &RootHandler, _bytes: Vec<u8>) -> anyhow::Result<Vec<u8>> {
+    Ok(Vec::new())
+}
+
+pub fn parse_ping_and_form_response(msg_bytes: Vec<u8>) -> Vec<u8> {
+    let mut m = MsgDriver::new(msg_bytes);
+    let (sequence, _dbid) = msgs::read_serial_request_header(&mut m).expect("read ping header");
+    let ping: msgs::Ping = msgs::read_message(&mut m).expect("failed to read ping message");
+    let mut md = MsgDriver::new_empty();
+    msgs::write_serial_response_header(&mut md, sequence)
+        .expect("failed to write_serial_request_header");
+    let pong = msgs::Pong {
+        id: ping.id,
+        message: ping.message,
+    };
+    msgs::write(&mut md, pong).expect("failed to serial write");
+    md.bytes()
+}
+
+// pub fn say_hi() {
+//     let persister: Arc<dyn Persist> = Arc::new(DummyPersister);
+
+//     println!("Hello, world!");
+// }
+
+fn from_wire_string(s: &WireString) -> String {
+    String::from_utf8(s.0.to_vec()).expect("malformed string")
 }

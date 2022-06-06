@@ -22,6 +22,9 @@ pub struct Config {
 arp -a
 
 http://192.168.71.1/?broker=52.91.253.115%3A1883
+
+http://192.168.71.1/?broker=192.168.86.222%3A1883
+
 */
 
 pub fn start_wifi_client(default_nvs: Arc<EspDefaultNvs>, config: &Config)  -> Result<Box<EspWifi>> {
