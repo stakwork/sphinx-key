@@ -6,6 +6,7 @@ use vls_protocol::serde_bolt::WireString;
 use vls_protocol_signer::lightning_signer;
 use vls_protocol_signer::vls_protocol;
 
+pub use vls_protocol::model::PubKey;
 pub use vls_protocol_signer::handler::{Handler, RootHandler};
 
 pub struct InitResponse {
@@ -40,8 +41,34 @@ pub fn init(bytes: Vec<u8>) -> anyhow::Result<InitResponse> {
     })
 }
 
-pub fn handle(_root_handler: &RootHandler, _bytes: Vec<u8>) -> anyhow::Result<Vec<u8>> {
-    Ok(Vec::new())
+pub fn handle(
+    root_handler: &RootHandler,
+    bytes: Vec<u8>,
+    dummy_peer: PubKey,
+) -> anyhow::Result<Vec<u8>> {
+    let mut md = MsgDriver::new(bytes);
+    let (sequence, dbid) = read_serial_request_header(&mut md).expect("read request header");
+    let mut message = msgs::read(&mut md).expect("message read failed");
+
+    // Override the peerid when it is passed in certain messages
+    match message {
+        Message::NewChannel(ref mut m) => m.node_id = dummy_peer.clone(),
+        Message::ClientHsmFd(ref mut m) => m.peer_id = dummy_peer.clone(),
+        Message::GetChannelBasepoints(ref mut m) => m.node_id = dummy_peer.clone(),
+        Message::SignCommitmentTx(ref mut m) => m.peer_id = dummy_peer.clone(),
+        _ => {}
+    };
+
+    let reply = if dbid > 0 {
+        let handler = root_handler.for_new_client(0, dummy_peer.clone(), dbid);
+        handler.handle(message).expect("handle")
+    } else {
+        root_handler.handle(message).expect("handle")
+    };
+    let mut out_md = MsgDriver::new_empty();
+    write_serial_response_header(&mut out_md, sequence).expect("write reply header");
+    msgs::write_vec(&mut out_md, reply.as_vec()).expect("write reply");
+    Ok(out_md.bytes())
 }
 
 pub fn parse_ping_and_form_response(msg_bytes: Vec<u8>) -> Vec<u8> {
@@ -58,12 +85,6 @@ pub fn parse_ping_and_form_response(msg_bytes: Vec<u8>) -> Vec<u8> {
     msgs::write(&mut md, pong).expect("failed to serial write");
     md.bytes()
 }
-
-// pub fn say_hi() {
-//     let persister: Arc<dyn Persist> = Arc::new(DummyPersister);
-
-//     println!("Hello, world!");
-// }
 
 fn from_wire_string(s: &WireString) -> String {
     String::from_utf8(s.0.to_vec()).expect("malformed string")

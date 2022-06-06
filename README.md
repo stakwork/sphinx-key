@@ -64,7 +64,7 @@ nightly
 
 In this new esp-rs repo, find the path to your `riscv32-esp-elf-gcc` binary within the `.embuild` dir:
 
-`export CC=/Users/evanfeenstra/code/sphinx-key/sphinx-key/signer/.embuild/espressif/tools/riscv32-esp-elf/esp-2021r2-patch3-8.4.0/riscv32-esp-elf/bin/riscv32-esp-elf-gcc`
+`export CC=/Users/evanfeenstra/code/sphinx-key/sphinx-key/sphinx-key/.embuild/espressif/tools/riscv32-esp-elf/esp-2021r2-patch3-8.4.0/riscv32-esp-elf/bin/riscv32-esp-elf-gcc`
 
 ### get std features of vls:
 
