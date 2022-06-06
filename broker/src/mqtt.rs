@@ -1,13 +1,15 @@
-use crate::{ChannelRequest,ChannelReply};
+use crate::{ChannelReply, ChannelRequest};
 use librumqttd::{async_locallink::construct_broker, Config};
 use std::thread;
-use tokio::sync::{oneshot, mpsc};
+use tokio::sync::{mpsc, oneshot};
 
 const SUB_TOPIC: &str = "sphinx-return";
 const PUB_TOPIC: &str = "sphinx";
 
-pub fn start_broker(wait_for_ready_message: bool, mut receiver: mpsc::Receiver<ChannelRequest>) -> tokio::runtime::Runtime {
-
+pub fn start_broker(
+    wait_for_ready_message: bool,
+    mut receiver: mpsc::Receiver<ChannelRequest>,
+) -> tokio::runtime::Runtime {
     let config: Config = confy::load_path("config/rumqttd.conf").unwrap();
 
     let (mut router, console, servers, builder) = construct_broker(config);
@@ -23,7 +25,8 @@ pub fn start_broker(wait_for_ready_message: bool, mut receiver: mpsc::Receiver<C
         // channel to block until READY received
         let (ready_tx, ready_rx) = oneshot::channel();
         tokio::spawn(async move {
-            let (msg_tx, mut msg_rx): (mpsc::Sender<Vec<u8>>, mpsc::Receiver<Vec<u8>>) = mpsc::channel(1000);
+            let (msg_tx, mut msg_rx): (mpsc::Sender<Vec<u8>>, mpsc::Receiver<Vec<u8>>) =
+                mpsc::channel(1000);
             let (mut tx, mut rx) = builder.connect("localclient", 200).await.unwrap();
             tx.subscribe([SUB_TOPIC]).await.unwrap();
 
@@ -37,6 +40,7 @@ pub fn start_broker(wait_for_ready_message: bool, mut receiver: mpsc::Receiver<C
                         let message = rx.recv().await.unwrap();
                         if let Some(payload) = message.payload.get(0) {
                             let content = String::from_utf8_lossy(&payload[..]);
+                            log::info!("received message content: {}", content);
                             if content == "READY" {
                                 ready_tx.send(true).expect("could not send ready");
                                 break;
@@ -58,7 +62,9 @@ pub fn start_broker(wait_for_ready_message: bool, mut receiver: mpsc::Receiver<C
 
             let relay_task = tokio::spawn(async move {
                 while let Some(msg) = receiver.recv().await {
-                    tx.publish(PUB_TOPIC, false, msg.message).await.expect("could not mqtt pub");
+                    tx.publish(PUB_TOPIC, false, msg.message)
+                        .await
+                        .expect("could not mqtt pub");
                     let reply = msg_rx.recv().await.expect("could not unwrap msg_rx.recv()");
                     if let Err(_) = msg.reply_tx.send(ChannelReply { reply }) {
                         log::warn!("could not send on reply_tx");
