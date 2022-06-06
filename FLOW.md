@@ -1,3 +1,4 @@
+```
                             POWER UP ───────────────────────────────────────── SOLID RED
                                  │
                                  │
@@ -31,3 +32,4 @@ FAILED TO CONNECT MQT──────►CONNECTING TO MQTT BROKER ────
                                  │
                                  ▼
                             SIGNED A MESSAGE ───────────────────────────────── GREEN BLINK
+```
