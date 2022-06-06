@@ -1,5 +1,5 @@
 use crate::conn::mqtt::RETURN_TOPIC;
-use sphinx_key_signer::{self, InitResponse};
+use sphinx_key_signer::{self, InitResponse, PubKey};
 use std::sync::{mpsc};
 
 use esp_idf_sys;
@@ -18,8 +18,9 @@ pub fn make_event_loop(mut mqtt: EspMqttClient<ConnState<MessageImpl, EspError>>
     mqtt.publish(RETURN_TOPIC, QoS::AtMostOnce, false, init_reply).expect("could not publish init response");
 
     // signing loop
+    let dummy_peer = PubKey([0; 33]);
     while let Ok(msg_bytes) = rx.recv() {
-        let _ret = match sphinx_key_signer::handle(&root_handler, msg_bytes) {
+        let _ret = match sphinx_key_signer::handle(&root_handler, msg_bytes, dummy_peer.clone()) {
             Ok(b) =>  mqtt.publish(RETURN_TOPIC, QoS::AtMostOnce, false, b).expect("could not publish init response"),
             Err(e) => panic!("HANDLE FAILED {:?}", e),
         };
