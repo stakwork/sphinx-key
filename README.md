@@ -84,4 +84,10 @@ then in the sphinx-key dir, with the CC variable set as above:
 
 and flash using the instructions further above
 
+### to tell sphinx-key where to find the MQTT broker:
 
+clear the NVS with instructions above if sphinx-key has stale Wifi creds.\
+restart sphinx key, then from computer connect to sphinxkey AP.\
+go to `http://192.168.71.1/?broker=52.91.253.115%3A1883`.\
+input internet wifi SSID and password, and the IP address of the broker.\
+after pressing the ok button, restart the sphinx key, and wait for a MQTT connection.
