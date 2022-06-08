@@ -1,6 +1,6 @@
 use log::*;
 use secp256k1::PublicKey;
-use sphinx_key_parser::MsgDriver;
+use sphinx_key_parser as parser;
 use std::thread;
 use tokio::sync::{mpsc, oneshot};
 // use tokio::task::spawn_blocking;
@@ -104,14 +104,11 @@ impl<C: 'static + Client> SignerLoop<C> {
 
     fn handle_message(&mut self, message: Vec<u8>) -> Result<Vec<u8>> {
         let dbid = self.client_id.as_ref().map(|c| c.dbid).unwrap_or(0);
-        let mut md = MsgDriver::new_empty();
-        msgs::write_serial_request_header(&mut md, self.chan.sequence, dbid)?;
-        msgs::write_vec(&mut md, message)?;
-        let reply_rx = self.send_request(md.bytes())?;
-        let mut res = self.get_reply(reply_rx)?;
-        msgs::read_serial_response_header(&mut res, self.chan.sequence)?;
+        let md = parser::raw_request_from_bytes(message, self.chan.sequence, dbid)?;
+        let reply_rx = self.send_request(md)?;
+        let res = self.get_reply(reply_rx)?;
+        let reply = parser::raw_response_from_bytes(res, self.chan.sequence)?;
         self.chan.sequence = self.chan.sequence.wrapping_add(1);
-        let reply = msgs::read_raw(&mut res)?;
         Ok(reply)
     }
 
