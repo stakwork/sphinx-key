@@ -65,6 +65,12 @@ HSMD                          │
 └────────────────────────────────────────────────────────────────────┘
 ```
 
+## Modules
+
+- `HSMD`: Daemon taken out of Core Lightning that handles private key material, and serves signing requests remotely.
+- `BROKER`: Proxies HSMD requests from `CORE LN` to `SPHINX-KEY` via MQTT.
+- `SPHINX-KEY`: Stores the private keys, and responds to signing requests.
+
 ## Key Components
 
 - `CORE LN`: Sends HSMD requests to `CLN CLIENT` via UNIX file descriptors.
