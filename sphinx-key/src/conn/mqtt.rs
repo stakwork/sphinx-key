@@ -50,18 +50,40 @@ pub fn start_listening(
     // must start pumping before subscribe or publish will work
     thread::spawn(move || {
         info!("MQTT Listening for messages");
-
-        while let Some(msg) = connection.next() {
-            match msg {
-                Err(e) => info!("MQTT Message ERROR: {}", e),
-                Ok(msg) => {
-                    if let Event::Received(msg) = msg {
-                        tx.send(msg.data().to_vec()).expect("could send to TX");
+        loop {
+            match connection.next() {
+                Some(msg) => {
+                    match msg {
+                        Err(e) => match e.to_string().as_ref() {
+                            "ESP_FAIL" => {
+                                error!("THE ESP BROKE!");
+                            },
+                            _ => error!("Unknown error: {}", e),
+                        },
+                        Ok(msg) => {
+                            match msg {
+                                Event::BeforeConnect => warn!("RECEIVED BEFORE CONNECT MESSAGE"),
+                                Event::Connected(flag) => {
+                                    if flag {
+                                        warn!("RECEIVED CONNECTED = TRUE MESSAGE");
+                                    } else {
+                                        warn!("RECEIVED CONNECTED = FALSE MESSAGE");
+                                    }
+                                },
+                                Event::Disconnected => warn!("RECEIVED DISCONNECTION MESSAGE"),
+                                Event::Subscribed(_mes_id) => warn!("RECEIVED SUBSCRIBED MESSAGE"),
+                                Event::Unsubscribed(_mes_id) => warn!("RECEIVED UNSUBSCRIBED MESSAGE"),
+                                Event::Published(_mes_id) => warn!("RECEIVED PUBLISHED MESSAGE"),
+                                Event::Received(msg) => tx.send(msg.data().to_vec()).expect("could send to TX"),
+                                Event::Deleted(_mes_id) => warn!("RECEIVED DELETED MESSAGE"),
+                            }
+                        },
                     }
                 },
+                None => break,
             }
         }
-        info!("MQTT connection loop exit");
+        //info!("MQTT connection loop exit");
     });
 
     // log::info!("lock mqtt mutex guard");
