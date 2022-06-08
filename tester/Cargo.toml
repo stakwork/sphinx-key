@@ -7,8 +7,8 @@ edition = "2018"
 [dependencies]
 sphinx-key-signer = { path = "../signer" }
 sphinx-key-parser = { path = "../parser" }
-vls-protocol = { path = "../../validating-lightning-signer/vls-protocol" }
-vls-protocol-signer = { path = "../../validating-lightning-signer/vls-protocol-signer", default-features = false, features = ["secp-lowmemory", "vls-std"] }
+vls-protocol = { git = "https://gitlab.com/Evanfeenstra/validating-lightning-signer.git", branch = "feature/vls-std" }
+vls-protocol-signer = { git = "https://gitlab.com/Evanfeenstra/validating-lightning-signer.git", branch = "feature/vls-std", default-features = false, features = ["secp-lowmemory", "vls-std"] }
 anyhow = {version = "1", features = ["backtrace"]}
 log = "0.4"
 rumqttc = "0.12.0"
