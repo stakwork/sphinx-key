@@ -1,6 +1,6 @@
 use crate::mqtt::start_broker;
 use crate::ChannelRequest;
-use sphinx_key_parser::MsgDriver;
+use sphinx_key_parser as parser;
 use tokio::sync::{mpsc, oneshot};
 use vls_protocol::serde_bolt::WireString;
 use vls_protocol::{msgs, msgs::Message};
@@ -31,24 +31,20 @@ pub async fn iteration(
     sequence: u16,
     tx: mpsc::Sender<ChannelRequest>,
 ) -> anyhow::Result<()> {
-    let mut md = MsgDriver::new_empty();
-    msgs::write_serial_request_header(&mut md, sequence, 0)?;
     let ping = msgs::Ping {
         id,
         message: WireString("ping".as_bytes().to_vec()),
     };
-    msgs::write(&mut md, ping)?;
+    let ping_bytes = parser::request_from_msg(ping, sequence, 0)?;
     let (reply_tx, reply_rx) = oneshot::channel();
     // Send a request to the MQTT handler to send to signer
     let request = ChannelRequest {
-        message: md.bytes(),
+        message: ping_bytes,
         reply_tx,
     };
     let _ = tx.send(request).await;
     let res = reply_rx.await?;
-    let mut ret = MsgDriver::new(res.reply);
-    msgs::read_serial_response_header(&mut ret, sequence)?;
-    let reply = msgs::read(&mut ret)?;
+    let reply = parser::response_from_bytes(res.reply, sequence)?;
     match reply {
         Message::Pong(p) => {
             log::info!(

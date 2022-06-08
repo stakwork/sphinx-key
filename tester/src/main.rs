@@ -1,7 +1,6 @@
+use sphinx_key_parser as parser;
 
-use sphinx_key_parser::MsgDriver;
-
-use rumqttc::{self, AsyncClient, MqttOptions, QoS, Event, Packet};
+use rumqttc::{self, AsyncClient, Event, MqttOptions, Packet, QoS};
 use std::error::Error;
 use std::time::Duration;
 use vls_protocol::msgs;
@@ -27,39 +26,42 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .await
         .expect("could not mqtt subscribe");
 
-    client.publish(PUB_TOPIC, QoS::AtMostOnce, false, "READY".as_bytes().to_vec()).await.expect("could not pub");
+    client
+        .publish(
+            PUB_TOPIC,
+            QoS::AtMostOnce,
+            false,
+            "READY".as_bytes().to_vec(),
+        )
+        .await
+        .expect("could not pub");
 
     loop {
         let event = eventloop.poll().await;
         // println!("{:?}", event.unwrap());
-        if let Some(mut m) = incoming_msg(event.expect("failed to unwrap event")) {
-            let (sequence, dbid) = msgs::read_serial_request_header(&mut m).expect("read ping header");
+        if let Some(bs) = incoming_bytes(event.expect("failed to unwrap event")) {
+            let (ping, sequence, dbid): (msgs::Ping, u16, u64) =
+                parser::request_from_bytes(bs).expect("read ping header");
             println!("sequence {}", sequence);
             println!("dbid {}", dbid);
-            let ping: msgs::Ping =
-                msgs::read_message(&mut m).expect("failed to read ping message");
             println!("INCOMING: {:?}", ping);
-            let mut md = MsgDriver::new_empty();
-            msgs::write_serial_response_header(&mut md, sequence)
-                .expect("failed to write_serial_request_header");
             let pong = msgs::Pong {
                 id: ping.id,
-                message: ping.message
+                message: ping.message,
             };
-            msgs::write(&mut md, pong).expect("failed to serial write");
+            let bytes = parser::raw_response_from_msg(pong, sequence)?;
             client
-                .publish(PUB_TOPIC, QoS::AtMostOnce, false, md.bytes())
+                .publish(PUB_TOPIC, QoS::AtMostOnce, false, bytes)
                 .await
                 .expect("could not mqtt publish");
         }
     }
 }
 
-fn incoming_msg(event: Event) -> Option<MsgDriver> {
+fn incoming_bytes(event: Event) -> Option<Vec<u8>> {
     if let Event::Incoming(packet) = event {
         if let Packet::Publish(p) = packet {
-            let m = MsgDriver::new(p.payload.to_vec());
-            return Some(m)
+            return Some(p.payload.to_vec());
         }
     }
     None
