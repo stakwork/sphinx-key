@@ -22,7 +22,7 @@ pub fn request_from_msg<T: ser::Serialize + DeBolt>(
 ) -> vls_protocol::Result<Vec<u8>> {
     let mut md = MsgDriver::new_empty();
     msgs::write_serial_request_header(&mut md, sequence, dbid)?;
-    msgs::write(&mut md, msg).expect("failed to serial write");
+    msgs::write(&mut md, msg)?;
     Ok(md.bytes())
 }
 
@@ -38,8 +38,8 @@ pub fn raw_response_from_msg<T: ser::Serialize + DeBolt>(
 
 pub fn request_from_bytes<T: DeBolt>(msg: Vec<u8>) -> vls_protocol::Result<(T, u16, u64)> {
     let mut m = MsgDriver::new(msg);
-    let (sequence, dbid) = msgs::read_serial_request_header(&mut m).expect("read ping header");
-    let reply: T = msgs::read_message(&mut m).expect("failed to read ping message");
+    let (sequence, dbid) = msgs::read_serial_request_header(&mut m)?;
+    let reply: T = msgs::read_message(&mut m)?;
     Ok((reply, sequence, dbid))
 }
 
