@@ -21,11 +21,26 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .about("CLN:mqtt-tester - MQTT client signer")
         .arg(Arg::from("--test run a test against the embedded device"));
 
-    let mut mqttoptions = MqttOptions::new("test-1", "localhost", 1883);
-    mqttoptions.set_credentials(USERNAME, PASSWORD);
-    mqttoptions.set_keep_alive(Duration::from_secs(5));
-
-    let (client, mut eventloop) = AsyncClient::new(mqttoptions, 10);
+    let mut try_i = 0;
+    let (client, mut eventloop) = loop {
+        let mut mqttoptions = MqttOptions::new("test-1", "localhost", 1883);
+        mqttoptions.set_credentials(USERNAME, PASSWORD);
+        mqttoptions.set_keep_alive(Duration::from_secs(5));
+        let (client, mut eventloop) = AsyncClient::new(mqttoptions, 10);
+        match eventloop.poll().await {
+            Ok(event) => {
+                if let Some(_) = incoming_conn_ack(event) {
+                    println!("==========> MQTT connected!");
+                    break (client, eventloop);
+                }
+            }
+            Err(_) => {
+                try_i = try_i + 1;
+                println!("reconnect.... {}", try_i);
+                tokio::time::sleep(Duration::from_secs(1)).await;
+            }
+        }
+    };
 
     client
         .subscribe(SUB_TOPIC, QoS::AtMostOnce)
@@ -105,6 +120,15 @@ fn incoming_bytes(event: Event) -> Option<Vec<u8>> {
     if let Event::Incoming(packet) = event {
         if let Packet::Publish(p) = packet {
             return Some(p.payload.to_vec());
+        }
+    }
+    None
+}
+
+fn incoming_conn_ack(event: Event) -> Option<()> {
+    if let Event::Incoming(packet) = event {
+        if let Packet::ConnAck(_) = packet {
+            return Some(());
         }
     }
     None
