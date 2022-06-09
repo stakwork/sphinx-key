@@ -30,11 +30,6 @@ pub struct ChannelReply {
 fn main() -> anyhow::Result<()> {
     let parent_fd = open_parent_fd();
 
-    /*
-    simple_logger::SimpleLogger::new()
-          .with_utc_timestamps()
-          .with_module_level("async_io", log::LevelFilter::Off)
-        */
     util::setup_logging("hsmd  ", "info");
     let app = App::new("signer")
         .setting(AppSettings::NoAutoVersion)

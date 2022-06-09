@@ -80,43 +80,44 @@ pub fn start_broker(
             let sub_task = tokio::spawn(async move {
                 // ready message loop
                 // let ready_tx_ = ready_tx.clone();
+                // loop {
+                // wait for CONNECTED
+                // loop {
+                //     let status = status_rx.recv().await.unwrap();
+                //     if status {
+                //         break;
+                //     }
+                // }
+                // now wait for READY
+                // loop {
+                //     let message = rx.recv().await.unwrap();
+                //     if let Some(payload) = message.payload.get(0) {
+                //         let content = String::from_utf8_lossy(&payload[..]);
+                //         log::info!("received message content: {}", content);
+                //         if content == "READY" {
+                //             // ready_tx.send(true).expect("could not send ready");
+                //             break;
+                //         }
+                //     }
+                // }
+                // now start parsing... or break for DISCONNECT
+                // println!("OK START PARSING!");
                 loop {
-                    // wait for CONNECTED
-                    // loop {
-                    //     let status = status_rx.recv().await.unwrap();
-                    //     if status {
-                    //         break;
-                    //     }
-                    // }
-                    // now wait for READY
-                    // loop {
-                    //     let message = rx.recv().await.unwrap();
-                    //     if let Some(payload) = message.payload.get(0) {
-                    //         let content = String::from_utf8_lossy(&payload[..]);
-                    //         log::info!("received message content: {}", content);
-                    //         if content == "READY" {
-                    //             // ready_tx.send(true).expect("could not send ready");
-                    //             break;
-                    //         }
-                    //     }
-                    // }
-                    // now start parsing... or break for DISCONNECT
-                    println!("OK START PARSING!");
-                    loop {
-                        let message = rx.recv().await.unwrap();
-                        println!("T = {}, P = {:?}", message.topic, message.payload.len());
-                        // println!("count {}", message.payload.len());
-                        for payload in message.payload {
-                            if let Err(e) = msg_tx.send(payload.to_vec()).await {
-                                println!("pub err {:?}", e);
-                            }
+                    let message = rx.recv().await.unwrap();
+                    println!("T = {}, P = {:?}", message.topic, message.payload.len());
+                    // println!("count {}", message.payload.len());
+                    for payload in message.payload {
+                        if let Err(e) = msg_tx.send(payload.to_vec()).await {
+                            println!("pub err {:?}", e);
                         }
                     }
                 }
+                // }
             });
 
             let relay_task = tokio::spawn(async move {
-                while let Some(msg) = receiver.recv().await {
+                loop {
+                    let msg = receiver.recv().await.unwrap();
                     tx.publish(PUB_TOPIC, false, msg.message)
                         .await
                         .expect("could not mqtt pub");
@@ -125,6 +126,7 @@ pub fn start_broker(
                         log::warn!("could not send on reply_tx");
                     }
                 }
+                // println!("ABORT! relay task finished <<<<<<<<<<<<<<<");
             });
 
             servers.await;

@@ -22,17 +22,21 @@ pub fn run_test() {
                 status = status_rx.recv() => {
                     // println!("got a status");
                     if let Some(connection_status) = status {
-                        connected = connected;
+                        connected = connection_status;
+                        id = 0;
+                        sequence = 1;
                         println!("========> CONNETED! {}", connection_status);
                     }
                 }
                 res = iteration(id, sequence, tx.clone(), connected) => {
-                    println!("iteration! connected: {}", connected);
+                    println!("iteration! {}", connected);
                     if let Err(e) = res {
                         panic!("iteration failed {:?}", e);
                     }
-                    sequence = sequence.wrapping_add(1);
-                    id += 1;
+                    if connected {
+                        sequence = sequence.wrapping_add(1);
+                        id += 1;
+                    }
                     tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
                 }
             };
