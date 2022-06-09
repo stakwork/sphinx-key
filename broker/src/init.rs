@@ -1,7 +1,24 @@
+use crate::ChannelRequest;
+use sphinx_key_parser as parser;
 use sphinx_key_parser::MsgDriver;
+use tokio::sync::{mpsc, oneshot};
 use vls_protocol::model::Secret;
 use vls_protocol::{msgs, serde_bolt::WireString};
 use vls_proxy::util::{read_allowlist, read_integration_test_seed};
+
+pub async fn connect(tx: mpsc::Sender<ChannelRequest>) {
+    let init_msg_2 = crate::init::make_init_msg().expect("could make init msg");
+    let (reply_tx, reply_rx) = oneshot::channel();
+    // Send a request to the MQTT handler to send to signer
+    let request = ChannelRequest {
+        message: init_msg_2,
+        reply_tx,
+    };
+    let _ = tx.send(request).await;
+    let res = reply_rx.await.expect("couldnt receive");
+    let reply = parser::response_from_bytes(res.reply, 0).expect("could parse init receive");
+    println!("REPLY {:?}", reply);
+}
 
 pub fn make_init_msg() -> anyhow::Result<Vec<u8>> {
     let allowlist = read_allowlist()

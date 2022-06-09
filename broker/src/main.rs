@@ -6,7 +6,6 @@ mod unix_fd;
 use crate::mqtt::start_broker;
 use crate::unix_fd::SignerLoop;
 use clap::{App, AppSettings, Arg};
-use sphinx_key_parser as parser;
 use std::env;
 use tokio::sync::{mpsc, oneshot};
 use vls_proxy::client::UnixClient;
@@ -60,18 +59,7 @@ fn main() -> anyhow::Result<()> {
         let (tx, rx) = mpsc::channel(1000);
         let runtime = start_broker(true, rx);
         runtime.block_on(async {
-            let init_msg_2 = crate::init::make_init_msg().expect("could make init msg");
-            let (reply_tx, reply_rx) = oneshot::channel();
-            // Send a request to the MQTT handler to send to signer
-            let request = ChannelRequest {
-                message: init_msg_2,
-                reply_tx,
-            };
-            let _ = tx.send(request).await;
-            let res = reply_rx.await.expect("couldnt receive");
-            let reply =
-                parser::response_from_bytes(res.reply, 0).expect("could parse init receive");
-            println!("REPLY {:?}", reply);
+            init::connect(tx.clone()).await;
             // listen to reqs from CLN
             let conn = UnixConnection::new(parent_fd);
             let client = UnixClient::new(conn);
