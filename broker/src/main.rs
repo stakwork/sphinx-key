@@ -1,15 +1,15 @@
 mod mqtt;
 mod run_test;
 mod unix_fd;
+mod util;
 
+use crate::mqtt::start_broker;
 use crate::unix_fd::SignerLoop;
 use clap::{App, AppSettings, Arg};
-use crate::mqtt::start_broker;
 use std::env;
 use tokio::sync::{mpsc, oneshot};
 use vls_proxy::client::UnixClient;
 use vls_proxy::connection::{open_parent_fd, UnixConnection};
-use vls_proxy::util::setup_logging;
 
 pub struct Channel {
     pub sequence: u16,
@@ -30,7 +30,12 @@ pub struct ChannelReply {
 fn main() -> anyhow::Result<()> {
     let parent_fd = open_parent_fd();
 
-    setup_logging("hsmd  ", "info");
+    /*
+    simple_logger::SimpleLogger::new()
+          .with_utc_timestamps()
+          .with_module_level("async_io", log::LevelFilter::Off)
+        */
+    util::setup_logging("hsmd  ", "info");
     let app = App::new("signer")
         .setting(AppSettings::NoAutoVersion)
         .about("CLN:mqtt - connects to an embedded VLS over a MQTT connection")
@@ -56,7 +61,8 @@ fn main() -> anyhow::Result<()> {
         run_test::run_test();
     } else {
         let (tx, rx) = mpsc::channel(1000);
-        let _runtime = start_broker(true, rx);
+        let (status_tx, status_rx) = mpsc::channel(1000);
+        let _runtime = start_broker(rx, status_tx, "sphinx-1");
         // listen to reqs from CLN
         let conn = UnixConnection::new(parent_fd);
         let client = UnixClient::new(conn);

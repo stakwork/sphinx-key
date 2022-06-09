@@ -47,15 +47,15 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .await
         .expect("could not mqtt subscribe");
 
-    client
-        .publish(
-            PUB_TOPIC,
-            QoS::AtMostOnce,
-            false,
-            "READY".as_bytes().to_vec(),
-        )
-        .await
-        .expect("could not pub");
+    // client
+    //     .publish(
+    //         PUB_TOPIC,
+    //         QoS::AtMostOnce,
+    //         false,
+    //         "READY".as_bytes().to_vec(),
+    //     )
+    //     .await
+    //     .expect("could not pub");
 
     let matches = app.get_matches();
     if matches.is_present("test") {
