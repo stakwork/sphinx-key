@@ -4,6 +4,7 @@ use embedded_svc::mqtt::client::utils::Connection as MqttConnection;
 use esp_idf_svc::mqtt::client::*;
 use anyhow::Result;
 use log::*;
+use std::time::Duration;
 use std::thread;
 use esp_idf_sys::{self};
 use esp_idf_sys::EspError;
@@ -12,16 +13,15 @@ use std::sync::{mpsc};
 
 pub const TOPIC: &str = "sphinx";
 pub const RETURN_TOPIC: &str = "sphinx-return";
-pub const CLIENT_ID: &str = "sphinx-1";
 pub const USERNAME: &str = "sphinx-key";
 pub const PASSWORD: &str = "sphinx-key-pass";
 
-pub fn make_client(broker: &str) -> Result<(
+pub fn make_client(broker: &str, client_id: &str) -> Result<(
     EspMqttClient<ConnState<MessageImpl, EspError>>, 
-    MqttConnection<Condvar, MessageImpl, EspError>
+    MqttConnection<Condvar, MessageImpl, EspError>,
 )> {
     let conf = MqttClientConfiguration {
-        client_id: Some(CLIENT_ID),
+        client_id: Some(client_id),
         buffer_size: 2048,
         task_stack: 12288,
         username: Some(USERNAME),
@@ -34,7 +34,16 @@ pub fn make_client(broker: &str) -> Result<(
     let b = format!("mqtt://{}", broker);
     println!("===> CONNECT TO {}", b);
     // let (mut client, mut connection) = EspMqttClient::new_with_conn(b, &conf)?;
-    let cc = EspMqttClient::new_with_conn(b, &conf)?;
+    let cc = loop {
+        match EspMqttClient::new_with_conn(b.clone(), &conf) {
+            Ok(c_c) => {
+                break c_c
+            },
+            Err(_) => {
+                thread::sleep(Duration::from_secs(1));
+            }
+        }
+    };
 // 
     info!("MQTT client started");
 
@@ -86,19 +95,8 @@ pub fn start_listening(
         //info!("MQTT connection loop exit");
     });
 
-    // log::info!("lock mqtt mutex guard");
-    // let mut client = mqtt.lock().unwrap();
-
     log::info!("SUBSCRIBE TO {}", TOPIC);
     client.subscribe(TOPIC, QoS::AtMostOnce)?;
-
-    log::info!("PUBLISH {} to {}", "READY", RETURN_TOPIC);
-    client.publish(
-        RETURN_TOPIC,
-        QoS::AtMostOnce,
-        false,
-        format!("READY").as_bytes(),
-    )?;
 
     Ok(client)
 }
