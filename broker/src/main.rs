@@ -2,6 +2,7 @@ mod init;
 mod mqtt;
 mod run_test;
 mod unix_fd;
+mod util;
 
 use crate::mqtt::start_broker;
 use crate::unix_fd::SignerLoop;
@@ -10,7 +11,6 @@ use std::env;
 use tokio::sync::{mpsc, oneshot};
 use vls_proxy::client::UnixClient;
 use vls_proxy::connection::{open_parent_fd, UnixConnection};
-use vls_proxy::util::setup_logging;
 
 pub struct Channel {
     pub sequence: u16,
@@ -18,12 +18,14 @@ pub struct Channel {
 }
 
 /// Responses are received on the oneshot sender
+#[derive(Debug)]
 pub struct ChannelRequest {
     pub message: Vec<u8>,
     pub reply_tx: oneshot::Sender<ChannelReply>,
 }
 
 // mpsc reply
+#[derive(Debug)]
 pub struct ChannelReply {
     pub reply: Vec<u8>,
 }
@@ -31,7 +33,7 @@ pub struct ChannelReply {
 fn main() -> anyhow::Result<()> {
     let parent_fd = open_parent_fd();
 
-    setup_logging("hsmd  ", "info");
+    util::setup_logging("hsmd  ", "info");
     let app = App::new("signer")
         .setting(AppSettings::NoAutoVersion)
         .about("CLN:mqtt - connects to an embedded VLS over a MQTT connection")
@@ -49,7 +51,7 @@ fn main() -> anyhow::Result<()> {
         // Pretend to be the right version, given to us by an env var
         let version =
             env::var("GREENLIGHT_VERSION").expect("set GREENLIGHT_VERSION to match c-lightning");
-        println!("{}", version);
+        log::info!("{}", version);
         return Ok(());
     }
 
@@ -57,12 +59,14 @@ fn main() -> anyhow::Result<()> {
         run_test::run_test();
     } else {
         let (tx, rx) = mpsc::channel(1000);
-        let runtime = start_broker(true, rx);
+        let (status_tx, _status_rx) = mpsc::channel(1000);
+        let runtime = start_broker(rx, status_tx, "sphinx-1");
         runtime.block_on(async {
             init::connect(tx.clone()).await;
             // listen to reqs from CLN
             let conn = UnixConnection::new(parent_fd);
             let client = UnixClient::new(conn);
+            // TODO pass status_rx into SignerLoop
             let mut signer_loop = SignerLoop::new(client, tx);
             signer_loop.start();
         })

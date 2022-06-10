@@ -5,6 +5,8 @@ use tokio::sync::{mpsc, oneshot};
 use vls_protocol::serde_bolt::WireString;
 use vls_protocol::{msgs, msgs::Message};
 
+const CLIENT_ID: &str = "test-1";
+
 pub fn run_test() {
     log::info!("TEST...");
 
@@ -12,16 +14,31 @@ pub fn run_test() {
     let mut sequence = 1;
 
     let (tx, rx) = mpsc::channel(1000);
-    let runtime = start_broker(true, rx);
-    log::info!("======> READY received! start now");
+    let (status_tx, mut status_rx) = mpsc::channel(1000);
+    let runtime = start_broker(rx, status_tx, CLIENT_ID);
     runtime.block_on(async {
+        let mut connected = false;
         loop {
-            if let Err(e) = iteration(id, sequence, tx.clone()).await {
-                panic!("iteration failed {:?}", e);
-            }
-            sequence = sequence.wrapping_add(1);
-            id += 1;
-            tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+            tokio::select! {
+                status = status_rx.recv() => {
+                    if let Some(connection_status) = status {
+                        connected = connection_status;
+                        id = 0;
+                        sequence = 1;
+                        log::info!("========> CONNECTED! {}", connection_status);
+                    }
+                }
+                res = iteration(id, sequence, tx.clone(), connected) => {
+                    if let Err(e) = res {
+                        log::warn!("===> iteration failed {:?}", e);
+                    }
+                    if connected {
+                        sequence = sequence.wrapping_add(1);
+                        id += 1;
+                    }
+                    tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+                }
+            };
         }
     });
 }
@@ -30,7 +47,12 @@ pub async fn iteration(
     id: u16,
     sequence: u16,
     tx: mpsc::Sender<ChannelRequest>,
+    connected: bool,
 ) -> anyhow::Result<()> {
+    if !connected {
+        return Ok(());
+    }
+    // log::info!("do a ping!");
     let ping = msgs::Ping {
         id,
         message: WireString("ping".as_bytes().to_vec()),
@@ -42,7 +64,7 @@ pub async fn iteration(
         message: ping_bytes,
         reply_tx,
     };
-    let _ = tx.send(request).await;
+    tx.send(request).await?;
     let res = reply_rx.await?;
     let reply = parser::response_from_bytes(res.reply, sequence)?;
     match reply {
