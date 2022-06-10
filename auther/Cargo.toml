@@ -8,6 +8,7 @@ edition = "2018"
 secp256k1 = { version = "0.22.0", default-features = false, features = ["std", "rand-std", "bitcoin_hashes"] }
 anyhow = {version = "1", features = ["backtrace"]}
 log = "0.4"
+base64 = { version = "0.13.0" }
 
 [features]
 default = [ "no-std", "secp-recovery", "secp-lowmemory" ]
