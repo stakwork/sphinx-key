@@ -6,7 +6,21 @@ use vls_protocol::model::Secret;
 use vls_protocol::{msgs, serde_bolt::WireString};
 use vls_proxy::util::{read_allowlist, read_integration_test_seed};
 
-pub async fn connect(tx: mpsc::Sender<ChannelRequest>) {
+pub fn blocking_connect(tx: mpsc::Sender<ChannelRequest>) {
+    let init_msg_2 = crate::init::make_init_msg().expect("could make init msg");
+    let (reply_tx, reply_rx) = oneshot::channel();
+    // Send a request to the MQTT handler to send to signer
+    let request = ChannelRequest {
+        message: init_msg_2,
+        reply_tx,
+    };
+    let _ = tx.blocking_send(request);
+    let res = reply_rx.blocking_recv().expect("couldnt receive");
+    let reply = parser::response_from_bytes(res.reply, 0).expect("could parse init receive");
+    println!("REPLY {:?}", reply);
+}
+
+pub async fn _connect(tx: mpsc::Sender<ChannelRequest>) {
     let init_msg_2 = crate::init::make_init_msg().expect("could make init msg");
     let (reply_tx, reply_rx) = oneshot::channel();
     // Send a request to the MQTT handler to send to signer
