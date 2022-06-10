@@ -5,6 +5,8 @@ use tokio::sync::{mpsc, oneshot};
 use vls_protocol::serde_bolt::WireString;
 use vls_protocol::{msgs, msgs::Message};
 
+const CLIENT_ID: &str = "test-1";
+
 pub fn run_test() {
     log::info!("TEST...");
 
@@ -13,7 +15,7 @@ pub fn run_test() {
 
     let (tx, rx) = mpsc::channel(1000);
     let (status_tx, mut status_rx) = mpsc::channel(1000);
-    let runtime = start_broker(rx, status_tx, "test-1");
+    let runtime = start_broker(rx, status_tx, CLIENT_ID);
     runtime.block_on(async {
         let mut connected = false;
         loop {
@@ -23,7 +25,7 @@ pub fn run_test() {
                         connected = connection_status;
                         id = 0;
                         sequence = 1;
-                        log::info!("========> CONNETED! {}", connection_status);
+                        log::info!("========> CONNECTED! {}", connection_status);
                     }
                 }
                 res = iteration(id, sequence, tx.clone(), connected) => {
