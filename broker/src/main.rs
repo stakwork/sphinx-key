@@ -17,12 +17,14 @@ pub struct Channel {
 }
 
 /// Responses are received on the oneshot sender
+#[derive(Debug)]
 pub struct ChannelRequest {
     pub message: Vec<u8>,
     pub reply_tx: oneshot::Sender<ChannelReply>,
 }
 
 // mpsc reply
+#[derive(Debug)]
 pub struct ChannelReply {
     pub reply: Vec<u8>,
 }
@@ -48,7 +50,7 @@ fn main() -> anyhow::Result<()> {
         // Pretend to be the right version, given to us by an env var
         let version =
             env::var("GREENLIGHT_VERSION").expect("set GREENLIGHT_VERSION to match c-lightning");
-        println!("{}", version);
+        log::info!("{}", version);
         return Ok(());
     }
 

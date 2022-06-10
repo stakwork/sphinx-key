@@ -14,24 +14,21 @@ pub fn run_test() {
     let (tx, rx) = mpsc::channel(1000);
     let (status_tx, mut status_rx) = mpsc::channel(1000);
     let runtime = start_broker(rx, status_tx, "test-1");
-    log::info!("======> READY received! start now");
     runtime.block_on(async {
         let mut connected = false;
         loop {
             tokio::select! {
                 status = status_rx.recv() => {
-                    // println!("got a status");
                     if let Some(connection_status) = status {
                         connected = connection_status;
                         id = 0;
                         sequence = 1;
-                        println!("========> CONNETED! {}", connection_status);
+                        log::info!("========> CONNETED! {}", connection_status);
                     }
                 }
                 res = iteration(id, sequence, tx.clone(), connected) => {
-                    println!("iteration! {}", connected);
                     if let Err(e) = res {
-                        panic!("iteration failed {:?}", e);
+                        log::warn!("===> iteration failed {:?}", e);
                     }
                     if connected {
                         sequence = sequence.wrapping_add(1);
@@ -53,7 +50,7 @@ pub async fn iteration(
     if !connected {
         return Ok(());
     }
-    println!("do a ping!");
+    // log::info!("do a ping!");
     let ping = msgs::Ping {
         id,
         message: WireString("ping".as_bytes().to_vec()),
@@ -65,7 +62,7 @@ pub async fn iteration(
         message: ping_bytes,
         reply_tx,
     };
-    let _ = tx.send(request).await;
+    tx.send(request).await?;
     let res = reply_rx.await?;
     let reply = parser::response_from_bytes(res.reply, sequence)?;
     match reply {
