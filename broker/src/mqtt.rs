@@ -94,6 +94,9 @@ pub fn start_broker(
         });
     });
 
+    // give one second for router to spawn listeners
+    std::thread::sleep(std::time::Duration::from_secs(1));
+
     rt
 }
 

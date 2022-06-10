@@ -14,7 +14,7 @@ pub fn blocking_connect(tx: mpsc::Sender<ChannelRequest>) {
         message: init_msg_2,
         reply_tx,
     };
-    let _ = tx.blocking_send(request);
+    tx.blocking_send(request).expect("could not blocking send");
     let res = reply_rx.blocking_recv().expect("couldnt receive");
     let reply = parser::response_from_bytes(res.reply, 0).expect("could parse init receive");
     println!("REPLY {:?}", reply);
