@@ -1,3 +1,4 @@
+mod init;
 mod mqtt;
 mod run_test;
 mod unix_fd;
@@ -58,13 +59,17 @@ fn main() -> anyhow::Result<()> {
         run_test::run_test();
     } else {
         let (tx, rx) = mpsc::channel(1000);
-        let (status_tx, status_rx) = mpsc::channel(1000);
-        let _runtime = start_broker(rx, status_tx, "sphinx-1");
-        // listen to reqs from CLN
-        let conn = UnixConnection::new(parent_fd);
-        let client = UnixClient::new(conn);
-        let mut signer_loop = SignerLoop::new(client, tx);
-        signer_loop.start();
+        let (status_tx, _status_rx) = mpsc::channel(1000);
+        let runtime = start_broker(rx, status_tx, "sphinx-1");
+        runtime.block_on(async {
+            init::connect(tx.clone()).await;
+            // listen to reqs from CLN
+            let conn = UnixConnection::new(parent_fd);
+            let client = UnixClient::new(conn);
+            // TODO pass status_rx into SignerLoop
+            let mut signer_loop = SignerLoop::new(client, tx);
+            signer_loop.start();
+        })
     }
 
     Ok(())
