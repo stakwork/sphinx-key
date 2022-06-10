@@ -11,6 +11,7 @@ use std::env;
 use tokio::sync::{mpsc, oneshot};
 use vls_proxy::client::UnixClient;
 use vls_proxy::connection::{open_parent_fd, UnixConnection};
+use vls_proxy::util::setup_logging;
 
 pub struct Channel {
     pub sequence: u16,
@@ -33,7 +34,7 @@ pub struct ChannelReply {
 fn main() -> anyhow::Result<()> {
     let parent_fd = open_parent_fd();
 
-    util::setup_logging("hsmd  ", "info");
+    setup_logging("hsmd  ", "info");
     let app = App::new("signer")
         .setting(AppSettings::NoAutoVersion)
         .about("CLN:mqtt - connects to an embedded VLS over a MQTT connection")
