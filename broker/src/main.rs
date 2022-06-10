@@ -60,16 +60,16 @@ fn main() -> anyhow::Result<()> {
     } else {
         let (tx, rx) = mpsc::channel(1000);
         let (status_tx, _status_rx) = mpsc::channel(1000);
-        let runtime = start_broker(rx, status_tx, "sphinx-1");
-        runtime.block_on(async {
-            init::connect(tx.clone()).await;
-            // listen to reqs from CLN
-            let conn = UnixConnection::new(parent_fd);
-            let client = UnixClient::new(conn);
-            // TODO pass status_rx into SignerLoop
-            let mut signer_loop = SignerLoop::new(client, tx);
-            signer_loop.start();
-        })
+        let _runtime = start_broker(rx, status_tx, "sphinx-1");
+        // runtime.block_on(async {
+        init::blocking_connect(tx.clone());
+        // listen to reqs from CLN
+        let conn = UnixConnection::new(parent_fd);
+        let client = UnixClient::new(conn);
+        // TODO pass status_rx into SignerLoop
+        let mut signer_loop = SignerLoop::new(client, tx);
+        signer_loop.start();
+        // })
     }
 
     Ok(())
