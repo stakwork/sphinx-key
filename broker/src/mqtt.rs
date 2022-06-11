@@ -53,6 +53,7 @@ pub fn start_broker(
                     let metrics = consolelink::request_metrics(console.clone(), client_id.clone());
                     if let Some(c) = metrics_to_status(metrics, client_connected) {
                         client_connected = c;
+                        log::info!("connection status changed to: {}", c);
                         status_sender
                             .send(c)
                             .await

@@ -32,11 +32,13 @@ pub fn make_client(broker: &str, client_id: &str) -> Result<(
     };
 
     let b = format!("mqtt://{}", broker);
-    println!("===> CONNECT TO {}", b);
     // let (mut client, mut connection) = EspMqttClient::new_with_conn(b, &conf)?;
     let cc = loop {
-        match EspMqttClient::new_with_conn(b.clone(), &conf) {
+        let broker_url = b.clone();
+        info!("===> CONNECT TO {}", &broker_url);
+        match EspMqttClient::new_with_conn(broker_url, &conf) {
             Ok(c_c) => {
+                info!("EspMqttClient::new_with_conn finished");
                 break c_c
             },
             Err(_) => {
@@ -65,26 +67,26 @@ pub fn start_listening(
                     match msg {
                         Err(e) => match e.to_string().as_ref() {
                             "ESP_FAIL" => {
-                                error!("THE ESP BROKE!");
+                                error!("ESP_FAIL msg!");
                             },
                             _ => error!("Unknown error: {}", e),
                         },
                         Ok(msg) => {
                             match msg {
-                                Event::BeforeConnect => warn!("RECEIVED BEFORE CONNECT MESSAGE"),
+                                Event::BeforeConnect => info!("RECEIVED BEFORE CONNECT MESSAGE"),
                                 Event::Connected(flag) => {
                                     if flag {
-                                        warn!("RECEIVED CONNECTED = TRUE MESSAGE");
+                                        info!("RECEIVED CONNECTED = TRUE MESSAGE");
                                     } else {
-                                        warn!("RECEIVED CONNECTED = FALSE MESSAGE");
+                                        info!("RECEIVED CONNECTED = FALSE MESSAGE");
                                     }
                                 },
                                 Event::Disconnected => warn!("RECEIVED DISCONNECTION MESSAGE"),
-                                Event::Subscribed(_mes_id) => warn!("RECEIVED SUBSCRIBED MESSAGE"),
-                                Event::Unsubscribed(_mes_id) => warn!("RECEIVED UNSUBSCRIBED MESSAGE"),
-                                Event::Published(_mes_id) => warn!("RECEIVED PUBLISHED MESSAGE"),
+                                Event::Subscribed(_mes_id) => info!("RECEIVED SUBSCRIBED MESSAGE"),
+                                Event::Unsubscribed(_mes_id) => info!("RECEIVED UNSUBSCRIBED MESSAGE"),
+                                Event::Published(_mes_id) => info!("RECEIVED PUBLISHED MESSAGE"),
                                 Event::Received(msg) => tx.send(msg.data().to_vec()).expect("could send to TX"),
-                                Event::Deleted(_mes_id) => warn!("RECEIVED DELETED MESSAGE"),
+                                Event::Deleted(_mes_id) => info!("RECEIVED DELETED MESSAGE"),
                             }
                         },
                     }

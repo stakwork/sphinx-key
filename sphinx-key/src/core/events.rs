@@ -1,6 +1,6 @@
 use crate::conn::mqtt::RETURN_TOPIC;
 use sphinx_key_signer::{self, InitResponse, PubKey};
-use std::sync::{mpsc};
+use std::sync::mpsc;
 
 use esp_idf_sys;
 use embedded_svc::httpd::Result;
@@ -10,6 +10,7 @@ use esp_idf_svc::mqtt::client::*;
 use esp_idf_sys::EspError;
 use log::*;
 
+#[cfg(not(feature = "pingpong"))]
 pub fn make_event_loop(mut mqtt: EspMqttClient<ConnState<MessageImpl, EspError>>, rx: mpsc::Receiver<Vec<u8>>) -> Result<()> {
 
     // initialize the RootHandler
@@ -29,7 +30,8 @@ pub fn make_event_loop(mut mqtt: EspMqttClient<ConnState<MessageImpl, EspError>>
     Ok(())
 }
 
-pub fn make_test_event_loop(mut mqtt: EspMqttClient<ConnState<MessageImpl, EspError>>, rx: mpsc::Receiver<Vec<u8>>) -> Result<()> {
+#[cfg(feature = "pingpong")]
+pub fn make_event_loop(mut mqtt: EspMqttClient<ConnState<MessageImpl, EspError>>, rx: mpsc::Receiver<Vec<u8>>) -> Result<()> {
 
     info!("About to subscribe to the mpsc channel");
     while let Ok(msg_bytes) = rx.recv() {

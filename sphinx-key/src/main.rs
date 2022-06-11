@@ -3,7 +3,7 @@ mod conn;
 mod core;
 mod periph;
 
-use crate::core::{events::*, config::*, mode::Mode};
+use crate::core::{events::*, config::*};
 use crate::periph::led::Led;
 
 use esp_idf_sys as _; // If using the `binstart` feature of `esp-idf-sys`, always keep this module imported
@@ -17,11 +17,14 @@ use esp_idf_svc::nvs_storage::EspNvsStorage;
 use embedded_svc::storage::Storage;
 use embedded_svc::wifi::Wifi;
 
-const MODE: Option<&'static str> = option_env!("MODE");
+#[cfg(not(feature = "pingpong"))]
+const CLIENT_ID: &str = "sphinx-1";
+
+#[cfg(feature = "pingpong")]
+const CLIENT_ID: &str = "test-1";
 
 fn main() -> Result<()> {
-    let mode = Mode::from_env(MODE);
-    println!("MODE? {:?}", mode);
+
     // Temporary. Will disappear once ESP-IDF 4.4 is released, but for now it is necessary to call this function once,
     // or else some patches to the runtime implemented by esp-idf-sys might not link properly.
     esp_idf_sys::link_patches();
@@ -40,17 +43,13 @@ fn main() -> Result<()> {
 
         let (tx, rx) = mpsc::channel();
 
-        let client_id = match mode {
-            Mode::Signer => "sphinx-1",
-            Mode::Test => "test-1"
-        };
         // _conn needs to stay in scope or its dropped
-        let (mqtt, connection) = conn::mqtt::make_client(&exist.broker, client_id)?;
+        let (mqtt, connection) = conn::mqtt::make_client(&exist.broker, CLIENT_ID)?;
         let mqtt_client = conn::mqtt::start_listening(mqtt, connection, tx)?;
         
         // this blocks forever... the "main thread"
         log::info!(">>>>>>>>>>> blocking forever...");
-        make_test_event_loop(mqtt_client, rx)?;
+        make_event_loop(mqtt_client, rx)?;
         
         let mut blue = Led::new(0x000001, 100);
         println!("{:?}", wifi.get_status());
