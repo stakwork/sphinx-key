@@ -5,10 +5,10 @@ use librumqttd::{
     rumqttlog::router::ConnectionMetrics,
     Config,
 };
-
 use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
+use std::{lazy::SyncLazy, sync::Mutex};
 use tokio::sync::mpsc;
 use tokio::time::timeout;
 
@@ -16,6 +16,16 @@ const SUB_TOPIC: &str = "sphinx-return";
 const PUB_TOPIC: &str = "sphinx";
 const USERNAME: &str = "sphinx-key";
 const PASSWORD: &str = "sphinx-key-pass";
+const REPLY_TIMEOUT_MS: u64 = 1000;
+
+// static CONNECTED: OnceCell<bool> = OnceCell::new();
+static CONNECTED: SyncLazy<Mutex<bool>> = SyncLazy::new(|| Mutex::new(false));
+fn set_connected(b: bool) {
+    *CONNECTED.lock().unwrap() = b;
+}
+fn get_connected() -> bool {
+    *CONNECTED.lock().unwrap()
+}
 
 pub fn start_broker(
     mut receiver: mpsc::Receiver<ChannelRequest>,
@@ -31,7 +41,8 @@ pub fn start_broker(
         router.start().expect("could not start router");
     });
 
-    let mut client_connected = false;
+    // let mut client_connected = AtomicBool::new(false);
+    // CONNECTED.set(false).expect("could init CONNECTED");
 
     let mut rt_builder = tokio::runtime::Builder::new_multi_thread();
     rt_builder.enable_all();
@@ -45,16 +56,17 @@ pub fn start_broker(
             link_tx.subscribe([SUB_TOPIC]).await.unwrap();
 
             let router_tx = builder.router_tx();
+            let status_sender_ = status_sender.clone();
             tokio::spawn(async move {
                 let config = config.clone().into();
                 let router_tx = router_tx.clone();
                 let console: Arc<ConsoleLink> = Arc::new(ConsoleLink::new(config, router_tx));
                 loop {
                     let metrics = consolelink::request_metrics(console.clone(), client_id.clone());
-                    if let Some(c) = metrics_to_status(metrics, client_connected) {
-                        client_connected = c;
+                    if let Some(c) = metrics_to_status(metrics, get_connected()) {
+                        set_connected(c);
                         log::info!("connection status changed to: {}", c);
-                        status_sender
+                        status_sender_
                             .send(c)
                             .await
                             .expect("couldnt send connection status");
@@ -71,6 +83,7 @@ pub fn start_broker(
                         }
                     }
                 }
+                println!("BOOM LINK_TX CLOSED!");
             });
 
             let relay_task = tokio::spawn(async move {
@@ -79,14 +92,25 @@ pub fn start_broker(
                         .publish(PUB_TOPIC, false, msg.message)
                         .await
                         .expect("could not mqtt pub");
-                    if let Ok(reply) = timeout(Duration::from_millis(1000), msg_rx.recv()).await {
-                        if let Err(_) = msg.reply_tx.send(ChannelReply {
-                            reply: reply.unwrap(),
-                        }) {
-                            log::warn!("could not send on reply_tx");
+                    match timeout(Duration::from_millis(REPLY_TIMEOUT_MS), msg_rx.recv()).await {
+                        Ok(reply) => {
+                            if let Err(_) = msg.reply_tx.send(ChannelReply {
+                                reply: reply.unwrap(),
+                            }) {
+                                log::warn!("could not send on reply_tx");
+                            }
+                        }
+                        Err(e) => {
+                            log::warn!("reply_tx timed out {:?}", e);
+                            set_connected(false);
+                            status_sender
+                                .send(false)
+                                .await
+                                .expect("couldnt send connection status");
                         }
                     }
                 }
+                println!("BOOM RECEIVER CLOSED!");
             });
 
             servers.await;

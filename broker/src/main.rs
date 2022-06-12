@@ -1,3 +1,4 @@
+#![feature(once_cell)]
 mod init;
 mod mqtt;
 mod run_test;

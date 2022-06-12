@@ -21,6 +21,7 @@ rumqttc = "0.12.0"
 clap = "=3.0.0-beta.2"
 clap_derive = "=3.0.0-beta.5"
 chrono = "0.4"
+once_cell = "1.12.0"
 
 [features]
 default = ["std"]

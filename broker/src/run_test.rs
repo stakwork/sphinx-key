@@ -31,8 +31,10 @@ pub fn run_test() {
                 res = iteration(id, sequence, tx.clone(), connected) => {
                     if let Err(e) = res {
                         log::warn!("===> iteration failed {:?}", e);
-                    }
-                    if connected {
+                        // connected = false;
+                        // id = 0;
+                        // sequence = 1;
+                    } else if connected {
                         sequence = sequence.wrapping_add(1);
                         id += 1;
                     }
@@ -52,7 +54,7 @@ pub async fn iteration(
     if !connected {
         return Ok(());
     }
-    // log::info!("do a ping!");
+    log::info!("do a ping!");
     let ping = msgs::Ping {
         id,
         message: WireString("ping".as_bytes().to_vec()),
@@ -65,7 +67,9 @@ pub async fn iteration(
         reply_tx,
     };
     tx.send(request).await?;
+    println!("tx.send(request)");
     let res = reply_rx.await?;
+    println!("reply_rx.await");
     let reply = parser::response_from_bytes(res.reply, sequence)?;
     match reply {
         Message::Pong(p) => {
