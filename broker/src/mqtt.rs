@@ -16,9 +16,9 @@ const SUB_TOPIC: &str = "sphinx-return";
 const PUB_TOPIC: &str = "sphinx";
 const USERNAME: &str = "sphinx-key";
 const PASSWORD: &str = "sphinx-key-pass";
+// must get a reply within this time, or disconnects
 const REPLY_TIMEOUT_MS: u64 = 1000;
 
-// static CONNECTED: OnceCell<bool> = OnceCell::new();
 static CONNECTED: SyncLazy<Mutex<bool>> = SyncLazy::new(|| Mutex::new(false));
 fn set_connected(b: bool) {
     *CONNECTED.lock().unwrap() = b;
@@ -40,9 +40,6 @@ pub fn start_broker(
     thread::spawn(move || {
         router.start().expect("could not start router");
     });
-
-    // let mut client_connected = AtomicBool::new(false);
-    // CONNECTED.set(false).expect("could init CONNECTED");
 
     let mut rt_builder = tokio::runtime::Builder::new_multi_thread();
     rt_builder.enable_all();
@@ -167,7 +164,7 @@ fn config() -> Config {
     };
     let mut servers = HashMap::new();
     servers.insert(
-        "0".to_string(),
+        id.to_string(),
         ServerSettings {
             cert: None,
             listen: SocketAddrV4::new(Ipv4Addr::new(0, 0, 0, 0), 1883).into(),

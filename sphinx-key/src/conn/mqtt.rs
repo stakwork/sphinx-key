@@ -1,10 +1,11 @@
+use crate::core::events::Event as CoreEvent;
+
 use embedded_svc::mqtt::client::utils::ConnState;
-use embedded_svc::mqtt::client::{Client, Connection, MessageImpl, Publish, QoS, Event, Message as MqttMessage};
+use embedded_svc::mqtt::client::{Connection, MessageImpl, QoS, Event, Message as MqttMessage};
 use embedded_svc::mqtt::client::utils::Connection as MqttConnection;
 use esp_idf_svc::mqtt::client::*;
 use anyhow::Result;
 use log::*;
-use std::time::Duration;
 use std::thread;
 use esp_idf_sys::{self};
 use esp_idf_sys::EspError;
@@ -15,6 +16,7 @@ pub const TOPIC: &str = "sphinx";
 pub const RETURN_TOPIC: &str = "sphinx-return";
 pub const USERNAME: &str = "sphinx-key";
 pub const PASSWORD: &str = "sphinx-key-pass";
+pub const QOS: QoS = QoS::AtMostOnce;
 
 pub fn make_client(broker: &str, client_id: &str) -> Result<(
     EspMqttClient<ConnState<MessageImpl, EspError>>, 
@@ -33,32 +35,20 @@ pub fn make_client(broker: &str, client_id: &str) -> Result<(
 
     let b = format!("mqtt://{}", broker);
     // let (mut client, mut connection) = EspMqttClient::new_with_conn(b, &conf)?;
-    let cc = loop {
-        let broker_url = b.clone();
-        info!("===> CONNECT TO {}", &broker_url);
-        match EspMqttClient::new_with_conn(broker_url, &conf) {
-            Ok(c_c) => {
-                info!("EspMqttClient::new_with_conn finished");
-                break c_c
-            },
-            Err(_) => {
-                thread::sleep(Duration::from_secs(1));
-            }
-        }
-    };
-// 
+    let cc = EspMqttClient::new_with_conn(b, &conf)?;
+
     info!("MQTT client started");
 
     Ok(cc)
 }
 
 pub fn start_listening(
-    mut client: EspMqttClient<ConnState<MessageImpl, EspError>>,
+    client: EspMqttClient<ConnState<MessageImpl, EspError>>,
     mut connection: MqttConnection<Condvar, MessageImpl, EspError>, 
-    tx: mpsc::Sender<Vec<u8>>,
+    tx: mpsc::Sender<CoreEvent>,
 ) -> Result<EspMqttClient<ConnState<MessageImpl, EspError>>> {
     
-    // must start pumping before subscribe or publish will work
+    // must start pumping before subscribe or publish will not work
     thread::spawn(move || {
         info!("MQTT Listening for messages");
         loop {
@@ -73,20 +63,20 @@ pub fn start_listening(
                         },
                         Ok(msg) => {
                             match msg {
-                                Event::BeforeConnect => info!("RECEIVED BEFORE CONNECT MESSAGE"),
-                                Event::Connected(flag) => {
-                                    if flag {
-                                        info!("RECEIVED CONNECTED = TRUE MESSAGE");
-                                    } else {
-                                        info!("RECEIVED CONNECTED = FALSE MESSAGE");
-                                    }
+                                Event::BeforeConnect => info!("RECEIVED BeforeConnect MESSAGE"),
+                                Event::Connected(_flag) => {
+                                    info!("RECEIVED Connected MESSAGE");
+                                    tx.send(CoreEvent::Connected).expect("couldnt send Event::Connected");
                                 },
-                                Event::Disconnected => warn!("RECEIVED DISCONNECTION MESSAGE"),
-                                Event::Subscribed(_mes_id) => info!("RECEIVED SUBSCRIBED MESSAGE"),
-                                Event::Unsubscribed(_mes_id) => info!("RECEIVED UNSUBSCRIBED MESSAGE"),
-                                Event::Published(_mes_id) => info!("RECEIVED PUBLISHED MESSAGE"),
-                                Event::Received(msg) => tx.send(msg.data().to_vec()).expect("could send to TX"),
-                                Event::Deleted(_mes_id) => info!("RECEIVED DELETED MESSAGE"),
+                                Event::Disconnected => {
+                                    warn!("RECEIVED Disconnected MESSAGE");
+                                    tx.send(CoreEvent::Disconnected).expect("couldnt send Event::Disconnected");
+                                },
+                                Event::Subscribed(_mes_id) => info!("RECEIVED Subscribed MESSAGE"),
+                                Event::Unsubscribed(_mes_id) => info!("RECEIVED Unsubscribed MESSAGE"),
+                                Event::Published(_mes_id) => info!("RECEIVED Published MESSAGE"),
+                                Event::Received(msg) => tx.send(CoreEvent::Message(msg.data().to_vec())).expect("couldnt send Event::Message"),
+                                Event::Deleted(_mes_id) => info!("RECEIVED Deleted MESSAGE"),
                             }
                         },
                     }
@@ -97,8 +87,8 @@ pub fn start_listening(
         //info!("MQTT connection loop exit");
     });
 
-    log::info!("SUBSCRIBE TO {}", TOPIC);
-    client.subscribe(TOPIC, QoS::AtMostOnce)?;
+    // log::info!("SUBSCRIBE TO {}", TOPIC);
+    // client.subscribe(TOPIC, QoS::AtMostOnce)?;
 
     Ok(client)
 }
