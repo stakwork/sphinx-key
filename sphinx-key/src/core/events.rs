@@ -56,7 +56,7 @@ pub fn make_event_loop(mut mqtt: EspMqttClient<ConnState<MessageImpl, EspError>>
 #[cfg(feature = "pingpong")]
 pub fn make_event_loop(mut mqtt: EspMqttClient<ConnState<MessageImpl, EspError>>, rx: mpsc::Receiver<Event>, do_log: bool) -> Result<()> {
 
-    info!("About to subscribe to the mpsc channel");
+    log::info!("About to subscribe to the mpsc channel");
     while let Ok(event) = rx.recv() {
         match event {
             Event::Connected => {
