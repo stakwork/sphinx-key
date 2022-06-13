@@ -12,13 +12,17 @@ Find the path to your `riscv32-esp-elf-gcc` binary within the `.embuild` dir:
 
 `cargo build --features pingpong`
 
+### flash test
+
+`espflash target/riscv32imc-esp-espidf/debug/sphinx-key`
+
 ### build release
 
 `cargo build --release`
 
-### flash
+### flash release
 
-`espflash target/riscv32imc-esp-espidf/debug/sphinx-key`
+`espflash target/riscv32imc-esp-espidf/release/sphinx-key`
 
 ### monitor
 

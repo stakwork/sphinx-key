@@ -49,7 +49,8 @@ fn main() -> Result<()> {
         
         // this blocks forever... the "main thread"
         log::info!(">>>>>>>>>>> blocking forever...");
-        make_event_loop(mqtt_client, rx)?;
+        let do_log = true;
+        make_event_loop(mqtt_client, rx, do_log)?;
         
         let mut blue = Led::new(0x000001, 100);
         println!("{:?}", wifi.get_status());
