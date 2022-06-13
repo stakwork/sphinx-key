@@ -6,6 +6,8 @@ use sphinx_key_signer::{self, InitResponse, PubKey};
 use std::error::Error;
 use std::time::Duration;
 use vls_protocol::msgs;
+use std::env;
+use std::str::FromStr;
 
 const SUB_TOPIC: &str = "sphinx";
 const PUB_TOPIC: &str = "sphinx-return";
@@ -14,14 +16,19 @@ const PASSWORD: &str = "sphinx-key-pass";
 
 #[tokio::main(worker_threads = 1)]
 async fn main() -> Result<(), Box<dyn Error>> {
-    pretty_env_logger::init();
+    setup_logging("sphinx-key-tester  ", "info");
 
     let app = App::new("tester")
         .setting(AppSettings::NoAutoVersion)
         .about("CLN:mqtt-tester - MQTT client signer")
-        .arg(Arg::from("--test run a test against the embedded device"));
+        .arg(Arg::from("--test run a test against the embedded device"))
+        .arg(Arg::from("--log log each VLS message"));
     let matches = app.get_matches();
     let is_test = matches.is_present("test");
+    let is_log = matches.is_present("log");
+    if is_log {
+        log::info!("==> log each incoming message!");
+    }
     // main loop - alternate between "reconnection" and "handler"
     loop {
         let mut try_i = 0;
@@ -59,9 +66,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
                         if let Some(ping_bytes) = incoming_bytes(event) {
                             let (ping, sequence, dbid): (msgs::Ping, u16, u64) =
                                 parser::request_from_bytes(ping_bytes).expect("read ping header");
-                            println!("sequence {}", sequence);
-                            println!("dbid {}", dbid);
-                            println!("INCOMING: {:?}", ping);
+                            if is_log {
+                                println!("sequence {}", sequence);
+                                println!("dbid {}", dbid);
+                                println!("INCOMING: {:?}", ping);
+                            }
                             let pong = msgs::Pong {
                                 id: ping.id,
                                 message: ping.message,
@@ -112,7 +121,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
                         Ok(event) => {
                             let dummy_peer = PubKey([0; 33]);
                             if let Some(msg_bytes) = incoming_bytes(event) {
-                                match sphinx_key_signer::handle(rh, msg_bytes, dummy_peer.clone()) {
+                                match sphinx_key_signer::handle(rh, msg_bytes, dummy_peer.clone(), is_log) {
                                     Ok(b) => client
                                         .publish(PUB_TOPIC, QoS::AtMostOnce, false, b)
                                         .await
@@ -151,4 +160,36 @@ fn incoming_conn_ack(event: Event) -> Option<()> {
         }
     }
     None
+}
+
+pub fn setup_logging(who: &str, level_arg: &str) {
+    use fern::colors::{Color, ColoredLevelConfig};
+    let colors = ColoredLevelConfig::new()
+        .info(Color::Green)
+        .error(Color::Red)
+        .warn(Color::Yellow);
+    let level = env::var("RUST_LOG").unwrap_or(level_arg.to_string());
+    let who = who.to_string();
+    fern::Dispatch::new()
+        .format(move |out, message, record| {
+            out.finish(format_args!(
+                "[{} {}/{} {}] {}",
+                chrono::Local::now().format("%Y-%m-%dT%H:%M:%S%.3f"),
+                who,
+                record.target(),
+                colors.color(record.level()),
+                message
+            ))
+        })
+        .level(log::LevelFilter::from_str(&level).expect("level"))
+        .level_for("h2", log::LevelFilter::Info)
+        .level_for("sled", log::LevelFilter::Info)
+        .level_for(
+            "librumqttd::rumqttlog::router::router",
+            log::LevelFilter::Warn,
+        )
+        .chain(std::io::stdout())
+        // .chain(fern::log_file("/tmp/output.log")?)
+        .apply()
+        .expect("log config");
 }

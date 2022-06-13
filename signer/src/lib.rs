@@ -45,6 +45,7 @@ pub fn handle(
     root_handler: &RootHandler,
     bytes: Vec<u8>,
     dummy_peer: PubKey,
+    do_log: bool,
 ) -> anyhow::Result<Vec<u8>> {
     let mut md = MsgDriver::new(bytes);
     let (sequence, dbid) = read_serial_request_header(&mut md).expect("read request header");
@@ -59,6 +60,9 @@ pub fn handle(
         _ => {}
     };
 
+    if do_log {
+        log::info!("VLS msg: {:?}", message);
+    }
     let reply = if dbid > 0 {
         let handler = root_handler.for_new_client(0, dummy_peer.clone(), dbid);
         handler.handle(message).expect("handle")
