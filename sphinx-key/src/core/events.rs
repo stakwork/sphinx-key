@@ -68,7 +68,7 @@ pub fn make_event_loop(mut mqtt: EspMqttClient<ConnState<MessageImpl, EspError>>
                 if do_log {
                     log::info!("GOT A PING MESSAGE! returning pong now...");
                 }
-                mqtt.publish(RETURN_TOPIC, QOS, false, b).expect("could not publish init response");
+                mqtt.publish(RETURN_TOPIC, QOS, false, b).expect("could not publish ping response");
             },
             Event::Disconnected => {
                 log::info!("GOT A Event::Disconnected msg!");

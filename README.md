@@ -81,3 +81,11 @@ restart sphinx key, then from computer connect to sphinxkey AP.\
 go to `http://192.168.71.1/?broker=52.91.253.115%3A1883`.\
 input internet wifi SSID and password, and the IP address of the broker.\
 after pressing the ok button, restart the sphinx key, and wait for a MQTT connection.
+
+### espflash notes
+
+espflash save-image esp32-c3 target/riscv32imc-esp-espidf/debug/sphinx-key ./asdf-blah
+
+espflash save-image esp32-c3 target/riscv32imc-esp-espidf/release/sphinx-key ./test-flash
+
+espflash board-info
