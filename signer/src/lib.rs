@@ -1,13 +1,13 @@
-use lightning_signer::persist::{DummyPersister, Persist};
-use lightning_signer::Arc;
+pub use lightning_signer::persist::{DummyPersister, Persist};
+pub use lightning_signer::Arc as SignerArc;
 use sphinx_key_parser::MsgDriver;
-use vls_protocol::msgs::{self, read_serial_request_header, write_serial_response_header, Message};
-use vls_protocol::serde_bolt::WireString;
+use vls_protocol::msgs::{read_serial_request_header, write_serial_response_header, Message};
 use vls_protocol_signer::lightning_signer;
 use vls_protocol_signer::vls_protocol;
-
-pub use vls_protocol::model::PubKey;
+pub use vls_protocol::{msgs, model::{PubKey, Secret}};
 pub use vls_protocol_signer::handler::{Handler, RootHandler};
+pub use vls_protocol::serde_bolt::WireString;
+pub use sphinx_key_parser as parser;
 
 pub struct InitResponse {
     pub root_handler: RootHandler,
@@ -15,7 +15,7 @@ pub struct InitResponse {
 }
 
 pub fn init(bytes: Vec<u8>) -> anyhow::Result<InitResponse> {
-    let persister: Arc<dyn Persist> = Arc::new(DummyPersister);
+    let persister: SignerArc<dyn Persist> = SignerArc::new(DummyPersister);
     let mut md = MsgDriver::new(bytes);
     let (sequence, dbid) = read_serial_request_header(&mut md).expect("read init header");
     assert_eq!(dbid, 0);

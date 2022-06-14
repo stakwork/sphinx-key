@@ -84,8 +84,13 @@ after pressing the ok button, restart the sphinx key, and wait for a MQTT connec
 
 ### espflash notes
 
-espflash save-image esp32-c3 target/riscv32imc-esp-espidf/debug/sphinx-key ./asdf-blah
+espflash save-image esp32-c3 target/riscv32imc-esp-espidf/debug/sphinx-key ./test-flash
 
 espflash save-image esp32-c3 target/riscv32imc-esp-espidf/release/sphinx-key ./test-flash
 
 espflash board-info
+
+espflash target/riscv32imc-esp-espidf/debug/tiny
+espmonitor /dev/tty.usbserial-1420
+
+espflash save-image esp32-c3 target/riscv32imc-esp-espidf/debug/tiny ./test-flash

@@ -39,3 +39,7 @@ anyhow = "1"
 [[bin]]
 name = "clear"
 path = "src/clear.rs"
+
+[[bin]]
+name = "tiny"
+path = "src/tiny.rs"
