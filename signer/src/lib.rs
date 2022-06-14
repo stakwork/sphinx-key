@@ -1,13 +1,13 @@
-pub use lightning_signer::persist::{DummyPersister, Persist};
-pub use lightning_signer::Arc as SignerArc;
+use lightning_signer::persist::{DummyPersister, Persist};
+use lightning_signer::Arc as SignerArc;
 use sphinx_key_parser::MsgDriver;
 use vls_protocol::msgs::{read_serial_request_header, write_serial_response_header, Message};
-use vls_protocol_signer::lightning_signer;
-use vls_protocol_signer::vls_protocol;
-pub use vls_protocol::{msgs, model::{PubKey, Secret}};
-pub use vls_protocol_signer::handler::{Handler, RootHandler};
-pub use vls_protocol::serde_bolt::WireString;
+use vls_protocol::{model::PubKey, msgs, serde_bolt::WireString};
+use vls_protocol_signer::handler::{Handler, RootHandler};
+
 pub use sphinx_key_parser as parser;
+pub use vls_protocol_signer::lightning_signer;
+pub use vls_protocol_signer::vls_protocol;
 
 pub struct InitResponse {
     pub root_handler: RootHandler,
