@@ -32,11 +32,11 @@ serde_urlencoded = "0.7.1"
 serde = { version = "1.0.137", default-features = false }
 serde_json = { version = "1.0.81", default-features = false }
 
-secp256k1 = { git = "https://github.com/devrandom/rust-secp256k1.git", rev = "4e745ebe7e4c9cd0a7e9c8d5c42e989522e52f71", features = ["lowmemory"] }
+# secp256k1 = { git = "https://github.com/devrandom/rust-secp256k1.git", rev = "4e745ebe7e4c9cd0a7e9c8d5c42e989522e52f71", features = ["lowmemory"] }
 
-# [patch.crates-io]
-# # Low-memory version of secp256k1 with static precomputation
-# secp256k1 = { git = "https://github.com/devrandom/rust-secp256k1.git", rev = "4e745ebe7e4c9cd0a7e9c8d5c42e989522e52f71" }
+[patch.crates-io]
+# Low-memory version of secp256k1 with static precomputation
+secp256k1 = { git = "https://github.com/devrandom/rust-secp256k1.git", rev = "4e745ebe7e4c9cd0a7e9c8d5c42e989522e52f71" }
 
 [build-dependencies]
 embuild = "0.29"

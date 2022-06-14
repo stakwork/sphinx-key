@@ -1,7 +1,9 @@
 #![feature(once_cell)]
 
-use secp256k1::{Message, PublicKey, Secp256k1, SecretKey};
-// use sphinx_key_signer::lightning_signer::bitcoin::secp256k1::Secp256k1;
+// use secp256k1::{Message, PublicKey, Secp256k1, SecretKey};
+use sphinx_key_signer::lightning_signer::bitcoin::secp256k1::{
+    Message, PublicKey, Secp256k1, SecretKey,
+};
 
 fn main() -> anyhow::Result<()> {
     esp_idf_sys::link_patches();
