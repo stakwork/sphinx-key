@@ -1,5 +1,6 @@
 use crate::conn::mqtt::{RETURN_TOPIC, TOPIC, QOS};
-use sphinx_key_signer::{self, InitResponse, PubKey};
+use sphinx_key_signer::{self, InitResponse};
+use sphinx_key_signer::vls_protocol::model::PubKey;
 use std::sync::mpsc;
 
 use esp_idf_sys;

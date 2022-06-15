@@ -22,7 +22,7 @@ Find the path to your `riscv32-esp-elf-gcc` binary within the `.embuild` dir:
 
 ### flash release
 
-`espflash target/riscv32imc-esp-espidf/release/sphinx-key`
+`espflash target/riscv32imc-esp-espidf/release/sphinx-key --monitor`
 
 ### monitor
 
@@ -89,3 +89,5 @@ espflash save-image esp32-c3 target/riscv32imc-esp-espidf/debug/sphinx-key ./asd
 espflash save-image esp32-c3 target/riscv32imc-esp-espidf/release/sphinx-key ./test-flash
 
 espflash board-info
+
+export CC=$PWD/.embuild/espressif/tools/riscv32-esp-elf/esp-2021r2-8.4.0/riscv32-esp-elf/bin/riscv32-esp-elf-gcc

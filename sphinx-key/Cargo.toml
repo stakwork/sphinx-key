@@ -19,8 +19,8 @@ pio = ["esp-idf-sys/pio"]
 pingpong = []
 
 [dependencies]
-sphinx-key-signer = { path = "../signer", optional = true }
 esp-idf-sys = { version = "0.31.5", features = ["binstart"] }
+sphinx-key-signer = { path = "../signer", optional = true }
 embedded-svc = { version = "0.21.2" }
 esp-idf-svc = "0.41"
 esp-idf-hal = "0.37"
@@ -39,3 +39,4 @@ anyhow = "1"
 [[bin]]
 name = "clear"
 path = "src/clear.rs"
+
