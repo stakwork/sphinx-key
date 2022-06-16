@@ -75,9 +75,15 @@ fn main() {
     println!("Hello, world!");
 }
 ```
-Now the goal was to run this small piece of code on the ESP32-C3. If we could, then this would very likely mean that we had solved the problem.
+We now knew that the root problem had to do with how the secp library was flashed onto the chip. Furthermore, we understood from the ESP documentation that the DROM segments contain constant, read-only data that isn't executable code.[^5] So very likely the problem was related to how the precomputed elliptic curve multiplication tables were laid out in the image loaded on the chip. These are built specifically when the low-memory feature of the rust secp library is turned on, which optimizes the library to run in low-memory environments like our ESP32-C3. So we first tried to turn off this feature, hoping that we would have enough RAM on our chip to do these multiplications dynamically. This failed, as our ESP32-C3 immediately reported a memory overflow.
+
+Further along the way, we found that while we were not able to run the code segment above using the implementation of the multiplication tables from the upstream C library, we were able to run it on our chip by pulling devrandom's earlier rust implementation.[^6] The maintainers of the secp libraries decided not to merge devrandom's implementation, choosing instead to implement the tables in C and have the downstream rust library automatically get them once they were merged in the C master. Nonetheless, devrandom's implementation worked for us, so we reworked all of our dependency tree to rely on devrandom's secp branch alone, rather than the master rust branch. Unfortunately, the rust bitcoin and lightning libraries had evolved so much since devrandom's pull request that it made this work-around unfeasible. We had to find a way to run the master secp implementation of these multiplication tables on our ESP32-C3.
+
+Our breakthrough on this problem came when we decided to run the code segment above using different versions of the ESP-IDF framework that we depend on to control our ESP32-C3. We had releases 4.3.2 and 4.4 available to us, and we had been using 4.4 up until then. Once we made the switch to using version 4.3.2, we were able to get signature production and verification working on the ESP32-C3. We then ported this finding back to this codebase here, and confirmed that the problem had been solved.
 
 [^1]: Test found in `lightning/tests/test_pay.py`
 [^2]: See architecture diagram [here](ARCHITECTURE.md)
 [^3]: See project homepage [here](https://gitlab.com/lightning-signer)
 [^4]: The chip itself was mounted on the ESP32-C3 Mini Development Board found [here](https://www.sparkfun.com/products/18036)
+[^5]: See ESP memory types documentation over [here](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-guides/memory-types.html)
+[^6]: Devrandom's PR is [here](https://github.com/rust-bitcoin/rust-secp256k1/pull/299), while the C PRs are [here](https://github.com/bitcoin-core/secp256k1/pull/988) and [here](https://github.com/bitcoin-core/secp256k1/pull/1042)
