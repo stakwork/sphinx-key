@@ -14,7 +14,7 @@ Find the path to your `riscv32-esp-elf-gcc` binary within the `.embuild` dir:
 
 ### flash test
 
-`espflash target/riscv32imc-esp-espidf/debug/sphinx-key`
+`espflash target/riscv32imc-esp-espidf/debug/sphinx-key --monitor`
 
 ### build release
 

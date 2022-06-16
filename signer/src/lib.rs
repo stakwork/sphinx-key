@@ -26,8 +26,11 @@ pub fn init(bytes: Vec<u8>) -> anyhow::Result<InitResponse> {
         .iter()
         .map(|s| from_wire_string(s))
         .collect::<Vec<_>>();
+    log::info!("allowlist {:?}", allowlist);
     let seed = init.dev_seed.as_ref().map(|s| s.0).expect("no seed");
+    log::info!("seed {:?}", seed);
     let root_handler = RootHandler::new(0, Some(seed), persister, allowlist);
+    log::info!("root_handler created");
     let init_reply = root_handler
         .handle(Message::HsmdInit2(init))
         .expect("handle init");
