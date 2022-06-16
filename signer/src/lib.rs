@@ -1,12 +1,13 @@
 use lightning_signer::persist::{DummyPersister, Persist};
-use lightning_signer::Arc;
+// use lightning_signer::Arc;
 use sphinx_key_parser::MsgDriver;
+use std::sync::Arc;
+use vls_protocol::model::PubKey;
 use vls_protocol::msgs::{self, read_serial_request_header, write_serial_response_header, Message};
 use vls_protocol::serde_bolt::WireString;
+use vls_protocol_signer::handler::{Handler, RootHandler};
 pub use vls_protocol_signer::lightning_signer;
 pub use vls_protocol_signer::vls_protocol;
-use vls_protocol::model::PubKey;
-use vls_protocol_signer::handler::{Handler, RootHandler};
 
 pub struct InitResponse {
     pub root_handler: RootHandler,
@@ -28,7 +29,7 @@ pub fn init(bytes: Vec<u8>) -> anyhow::Result<InitResponse> {
         .collect::<Vec<_>>();
     log::info!("allowlist {:?}", allowlist);
     let seed = init.dev_seed.as_ref().map(|s| s.0).expect("no seed");
-    log::info!("seed {:?}", seed);
+    log::info!("create root handler now");
     let root_handler = RootHandler::new(0, Some(seed), persister, allowlist);
     log::info!("root_handler created");
     let init_reply = root_handler
