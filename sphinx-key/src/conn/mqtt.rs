@@ -28,7 +28,7 @@ pub fn make_client(
     log::info!("make_client with id {}", client_id);
     let conf = MqttClientConfiguration {
         client_id: Some(client_id),
-        buffer_size: 2048,
+        buffer_size: 4096,
         task_stack: 12288,
         username: Some(USERNAME),
         password: Some(PASSWORD),
