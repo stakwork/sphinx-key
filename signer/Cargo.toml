@@ -6,11 +6,10 @@ edition = "2018"
 
 [dependencies]
 sphinx-key-parser = { path = "../parser" }
-vls-protocol-signer = { git = "https://gitlab.com/lightning-signer/validating-lightning-signer", default-features = false, features = ["secp-lowmemory"] }
+# vls-protocol-signer = { path = "../../../evanf/validating-lightning-signer/vls-protocol-signer", default-features = false, features = ["std", "secp-lowmemory"] }
+# vls-protocol-signer = { git = "https://gitlab.com/lightning-signer/validating-lightning-signer", default-features = false, features = ["secp-lowmemory"] }
+vls-protocol-signer = { git = "https://gitlab.com/Evanfeenstra/validating-lightning-signer", branch = "std-signer", default-features = false, features = ["std", "secp-lowmemory"] }
 anyhow = {version = "1", features = ["backtrace"]}
 log = "0.4"
 
-[patch.crates-io]
-# Low-memory version of secp256k1 with static precomputation
-secp256k1 = { git = "https://github.com/devrandom/rust-secp256k1.git", rev = "4e745ebe7e4c9cd0a7e9c8d5c42e989522e52f71" }
 

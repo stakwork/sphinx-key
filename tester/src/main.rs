@@ -2,7 +2,8 @@ use sphinx_key_parser as parser;
 
 use clap::{App, AppSettings, Arg};
 use rumqttc::{self, AsyncClient, Event, MqttOptions, Packet, QoS};
-use sphinx_key_signer::{self, InitResponse, PubKey};
+use sphinx_key_signer::{self, InitResponse};
+use sphinx_key_signer::vls_protocol::model::PubKey;
 use std::error::Error;
 use std::time::Duration;
 use vls_protocol::msgs;

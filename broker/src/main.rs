@@ -60,10 +60,18 @@ fn main() -> anyhow::Result<()> {
         run_test::run_test();
     } else {
         let (tx, rx) = mpsc::channel(1000);
-        let (status_tx, _status_rx) = mpsc::channel(1000);
+        let (status_tx, mut status_rx) = mpsc::channel(1000);
+        log::info!("=> start broker");
         let _runtime = start_broker(rx, status_tx, "sphinx-1");
+        log::info!("=> wait for connected status");
+        // wait for connection = true
+        let status = status_rx.blocking_recv().expect("couldnt receive");
+        log::info!("=> connection status: {}", status);
+        assert_eq!(status, true, "expected connected = true");
         // runtime.block_on(async {
         init::blocking_connect(tx.clone());
+        log::info!("=====> sent seed!");
+
         // listen to reqs from CLN
         let conn = UnixConnection::new(parent_fd);
         let client = UnixClient::new(conn);
