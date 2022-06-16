@@ -17,7 +17,7 @@ const PUB_TOPIC: &str = "sphinx";
 const USERNAME: &str = "sphinx-key";
 const PASSWORD: &str = "sphinx-key-pass";
 // must get a reply within this time, or disconnects
-const REPLY_TIMEOUT_MS: u64 = 1000;
+const REPLY_TIMEOUT_MS: u64 = 10000;
 
 static CONNECTED: SyncLazy<Mutex<bool>> = SyncLazy::new(|| Mutex::new(false));
 fn set_connected(b: bool) {
