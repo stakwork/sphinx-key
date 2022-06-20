@@ -17,6 +17,8 @@ use esp_idf_svc::nvs_storage::EspNvsStorage;
 use embedded_svc::storage::Storage;
 use embedded_svc::wifi::Wifi;
 
+use sphinx_key_signer::lightning_signer::bitcoin::Network;
+
 #[cfg(not(feature = "pingpong"))]
 const CLIENT_ID: &str = "sphinx-1";
 
@@ -50,7 +52,8 @@ fn main() -> Result<()> {
         // this blocks forever... the "main thread"
         log::info!(">>>>>>>>>>> blocking forever...");
         let do_log = true;
-        make_event_loop(mqtt_client, rx, do_log)?;
+        let net = Network::Regtest;
+        make_event_loop(mqtt_client, rx, net, do_log)?;
         
         let mut blue = Led::new(0x000001, 100);
         println!("{:?}", wifi.get_status());

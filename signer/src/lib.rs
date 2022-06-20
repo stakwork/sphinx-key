@@ -7,6 +7,7 @@ use vls_protocol::msgs::{self, read_serial_request_header, write_serial_response
 use vls_protocol::serde_bolt::WireString;
 use vls_protocol_signer::handler::{Handler, RootHandler};
 pub use vls_protocol_signer::lightning_signer;
+pub use vls_protocol_signer::lightning_signer::bitcoin::Network;
 pub use vls_protocol_signer::vls_protocol;
 
 pub struct InitResponse {
@@ -14,7 +15,7 @@ pub struct InitResponse {
     pub init_reply: Vec<u8>,
 }
 
-pub fn init(bytes: Vec<u8>) -> anyhow::Result<InitResponse> {
+pub fn init(bytes: Vec<u8>, network: Network) -> anyhow::Result<InitResponse> {
     let persister: Arc<dyn Persist> = Arc::new(DummyPersister);
     let mut md = MsgDriver::new(bytes);
     let (sequence, dbid) = read_serial_request_header(&mut md).expect("read init header");
@@ -30,7 +31,7 @@ pub fn init(bytes: Vec<u8>) -> anyhow::Result<InitResponse> {
     log::info!("allowlist {:?}", allowlist);
     let seed = init.dev_seed.as_ref().map(|s| s.0).expect("no seed");
     log::info!("create root handler now");
-    let root_handler = RootHandler::new(0, Some(seed), persister, allowlist);
+    let root_handler = RootHandler::new(network, 0, Some(seed), persister, allowlist);
     log::info!("root_handler created");
     let init_reply = root_handler
         .handle(Message::HsmdInit2(init))
