@@ -6,10 +6,9 @@ use esp_idf_hal::peripherals::Peripherals;
 use esp_idf_hal::rmt::config::TransmitConfig;
 use esp_idf_hal::rmt::{FixedLengthSignal, PinState, Pulse, Transmit};
 
-use std::lazy::SyncLazy;
-use std::sync::Mutex;
+use std::sync::{LazyLock, Mutex};
 
-static TX: SyncLazy<Mutex<Transmit<Gpio8<esp_idf_hal::gpio::Output>, esp_idf_hal::rmt::CHANNEL0>>> = SyncLazy::new(|| {
+static TX: LazyLock<Mutex<Transmit<Gpio8<esp_idf_hal::gpio::Output>, esp_idf_hal::rmt::CHANNEL0>>> = LazyLock::new(|| {
     let peripherals = Peripherals::take().unwrap();
     let led = peripherals.pins.gpio8.into_output().unwrap();
     let channel = peripherals.rmt.channel0;
