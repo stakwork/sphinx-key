@@ -8,7 +8,7 @@ use librumqttd::{
 use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
-use std::{lazy::SyncLazy, sync::Mutex};
+use std::sync::{LazyLock, Mutex};
 use tokio::sync::mpsc;
 use tokio::time::timeout;
 
@@ -19,7 +19,7 @@ const PASSWORD: &str = "sphinx-key-pass";
 // must get a reply within this time, or disconnects
 const REPLY_TIMEOUT_MS: u64 = 10000;
 
-static CONNECTED: SyncLazy<Mutex<bool>> = SyncLazy::new(|| Mutex::new(false));
+static CONNECTED: LazyLock<Mutex<bool>> = LazyLock::new(|| Mutex::new(false));
 fn set_connected(b: bool) {
     *CONNECTED.lock().unwrap() = b;
 }
