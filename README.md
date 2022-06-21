@@ -6,7 +6,7 @@ These notes were tested for macOS
 
 Find the path to your `riscv32-esp-elf-gcc` binary within the `.embuild` dir:
 
-`export CC=$PWD/.embuild/espressif/tools/riscv32-esp-elf/esp-2021r2-patch3-8.4.0/riscv32-esp-elf/bin/riscv32-esp-elf-gcc`
+`export CC=$PWD/.embuild/espressif/tools/riscv32-esp-elf/esp-2021r2-8.4.0/riscv32-esp-elf/bin/riscv32-esp-elf-gcc`
 
 ### build test
 

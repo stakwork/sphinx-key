@@ -1,4 +1,5 @@
 use sphinx_key_parser as parser;
+use sphinx_key_signer::lightning_signer::bitcoin::Network;
 
 use clap::{App, AppSettings, Arg};
 use rumqttc::{self, AsyncClient, Event, MqttOptions, Packet, QoS};
@@ -101,7 +102,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
                         let InitResponse {
                             root_handler,
                             init_reply,
-                        } = sphinx_key_signer::init(init_msg_bytes).expect("failed to init signer");
+                        } = sphinx_key_signer::init(init_msg_bytes, Network::Regtest).expect("failed to init signer");
                         client
                             .publish(PUB_TOPIC, QoS::AtMostOnce, false, init_reply)
                             .await

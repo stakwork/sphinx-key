@@ -1,6 +1,7 @@
 use crate::conn::mqtt::{QOS, RETURN_TOPIC, TOPIC};
 use sphinx_key_signer::vls_protocol::model::PubKey;
 use sphinx_key_signer::{self, InitResponse};
+use sphinx_key_signer::lightning_signer::bitcoin::Network;
 use std::sync::mpsc;
 
 use embedded_svc::httpd::Result;
@@ -21,6 +22,7 @@ pub enum Event {
 pub fn make_event_loop(
     mut mqtt: EspMqttClient<ConnState<MessageImpl, EspError>>,
     rx: mpsc::Receiver<Event>,
+    network: Network,
     do_log: bool,
 ) -> Result<()> {
     // initialize the RootHandler
@@ -36,7 +38,7 @@ pub fn make_event_loop(
                     let InitResponse {
                         root_handler,
                         init_reply,
-                    } = sphinx_key_signer::init(msg_bytes.clone()).expect("failed to init signer");
+                    } = sphinx_key_signer::init(msg_bytes.clone(), network).expect("failed to init signer");
                     mqtt.publish(RETURN_TOPIC, QOS, false, init_reply)
                         .expect("could not publish init response");
                     break root_handler;
@@ -83,6 +85,7 @@ pub fn make_event_loop(
 pub fn make_event_loop(
     mut mqtt: EspMqttClient<ConnState<MessageImpl, EspError>>,
     rx: mpsc::Receiver<Event>,
+    _network: Network,
     do_log: bool,
 ) -> Result<()> {
     log::info!("About to subscribe to the mpsc channel");

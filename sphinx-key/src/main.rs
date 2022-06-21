@@ -17,13 +17,30 @@ use esp_idf_svc::nvs_storage::EspNvsStorage;
 use embedded_svc::storage::Storage;
 use embedded_svc::wifi::Wifi;
 
+use sphinx_key_signer::lightning_signer::bitcoin::Network;
+
 #[cfg(not(feature = "pingpong"))]
 const CLIENT_ID: &str = "sphinx-1";
 
 #[cfg(feature = "pingpong")]
 const CLIENT_ID: &str = "test-1";
 
+const NETWORK: Option<&'static str> = option_env!("NETWORK");
+
 fn main() -> Result<()> {
+
+    let network: Network = if let Some(n) = NETWORK {
+        match n {
+            "bitcoin" => Network::Bitcoin,
+            "mainnet" => Network::Bitcoin,
+            "testnet" => Network::Testnet,
+            "signet" => Network::Signet,
+            "regtest" => Network::Regtest,
+            _ => Network::Regtest,
+        }
+    } else {
+        Network::Regtest
+    };
 
     // Temporary. Will disappear once ESP-IDF 4.4 is released, but for now it is necessary to call this function once,
     // or else some patches to the runtime implemented by esp-idf-sys might not link properly.
@@ -50,7 +67,7 @@ fn main() -> Result<()> {
         // this blocks forever... the "main thread"
         log::info!(">>>>>>>>>>> blocking forever...");
         let do_log = true;
-        make_event_loop(mqtt_client, rx, do_log)?;
+        make_event_loop(mqtt_client, rx, network, do_log)?;
         
         let mut blue = Led::new(0x000001, 100);
         println!("{:?}", wifi.get_status());
