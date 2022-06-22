@@ -29,6 +29,10 @@ const NETWORK: Option<&'static str> = option_env!("NETWORK");
 
 fn main() -> Result<()> {
 
+    // Temporary. Will disappear once ESP-IDF 4.4 is released, but for now it is necessary to call this function once,
+    // or else some patches to the runtime implemented by esp-idf-sys might not link properly.
+    esp_idf_sys::link_patches();
+
     let network: Network = if let Some(n) = NETWORK {
         match n {
             "bitcoin" => Network::Bitcoin,
@@ -41,10 +45,6 @@ fn main() -> Result<()> {
     } else {
         Network::Regtest
     };
-
-    // Temporary. Will disappear once ESP-IDF 4.4 is released, but for now it is necessary to call this function once,
-    // or else some patches to the runtime implemented by esp-idf-sys might not link properly.
-    esp_idf_sys::link_patches();
 
     esp_idf_svc::log::EspLogger::initialize_default();
 

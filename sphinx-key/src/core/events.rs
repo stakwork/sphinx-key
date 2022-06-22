@@ -20,11 +20,12 @@ pub enum Event {
 
 #[derive(Debug)]
 pub enum Status {
+    Starting,
     WifiAccessPoint,
     WifiAccessPointClientConnected,
     ConnectingToWifi,
     ConnectingToMqtt,
-    ConnectedToMqtt,
+    Connected,
     MessageReceived,
 }
 
@@ -45,7 +46,7 @@ pub fn make_event_loop(
                     log::info!("SUBSCRIBE to {}", TOPIC);
                     mqtt.subscribe(TOPIC, QOS)
                         .expect("could not MQTT subscribe");
-                    led_tx.send(Status::ConnectedToMqtt).unwrap();
+                    led_tx.send(Status::Connected).unwrap();
                 }
                 Event::Message(ref msg_bytes) => {
                     let InitResponse {
@@ -72,7 +73,7 @@ pub fn make_event_loop(
                 log::info!("SUBSCRIBE TO {}", TOPIC);
                 mqtt.subscribe(TOPIC, QOS)
                     .expect("could not MQTT subscribe");
-                led_tx.send(Status::ConnectedToMqtt).unwrap();
+                led_tx.send(Status::Connected).unwrap();
             }
             Event::Message(ref msg_bytes) => {
                 led_tx.send(Status::MessageReceived).unwrap();

@@ -1,5 +1,4 @@
 use crate::core::events::Status;
-use core::time::Duration;
 use embedded_hal::delay::blocking::DelayUs;
 use esp_idf_hal::delay::Ets;
 use esp_idf_hal::gpio::Gpio8;
@@ -8,6 +7,7 @@ use esp_idf_hal::rmt::config::TransmitConfig;
 use esp_idf_hal::rmt::{FixedLengthSignal, PinState, Pulse, Transmit};
 use std::sync::mpsc;
 use std::thread;
+use std::time::Duration;
 
 use std::sync::{LazyLock, Mutex};
 
@@ -26,8 +26,15 @@ pub struct Led {
 
 pub fn led_control_loop(rx: mpsc::Receiver<Status>) {
     thread::spawn(move || {
-        while let Ok(status) = rx.recv() {
-            log::info!("LED STATUS: {:?}", status);
+        let mut state: Status = Status::Starting;
+        // each iteration: check if theres a new status, and change the color if so
+        // if not, continue the current status blink color/time
+        loop {
+            if let Ok(status) = rx.try_recv() {
+                log::info!("LED STATUS: {:?}", status);
+                state = status;
+            }
+            thread::sleep(Duration::from_millis(100));
         }
     });
 }
