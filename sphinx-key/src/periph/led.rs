@@ -1,3 +1,4 @@
+use crate::core::events::Status;
 use core::time::Duration;
 use embedded_hal::delay::blocking::DelayUs;
 use esp_idf_hal::delay::Ets;
@@ -5,6 +6,8 @@ use esp_idf_hal::gpio::Gpio8;
 use esp_idf_hal::peripherals::Peripherals;
 use esp_idf_hal::rmt::config::TransmitConfig;
 use esp_idf_hal::rmt::{FixedLengthSignal, PinState, Pulse, Transmit};
+use std::sync::mpsc;
+use std::thread;
 
 use std::sync::{LazyLock, Mutex};
 
@@ -19,6 +22,14 @@ static TX: LazyLock<Mutex<Transmit<Gpio8<esp_idf_hal::gpio::Output>, esp_idf_hal
 pub struct Led {
     brg: u32,
     blink_length: u32,
+}
+
+pub fn led_control_loop(rx: mpsc::Receiver<Status>) {
+    thread::spawn(move || {
+        while let Ok(status) = rx.recv() {
+            log::info!("LED STATUS: {:?}", status);
+        }
+    });
 }
 
 impl Led {
