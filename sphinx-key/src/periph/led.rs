@@ -43,12 +43,13 @@ fn states() -> BTreeMap<Status, (Color, Time)> {
 pub fn led_control_loop(rx: mpsc::Receiver<Status>) {
     thread::spawn(move || {
         let mut led = Led::new(0x000001, 100);
+        let states = states();
         loop {
             if let Ok(status) = rx.try_recv() {
                 log::info!("LED STATUS: {:?}", status);
-                if let Some(s) = states().get(&status) {
+                if let Some(s) = states.get(&status) {
                     led.set(s.0, s.1);
-                } 
+                }
             }
             led.blink();
             thread::sleep(Duration::from_millis(400));
