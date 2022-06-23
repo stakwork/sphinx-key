@@ -8,6 +8,7 @@ use esp_idf_hal::rmt::{FixedLengthSignal, PinState, Pulse, Transmit};
 use std::sync::mpsc;
 use std::thread;
 use std::time::Duration;
+use std::collections::BTreeMap;
 
 use std::sync::{LazyLock, Mutex};
 
@@ -19,32 +20,53 @@ static TX: LazyLock<Mutex<Transmit<Gpio8<esp_idf_hal::gpio::Output>, esp_idf_hal
     Mutex::new(Transmit::new(led, channel, &config).unwrap())
 });
 
+type Color = u32;
+type Time = u32;
+
 pub struct Led {
-    brg: u32,
-    blink_length: u32,
+    brg: Color,
+    blink_length: Time,
+}
+
+fn states() -> BTreeMap<Status, (Color, Time)> {
+  let mut s = BTreeMap::new();
+  s.insert(Status::Starting, (0x000001, 100));
+  s.insert(Status::WifiAccessPoint, (0x000100, 100));
+  s.insert(Status::Configuring, (0x010000, 20));
+  s.insert(Status::ConnectingToWifi, (0x010100, 350));
+  s.insert(Status::ConnectingToMqtt, (0x010001, 100));
+  s.insert(Status::Connected, (0x000101, 400));
+  s.insert(Status::Signing, (0x111111, 100));
+  s
 }
 
 pub fn led_control_loop(rx: mpsc::Receiver<Status>) {
     thread::spawn(move || {
-        let mut state: Status = Status::Starting;
-        // each iteration: check if theres a new status, and change the color if so
-        // if not, continue the current status blink color/time
+        let mut led = Led::new(0x000001, 100);
         loop {
             if let Ok(status) = rx.try_recv() {
                 log::info!("LED STATUS: {:?}", status);
-                state = status;
+                if let Some(s) = states().get(&status) {
+                    led.set(s.0, s.1);
+                } 
             }
-            thread::sleep(Duration::from_millis(100));
+            led.blink();
+            thread::sleep(Duration::from_millis(400));
         }
     });
 }
 
 impl Led {
-    pub fn new(rgb: u32, blink_length: u32) -> Led {
+    pub fn new(rgb: Color, blink_length: Time) -> Led {
         Led {
             brg: rotate_rgb(rgb),
             blink_length,
         }
+    }
+
+    pub fn set(&mut self, rgb: Color, blink_length: Time) {
+        self.brg = rotate_rgb(rgb);
+        self.blink_length = blink_length;
     }
 
     pub fn blink(&mut self) {

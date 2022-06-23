@@ -18,15 +18,15 @@ pub enum Event {
     Message(Vec<u8>),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Ord, PartialOrd, Eq, PartialEq)]
 pub enum Status {
     Starting,
     WifiAccessPoint,
-    WifiAccessPointClientConnected,
+    Configuring,
     ConnectingToWifi,
     ConnectingToMqtt,
     Connected,
-    MessageReceived,
+    Signing,
 }
 
 // the main event loop
@@ -76,7 +76,7 @@ pub fn make_event_loop(
                 led_tx.send(Status::Connected).unwrap();
             }
             Event::Message(ref msg_bytes) => {
-                led_tx.send(Status::MessageReceived).unwrap();
+                led_tx.send(Status::Signing).unwrap();
                 let _ret = match sphinx_key_signer::handle(
                     &root_handler,
                     msg_bytes.clone(),
@@ -117,7 +117,7 @@ pub fn make_event_loop(
                     .expect("could not MQTT subscribe");
             }
             Event::Message(msg_bytes) => {
-                led_tx.send(Status::MessageReceived).unwrap();
+                led_tx.send(Status::Signing).unwrap();
                 let b = sphinx_key_signer::parse_ping_and_form_response(msg_bytes);
                 if do_log {
                     log::info!("GOT A PING MESSAGE! returning pong now...");
