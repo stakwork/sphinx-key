@@ -46,7 +46,8 @@ fn main() -> anyhow::Result<()> {
         )
         .arg(Arg::from("--log-io ignored dev flag"))
         .arg(Arg::from("--version show a dummy version"))
-        .arg(Arg::from("--test run a test against the embedded device"));
+        .arg(Arg::from("--test run a test against the embedded device"))
+        .arg(Arg::from("--mainnet send a fixed random mainnet seed to the signer"));
     let matches = app.get_matches();
     if matches.is_present("version") {
         // Pretend to be the right version, given to us by an env var
@@ -69,7 +70,7 @@ fn main() -> anyhow::Result<()> {
         log::info!("=> connection status: {}", status);
         assert_eq!(status, true, "expected connected = true");
         // runtime.block_on(async {
-        init::blocking_connect(tx.clone());
+        init::blocking_connect(tx.clone(), matches.is_present("mainnet"));
         log::info!("=====> sent seed!");
 
         // listen to reqs from CLN
