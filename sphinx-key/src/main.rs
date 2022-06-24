@@ -49,6 +49,7 @@ fn main() -> Result<()> {
     esp_idf_svc::log::EspLogger::initialize_default();
 
     thread::sleep(Duration::from_secs(1));
+    log::info!("Network set to {:?}", network);
 
     let default_nvs = Arc::new(EspDefaultNvs::new()?);
     let mut store = EspNvsStorage::new_default(default_nvs.clone(), "sphinx", true).expect("no storage");
