@@ -7,11 +7,12 @@ mod util;
 
 use crate::mqtt::start_broker;
 use crate::unix_fd::SignerLoop;
-use clap::{App, AppSettings, Arg};
+use clap::{App, AppSettings, Arg, arg};
 use std::env;
 use tokio::sync::{mpsc, oneshot};
 use vls_proxy::client::UnixClient;
 use vls_proxy::connection::{open_parent_fd, UnixConnection};
+use bitcoin::Network;
 
 pub struct Channel {
     pub sequence: u16,
@@ -39,16 +40,35 @@ fn main() -> anyhow::Result<()> {
         .setting(AppSettings::NoAutoVersion)
         .about("CLN:mqtt - connects to an embedded VLS over a MQTT connection")
         .arg(
-            Arg::new("--dev-disconnect")
-                .about("ignored dev flag")
+            Arg::new("dev-disconnect")
+                .help("ignored dev flag")
                 .long("dev-disconnect")
                 .takes_value(true),
         )
-        .arg(Arg::from("--log-io ignored dev flag"))
-        .arg(Arg::from("--version show a dummy version"))
-        .arg(Arg::from("--test run a test against the embedded device"))
-        .arg(Arg::from("--mainnet send a fixed random mainnet seed to the signer"));
+        .arg(arg!(--"log-io" "ignored dev flag"))
+        .arg(arg!(--version "show a dummy version"))
+        .arg(arg!(--test "run a test against the embedded device"))
+        .arg(
+            Arg::new("network")
+                .help("bitcoin network")
+                .long("network")
+                .value_parser(["regtest", "signet", "testnet", "mainnet", "bitcoin"])
+                .default_value("regtest")
+        );
+    
+
     let matches = app.get_matches();
+
+    let network_string: &String = matches.get_one("network").expect("expected a network");
+    let network: Network = match network_string.as_str() {
+        "bitcoin" => Network::Bitcoin,
+        "mainnet" => Network::Bitcoin,
+        "testnet" => Network::Testnet,
+        "signet" => Network::Signet,
+        "regtest" => Network::Regtest,
+        _ => Network::Regtest,
+    };
+
     if matches.is_present("version") {
         // Pretend to be the right version, given to us by an env var
         let version =
@@ -57,6 +77,7 @@ fn main() -> anyhow::Result<()> {
         return Ok(());
     }
 
+    log::info!("NETWORK: {}", network.to_string());
     if matches.is_present("test") {
         run_test::run_test();
     } else {
@@ -70,7 +91,7 @@ fn main() -> anyhow::Result<()> {
         log::info!("=> connection status: {}", status);
         assert_eq!(status, true, "expected connected = true");
         // runtime.block_on(async {
-        init::blocking_connect(tx.clone(), matches.is_present("mainnet"));
+        init::blocking_connect(tx.clone(), network);
         log::info!("=====> sent seed!");
 
         // listen to reqs from CLN
