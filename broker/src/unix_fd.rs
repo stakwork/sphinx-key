@@ -1,11 +1,11 @@
+use crate::{Channel, ChannelReply, ChannelRequest};
+use async_trait::async_trait;
 use log::*;
 use secp256k1::PublicKey;
 use sphinx_key_parser as parser;
 use std::thread;
 use tokio::sync::{mpsc, oneshot};
-// use tokio::task::spawn_blocking;
-use crate::{Channel, ChannelReply, ChannelRequest};
-use async_trait::async_trait;
+use tokio::task::spawn_blocking;
 use vls_protocol::{msgs, msgs::Message, Error, Result};
 use vls_protocol_client::SignerPort;
 use vls_proxy::client::Client;
@@ -166,7 +166,10 @@ impl MqttSignerPort {
     }
 
     async fn get_reply(&self, reply_rx: oneshot::Receiver<ChannelReply>) -> Result<Vec<u8>> {
-        let reply = reply_rx.blocking_recv().map_err(|_| Error::Eof)?;
+        let reply = spawn_blocking(move || reply_rx.blocking_recv())
+            .await
+            .map_err(|_| Error::Eof)?
+            .map_err(|_| Error::Eof)?;
         Ok(reply.reply)
     }
 }
