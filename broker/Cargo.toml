@@ -8,6 +8,8 @@ default-run = "sphinx-key-broker"
 [dependencies]
 vls-protocol = { git = "https://gitlab.com/Evanfeenstra/validating-lightning-signer", branch = "partial-std" }
 vls-proxy = { git = "https://gitlab.com/Evanfeenstra/validating-lightning-signer", branch = "partial-std" }
+vls-frontend = { git = "https://gitlab.com/Evanfeenstra/validating-lightning-signer", branch = "partial-std" }
+vls-protocol-client = { git = "https://gitlab.com/Evanfeenstra/validating-lightning-signer", branch = "partial-std" }
 # vls-protocol = { path = "../../../evanf/validating-lightning-signer/vls-protocol" }
 # vls-proxy = { path = "../../../evanf/validating-lightning-signer/vls-proxy" }
 rumqttd = { git = "https://github.com/Evanfeenstra/rumqtt", branch = "metrics" } 
@@ -25,6 +27,8 @@ clap_derive = "3.2.6"
 chrono = "0.4"
 once_cell = "1.12.0"
 bitcoin = "0.28.1"
+async-trait = "0.1"
+url = { version = "2.2" }
 
 [features]
 default = ["std"]

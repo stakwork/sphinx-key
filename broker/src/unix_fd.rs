@@ -1,10 +1,9 @@
+use crate::{Channel, ChannelReply, ChannelRequest};
 use log::*;
 use secp256k1::PublicKey;
 use sphinx_key_parser as parser;
 use std::thread;
 use tokio::sync::{mpsc, oneshot};
-// use tokio::task::spawn_blocking;
-use crate::{Channel, ChannelReply, ChannelRequest};
 use vls_protocol::{msgs, msgs::Message, Error, Result};
 use vls_proxy::client::Client;
 
