@@ -1,12 +1,14 @@
 #![feature(once_cell)]
+mod chain_tracker;
 mod init;
 mod mqtt;
 mod run_test;
 mod unix_fd;
 mod util;
 
+use crate::chain_tracker::MqttSignerPort;
 use crate::mqtt::start_broker;
-use crate::unix_fd::{MqttSignerPort, SignerLoop};
+use crate::unix_fd::SignerLoop;
 use bitcoin::Network;
 use clap::{arg, App, AppSettings, Arg};
 use std::env;
