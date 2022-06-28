@@ -6,13 +6,17 @@ mod unix_fd;
 mod util;
 
 use crate::mqtt::start_broker;
-use crate::unix_fd::SignerLoop;
-use clap::{App, AppSettings, Arg, arg};
+use crate::unix_fd::{MqttSignerPort, SignerLoop};
+use bitcoin::Network;
+use clap::{arg, App, AppSettings, Arg};
 use std::env;
+use std::sync::Arc;
 use tokio::sync::{mpsc, oneshot};
+use url::Url;
+use vls_frontend::Frontend;
 use vls_proxy::client::UnixClient;
 use vls_proxy::connection::{open_parent_fd, UnixConnection};
-use bitcoin::Network;
+use vls_proxy::portfront::SignerPortFront;
 
 pub struct Channel {
     pub sequence: u16,
@@ -53,9 +57,8 @@ fn main() -> anyhow::Result<()> {
                 .help("bitcoin network")
                 .long("network")
                 .value_parser(["regtest", "signet", "testnet", "mainnet", "bitcoin"])
-                .default_value("regtest")
+                .default_value("regtest"),
         );
-    
 
     let matches = app.get_matches();
 
@@ -84,7 +87,7 @@ fn main() -> anyhow::Result<()> {
         let (tx, rx) = mpsc::channel(1000);
         let (status_tx, mut status_rx) = mpsc::channel(1000);
         log::info!("=> start broker");
-        let _runtime = start_broker(rx, status_tx, "sphinx-1");
+        let runtime = start_broker(rx, status_tx, "sphinx-1");
         log::info!("=> wait for connected status");
         // wait for connection = true
         let status = status_rx.blocking_recv().expect("couldnt receive");
@@ -94,6 +97,18 @@ fn main() -> anyhow::Result<()> {
         init::blocking_connect(tx.clone(), network);
         log::info!("=====> sent seed!");
 
+        if let Ok(btc_url) = env::var("BITCOIND_RPC_URL") {
+            let signer_port = MqttSignerPort::new(tx.clone());
+            let frontend = Frontend::new(
+                Arc::new(SignerPortFront {
+                    signer_port: Box::new(signer_port),
+                }),
+                Url::parse(&btc_url).expect("malformed btc rpc url"),
+            );
+            runtime.block_on(async {
+                frontend.start();
+            });
+        }
         // listen to reqs from CLN
         let conn = UnixConnection::new(parent_fd);
         let client = UnixClient::new(conn);
