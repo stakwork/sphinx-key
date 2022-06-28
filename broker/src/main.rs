@@ -83,40 +83,41 @@ fn main() -> anyhow::Result<()> {
     log::info!("NETWORK: {}", network.to_string());
     if matches.is_present("test") {
         run_test::run_test();
-    } else {
-        let (tx, rx) = mpsc::channel(1000);
-        let (status_tx, mut status_rx) = mpsc::channel(1000);
-        log::info!("=> start broker");
-        let runtime = start_broker(rx, status_tx, "sphinx-1");
-        log::info!("=> wait for connected status");
-        // wait for connection = true
-        let status = status_rx.blocking_recv().expect("couldnt receive");
-        log::info!("=> connection status: {}", status);
-        assert_eq!(status, true, "expected connected = true");
-        // runtime.block_on(async {
-        init::blocking_connect(tx.clone(), network);
-        log::info!("=====> sent seed!");
-
-        if let Ok(btc_url) = env::var("BITCOIND_RPC_URL") {
-            let signer_port = MqttSignerPort::new(tx.clone());
-            let frontend = Frontend::new(
-                Arc::new(SignerPortFront {
-                    signer_port: Box::new(signer_port),
-                }),
-                Url::parse(&btc_url).expect("malformed btc rpc url"),
-            );
-            runtime.block_on(async {
-                frontend.start();
-            });
-        }
-        // listen to reqs from CLN
-        let conn = UnixConnection::new(parent_fd);
-        let client = UnixClient::new(conn);
-        // TODO pass status_rx into SignerLoop
-        let mut signer_loop = SignerLoop::new(client, tx);
-        signer_loop.start();
-        // })
+        return Ok(());
     }
+
+    let (tx, rx) = mpsc::channel(1000);
+    let (status_tx, mut status_rx) = mpsc::channel(1000);
+    log::info!("=> start broker");
+    let runtime = start_broker(rx, status_tx, "sphinx-1");
+    log::info!("=> wait for connected status");
+    // wait for connection = true
+    let status = status_rx.blocking_recv().expect("couldnt receive");
+    log::info!("=> connection status: {}", status);
+    assert_eq!(status, true, "expected connected = true");
+    // runtime.block_on(async {
+    init::blocking_connect(tx.clone(), network);
+    log::info!("=====> sent seed!");
+
+    if let Ok(btc_url) = env::var("BITCOIND_RPC_URL") {
+        let signer_port = MqttSignerPort::new(tx.clone());
+        let frontend = Frontend::new(
+            Arc::new(SignerPortFront {
+                signer_port: Box::new(signer_port),
+            }),
+            Url::parse(&btc_url).expect("malformed btc rpc url"),
+        );
+        runtime.block_on(async {
+            frontend.start();
+        });
+    }
+    // listen to reqs from CLN
+    let conn = UnixConnection::new(parent_fd);
+    let client = UnixClient::new(conn);
+    // TODO pass status_rx into SignerLoop
+    let mut signer_loop = SignerLoop::new(client, tx);
+    signer_loop.start();
+    // })
 
     Ok(())
 }
