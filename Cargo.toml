@@ -10,6 +10,7 @@ members = [
 
 exclude = [
     "sphinx-key",
+    "crypter"
 ]
 
 [patch.crates-io]
