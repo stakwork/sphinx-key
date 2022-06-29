@@ -4,7 +4,8 @@ mod core;
 mod periph;
 
 use crate::core::{events::*, config::*};
-use crate::periph::led::Led;
+use crate::periph::led::led_control_loop;
+use crate::periph::sd::sd_card;
 
 use esp_idf_sys as _; // If using the `binstart` feature of `esp-idf-sys`, always keep this module imported
 use std::thread;
@@ -15,7 +16,7 @@ use anyhow::Result;
 use esp_idf_svc::nvs::*;
 use esp_idf_svc::nvs_storage::EspNvsStorage;
 use embedded_svc::storage::Storage;
-use embedded_svc::wifi::Wifi;
+use esp_idf_hal::peripherals::Peripherals;
 
 use sphinx_key_signer::lightning_signer::bitcoin::Network;
 
@@ -28,6 +29,10 @@ const CLIENT_ID: &str = "test-1";
 const NETWORK: Option<&'static str> = option_env!("NETWORK");
 
 fn main() -> Result<()> {
+
+    // Temporary. Will disappear once ESP-IDF 4.4 is released, but for now it is necessary to call this function once,
+    // or else some patches to the runtime implemented by esp-idf-sys might not link properly.
+    esp_idf_sys::link_patches();
 
     let network: Network = if let Some(n) = NETWORK {
         match n {
@@ -42,14 +47,20 @@ fn main() -> Result<()> {
         Network::Regtest
     };
 
-    // Temporary. Will disappear once ESP-IDF 4.4 is released, but for now it is necessary to call this function once,
-    // or else some patches to the runtime implemented by esp-idf-sys might not link properly.
-    esp_idf_sys::link_patches();
-
     esp_idf_svc::log::EspLogger::initialize_default();
 
     thread::sleep(Duration::from_secs(1));
     log::info!("Network set to {:?}", network);
+
+    let peripherals = Peripherals::take().unwrap();
+    let pins = peripherals.pins;
+
+    let (led_tx, led_rx) = mpsc::channel();
+    // LED control thread
+    led_control_loop(pins.gpio8, peripherals.rmt.channel0, led_rx);
+
+    // sd card
+    sd_card(peripherals.spi2);
 
     let default_nvs = Arc::new(EspDefaultNvs::new()?);
     let mut store = EspNvsStorage::new_default(default_nvs.clone(), "sphinx", true).expect("no storage");
@@ -57,10 +68,12 @@ fn main() -> Result<()> {
     if let Some(exist) = existing {
         println!("=============> START CLIENT NOW <============== {:?}", exist);
         // store.remove("config").expect("couldnt remove config");
-        let wifi = start_wifi_client(default_nvs.clone(), &exist)?;
+        led_tx.send(Status::ConnectingToWifi).unwrap();
+        let _wifi = start_wifi_client(default_nvs.clone(), &exist)?;
 
         let (tx, rx) = mpsc::channel();
 
+        led_tx.send(Status::ConnectingToMqtt).unwrap();
         // _conn needs to stay in scope or its dropped
         let (mqtt, connection) = conn::mqtt::make_client(&exist.broker, CLIENT_ID)?;
         let mqtt_client = conn::mqtt::start_listening(mqtt, connection, tx)?;
@@ -68,17 +81,10 @@ fn main() -> Result<()> {
         // this blocks forever... the "main thread"
         log::info!(">>>>>>>>>>> blocking forever...");
         let do_log = true;
-        make_event_loop(mqtt_client, rx, network, do_log)?;
+        make_event_loop(mqtt_client, rx, network, do_log, led_tx)?;
         
-        let mut blue = Led::new(0x000001, 100);
-        println!("{:?}", wifi.get_status());
-        loop {
-            log::info!("Listening...");
-            blue.blink();
-            thread::sleep(Duration::from_secs(1));
-        }
-        // drop(wifi);
     } else {
+        led_tx.send(Status::WifiAccessPoint).unwrap();
         println!("=============> START SERVER NOW AND WAIT <==============");
         if let Ok((wifi, config)) = start_config_server_and_wait(default_nvs.clone()) {
             store.put("config", &config).expect("could not store config");

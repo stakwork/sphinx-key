@@ -18,12 +18,25 @@ pub enum Event {
     Message(Vec<u8>),
 }
 
+#[derive(Debug, Ord, PartialOrd, Eq, PartialEq)]
+pub enum Status {
+    Starting,
+    WifiAccessPoint,
+    Configuring,
+    ConnectingToWifi,
+    ConnectingToMqtt,
+    Connected,
+    Signing,
+}
+
+// the main event loop
 #[cfg(not(feature = "pingpong"))]
 pub fn make_event_loop(
     mut mqtt: EspMqttClient<ConnState<MessageImpl, EspError>>,
     rx: mpsc::Receiver<Event>,
     network: Network,
     do_log: bool,
+    led_tx: mpsc::Sender<Status>
 ) -> Result<()> {
     // initialize the RootHandler
     let root_handler = loop {
@@ -33,6 +46,7 @@ pub fn make_event_loop(
                     log::info!("SUBSCRIBE to {}", TOPIC);
                     mqtt.subscribe(TOPIC, QOS)
                         .expect("could not MQTT subscribe");
+                    led_tx.send(Status::Connected).unwrap();
                 }
                 Event::Message(ref msg_bytes) => {
                     let InitResponse {
@@ -44,6 +58,7 @@ pub fn make_event_loop(
                     break root_handler;
                 }
                 Event::Disconnected => {
+                    led_tx.send(Status::ConnectingToMqtt).unwrap();
                     log::info!("GOT an early Event::Disconnected msg!");
                 }
             }
@@ -58,8 +73,10 @@ pub fn make_event_loop(
                 log::info!("SUBSCRIBE TO {}", TOPIC);
                 mqtt.subscribe(TOPIC, QOS)
                     .expect("could not MQTT subscribe");
+                led_tx.send(Status::Connected).unwrap();
             }
             Event::Message(ref msg_bytes) => {
+                led_tx.send(Status::Signing).unwrap();
                 let _ret = match sphinx_key_signer::handle(
                     &root_handler,
                     msg_bytes.clone(),
@@ -73,6 +90,7 @@ pub fn make_event_loop(
                 };
             }
             Event::Disconnected => {
+                led_tx.send(Status::ConnectingToMqtt).unwrap();
                 log::info!("GOT A Event::Disconnected msg!");
             }
         }
@@ -87,16 +105,19 @@ pub fn make_event_loop(
     rx: mpsc::Receiver<Event>,
     _network: Network,
     do_log: bool,
+    led_tx: mpsc::Sender<Status>
 ) -> Result<()> {
     log::info!("About to subscribe to the mpsc channel");
     while let Ok(event) = rx.recv() {
         match event {
             Event::Connected => {
+                led_tx.send(Status::ConnectedToMqtt).unwrap();
                 log::info!("SUBSCRIBE TO {}", TOPIC);
                 mqtt.subscribe(TOPIC, QOS)
                     .expect("could not MQTT subscribe");
             }
             Event::Message(msg_bytes) => {
+                led_tx.send(Status::Signing).unwrap();
                 let b = sphinx_key_signer::parse_ping_and_form_response(msg_bytes);
                 if do_log {
                     log::info!("GOT A PING MESSAGE! returning pong now...");
@@ -105,6 +126,7 @@ pub fn make_event_loop(
                     .expect("could not publish ping response");
             }
             Event::Disconnected => {
+                led_tx.send(Status::ConnectingToMqtt).unwrap();
                 log::info!("GOT A Event::Disconnected msg!");
             }
         }
