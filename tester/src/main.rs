@@ -1,15 +1,15 @@
 use sphinx_key_parser as parser;
 use sphinx_key_signer::lightning_signer::bitcoin::Network;
 
-use clap::{App, AppSettings, Arg};
+use clap::{arg, App, AppSettings};
 use rumqttc::{self, AsyncClient, Event, MqttOptions, Packet, QoS};
-use sphinx_key_signer::{self, InitResponse};
 use sphinx_key_signer::vls_protocol::model::PubKey;
+use sphinx_key_signer::{self, InitResponse};
+use std::env;
 use std::error::Error;
+use std::str::FromStr;
 use std::time::Duration;
 use vls_protocol::msgs;
-use std::env;
-use std::str::FromStr;
 
 const SUB_TOPIC: &str = "sphinx";
 const PUB_TOPIC: &str = "sphinx-return";
@@ -23,8 +23,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let app = App::new("tester")
         .setting(AppSettings::NoAutoVersion)
         .about("CLN:mqtt-tester - MQTT client signer")
-        .arg(Arg::from("--test run a test against the embedded device"))
-        .arg(Arg::from("--log log each VLS message"));
+        .arg(arg!(--test "run a test against the embedded device"))
+        .arg(arg!(--log "log each VLS message"));
     let matches = app.get_matches();
     let is_test = matches.is_present("test");
     let is_log = matches.is_present("log");
@@ -102,7 +102,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
                         let InitResponse {
                             root_handler,
                             init_reply,
-                        } = sphinx_key_signer::init(init_msg_bytes, Network::Regtest).expect("failed to init signer");
+                        } = sphinx_key_signer::init(init_msg_bytes, Network::Regtest)
+                            .expect("failed to init signer");
                         client
                             .publish(PUB_TOPIC, QoS::AtMostOnce, false, init_reply)
                             .await
@@ -123,7 +124,12 @@ async fn main() -> Result<(), Box<dyn Error>> {
                         Ok(event) => {
                             let dummy_peer = PubKey([0; 33]);
                             if let Some(msg_bytes) = incoming_bytes(event) {
-                                match sphinx_key_signer::handle(rh, msg_bytes, dummy_peer.clone(), is_log) {
+                                match sphinx_key_signer::handle(
+                                    rh,
+                                    msg_bytes,
+                                    dummy_peer.clone(),
+                                    is_log,
+                                ) {
                                     Ok(b) => client
                                         .publish(PUB_TOPIC, QoS::AtMostOnce, false, b)
                                         .await

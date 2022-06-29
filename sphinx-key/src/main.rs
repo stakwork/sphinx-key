@@ -49,6 +49,7 @@ fn main() -> Result<()> {
     esp_idf_svc::log::EspLogger::initialize_default();
 
     thread::sleep(Duration::from_secs(1));
+    log::info!("Network set to {:?}", network);
 
     let (led_tx, led_rx) = mpsc::channel();
     // LED control thread
