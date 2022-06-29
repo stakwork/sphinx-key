@@ -1,24 +1,13 @@
 use crate::core::events::Status;
 use embedded_hal::delay::blocking::DelayUs;
 use esp_idf_hal::delay::Ets;
-use esp_idf_hal::gpio::Gpio8;
-use esp_idf_hal::peripherals::Peripherals;
+use esp_idf_hal::{gpio, rmt};
 use esp_idf_hal::rmt::config::TransmitConfig;
 use esp_idf_hal::rmt::{FixedLengthSignal, PinState, Pulse, Transmit};
-use std::sync::mpsc;
+use std::sync::{mpsc, Arc, Mutex};
 use std::thread;
 use std::time::Duration;
 use std::collections::BTreeMap;
-
-use std::sync::{LazyLock, Mutex};
-
-static TX: LazyLock<Mutex<Transmit<Gpio8<esp_idf_hal::gpio::Output>, esp_idf_hal::rmt::CHANNEL0>>> = LazyLock::new(|| {
-    let peripherals = Peripherals::take().unwrap();
-    let led = peripherals.pins.gpio8.into_output().unwrap();
-    let channel = peripherals.rmt.channel0;
-    let config = TransmitConfig::new().clock_divider(1);
-    Mutex::new(Transmit::new(led, channel, &config).unwrap())
-});
 
 type Color = u32;
 type Time = u32;
@@ -40,7 +29,14 @@ fn states() -> BTreeMap<Status, (Color, Time)> {
   s
 }
 
-pub fn led_control_loop(rx: mpsc::Receiver<Status>) {
+pub fn led_control_loop(
+    gpio8: gpio::Gpio8<gpio::Unknown>, 
+    channel0: rmt::CHANNEL0, 
+    rx: mpsc::Receiver<Status>
+) {
+    let led = gpio8.into_output().unwrap();
+    let config = TransmitConfig::new().clock_divider(1);
+    let transmit = Arc::new(Mutex::new(Transmit::new(led, channel0, &config).unwrap()));
     thread::spawn(move || {
         let mut led = Led::new(0x000001, 100);
         let states = states();
@@ -51,7 +47,7 @@ pub fn led_control_loop(rx: mpsc::Receiver<Status>) {
                     led.set(s.0, s.1);
                 }
             }
-            led.blink();
+            led.blink(transmit.clone());
             thread::sleep(Duration::from_millis(400));
         }
     });
@@ -70,10 +66,10 @@ impl Led {
         self.blink_length = blink_length;
     }
 
-    pub fn blink(&mut self) {
-        let mut tx = TX.lock().unwrap();
+    pub fn blink(&mut self, transmit: Arc<Mutex<Transmit<gpio::Gpio8<gpio::Output>, rmt::CHANNEL0>>>) {
         // Prepare signal
-        let ticks_hz = (*tx).counter_clock().unwrap();
+        let mut tx = transmit.lock().unwrap();
+        let ticks_hz = tx.counter_clock().unwrap();
         let t0h = Pulse::new_with_duration(ticks_hz, PinState::High, &ns(350)).unwrap();
         let t0l = Pulse::new_with_duration(ticks_hz, PinState::Low, &ns(800)).unwrap();
         let t1h = Pulse::new_with_duration(ticks_hz, PinState::High, &ns(700)).unwrap();
@@ -86,7 +82,7 @@ impl Led {
             signal.set(i as usize, &(high_pulse, low_pulse)).unwrap();
         }
         // Set high and wait
-        (*tx).start_blocking(&signal).unwrap();
+        tx.start_blocking(&signal).unwrap();
         Ets.delay_ms(self.blink_length).unwrap();
         // Set low
         let mut signal = FixedLengthSignal::<24>::new();
@@ -95,7 +91,7 @@ impl Led {
             let (high_pulse, low_pulse) = if bit { (t1h, t1l) } else { (t0h, t0l) };
             signal.set(i as usize, &(high_pulse, low_pulse)).unwrap();
         }
-        (*tx).start_blocking(&signal).unwrap();
+        tx.start_blocking(&signal).unwrap();
     }
 }
 
