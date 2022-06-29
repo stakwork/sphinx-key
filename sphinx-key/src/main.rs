@@ -34,6 +34,8 @@ fn main() -> Result<()> {
     // or else some patches to the runtime implemented by esp-idf-sys might not link properly.
     esp_idf_sys::link_patches();
 
+    test_rsa();
+
     let network: Network = if let Some(n) = NETWORK {
         match n {
             "bitcoin" => Network::Bitcoin,
@@ -95,4 +97,30 @@ fn main() -> Result<()> {
     }
 
     Ok(())
+}
+
+fn test_rsa() {
+    std::thread::spawn(move || {
+        println!("TEST RSA");
+        use rsa::{PublicKey, RsaPrivateKey, RsaPublicKey, PaddingScheme};
+        let mut rng = rand::thread_rng();
+        println!("TEST RSA1");
+        let bits = 1024;
+        println!("TEST RSA2");
+        let priv_key = RsaPrivateKey::new(&mut rng, bits).expect("failed to generate a key");
+        println!("TEST RSA3");
+        let pub_key = RsaPublicKey::from(&priv_key);
+        println!("TEST RSA4");
+        // Encrypt
+        let data = b"hello world";
+        println!("TEST RSA5");
+        let enc_data = pub_key.encrypt(&mut rng, PaddingScheme::new_pkcs1v15_encrypt(), &data[..]).expect("failed to encrypt");
+        assert_ne!(&data[..], &enc_data[..]);
+        println!("TEST RSA6");
+        // Decrypt
+        let dec_data = priv_key.decrypt(PaddingScheme::new_pkcs1v15_encrypt(), &enc_data).expect("failed to decrypt");
+        println!("TEST RSA7");
+        assert_eq!(&data[..], &dec_data[..]);
+    });
+
 }
