@@ -1,19 +1,28 @@
 use crate::conn;
 
 use anyhow::Result;
-use std::sync::{Condvar, Mutex, Arc};
+use serde::{Deserialize, Serialize};
+use std::sync::{Arc, Condvar, Mutex};
 use std::time::Duration;
-use serde::{Serialize, Deserialize};
 
+use embedded_svc::wifi::*;
 use esp_idf_svc::nvs::*;
 use esp_idf_svc::wifi::*;
-use embedded_svc::wifi::*;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Config {
     pub broker: String,
     pub ssid: String,
     pub pass: String,
+    pub seed: [u8; 32],
+}
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct ConfigDTO {
+    pub broker: String,
+    pub ssid: String,
+    pub pass: String,
+    pub pubkey: String,
+    pub seed: String, // encrypted (56 bytes)
 }
 
 /*
@@ -27,27 +36,22 @@ http://192.168.71.1/?broker=192.168.86.222%3A1883
 
 */
 
-pub fn start_wifi_client(default_nvs: Arc<EspDefaultNvs>, config: &Config)  -> Result<Box<EspWifi>> {
-    let wifi = conn::wifi::start_client(
-        default_nvs,
-        config
-    )?;
+pub fn start_wifi_client(default_nvs: Arc<EspDefaultNvs>, config: &Config) -> Result<Box<EspWifi>> {
+    let wifi = conn::wifi::start_client(default_nvs, config)?;
     println!("CLIENT CONNECTED!!!!!! {:?}", wifi.get_status());
     Ok(wifi)
 }
 
-pub fn start_config_server_and_wait(default_nvs: Arc<EspDefaultNvs>) -> Result<(Box<EspWifi>, Config)> {
-
+pub fn start_config_server_and_wait(
+    default_nvs: Arc<EspDefaultNvs>,
+) -> Result<(Box<EspWifi>, Config)> {
     let mutex = Arc::new((Mutex::new(None), Condvar::new()));
 
     #[allow(clippy::redundant_clone)]
     #[allow(unused_mut)]
-    let mut wifi = conn::wifi::start_access_point(
-        default_nvs.clone(),
-    )?;
+    let mut wifi = conn::wifi::start_access_point(default_nvs.clone())?;
 
     let httpd = conn::http::config_server(mutex.clone());
-    
     let mut wait = mutex.0.lock().unwrap();
 
     let config: &Config = loop {

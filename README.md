@@ -32,6 +32,25 @@ ls /dev/cu.*
 espmonitor /dev/tty.usbserial-1420
 ```
 
+### configure the hardware
+
+make a seed: `./sphinx-key/newseed.sh` 
+
+make a `.env` file like:
+
+```
+SSID=my_ssid
+PASS=my_wifi_password
+BROKER=my_ip:1883
+SEED=my_seed
+```
+
+connect to the `sphinxkey` network on your computer
+
+`cargo run --bin config`
+
+This will encrypt your seed and send to the hardware, along with your home wifi information and broker address
+
 # dependencies
 
 `cd sphinx-key`
@@ -98,3 +117,11 @@ esptool.py --chip esp32c3 elf2image target/riscv32imc-esp-espidf/release/sphinx-
 esptool.py --chip esp32c3 -p /dev/tty.usbserial-1420 -b 460800 --before=default_reset --after=hard_reset write_flash --flash_mode dio --flash_freq 40m --flash_size 4MB 0x10000 target/riscv32imc-esp-espidf/release/sphinx-key.bin
 
 espmonitor /dev/tty.usbserial-1420
+
+### config
+
+./sphinx-key/rando.sh
+
+make your .env
+
+cargo run --bin config

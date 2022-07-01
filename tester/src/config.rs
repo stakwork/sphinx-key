@@ -21,6 +21,7 @@ pub struct ConfigBody {
   pub ssid: String,
   pub pass: String,
   pub broker: String,
+  pub pubkey: String, // for ecdh
 }
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ConfigResponse {
@@ -34,6 +35,9 @@ async fn main() -> anyhow::Result<()> {
   let ssid: String = env::var("SSID").expect("no ssid");
   let pass: String = env::var("PASS").expect("no pass");
   let broker: String = env::var("BROKER").expect("no broker");
+  let seed_string: String = env::var("SEED").expect("no seed");
+  let seed: [u8; MSG_LEN] = hex::decode(seed_string)?[..MSG_LEN].try_into()?; 
+  println!("seed {:?}", seed);
 
   let s = Secp256k1::new();
   let (sk1, pk1) = s.generate_keypair(&mut thread_rng());
@@ -43,12 +47,8 @@ async fn main() -> anyhow::Result<()> {
     .build()
     .expect("couldnt build reqwest client");
 
-  let body = EcdhBody {
-    pubkey: hex::encode(pk1.serialize()),
-  };
   let res = client
-    .post(format!("{}{}", URL, "ecdh"))
-    .json(&body)
+    .get(format!("{}{}", URL, "ecdh"))
     .header("Content-Type", "application/json")
     .send()
     .await?;
@@ -58,22 +58,22 @@ async fn main() -> anyhow::Result<()> {
   let their_pk_bytes: [u8; PUBLIC_KEY_LEN] = their_pk[..PUBLIC_KEY_LEN].try_into()?;
   let shared_secret = derive_shared_secret_from_slice(their_pk_bytes, sk1.secret_bytes())?;
 
-  let plaintext = [1; MSG_LEN];
   let mut nonce_end = [0; NONCE_END_LEN];
   OsRng.fill_bytes(&mut nonce_end);
-  let cipher = encrypt(plaintext, shared_secret, nonce_end)?;
+  let cipher = encrypt(seed, shared_secret, nonce_end)?;
 
   let cipher_seed = hex::encode(cipher);
   let config = ConfigBody {
     seed: cipher_seed,
     ssid, pass, broker,
+    pubkey: hex::encode(pk1.serialize()),
   };
 
   let conf_string = serde_json::to_string(&config)?;
   let conf_encoded = urlencoding::encode(&conf_string).to_owned();
 
   let res2 = client
-    .post(format!("{}{}{}", URL, "/config?config=", conf_encoded))
+    .post(format!("{}{}{}", URL, "config?config=", conf_encoded))
     .send()
     .await?;
   let conf_res: ConfigResponse = res2.json().await?;

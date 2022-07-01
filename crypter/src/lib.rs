@@ -7,7 +7,7 @@ pub use secp256k1;
 mod tests {
   use crate::chacha::{decrypt, encrypt, MSG_LEN, NONCE_END_LEN};
   use crate::ecdh::derive_shared_secret_from_slice;
-  use rand::{rngs::OsRng, thread_rng, RngCore};
+  use secp256k1::rand::{rngs::OsRng, thread_rng, RngCore};
   use secp256k1::Secp256k1;
 
   #[test]

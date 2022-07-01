@@ -1,13 +1,17 @@
-use lightning::util::chacha20poly1305rfc::ChaCha20Poly1305RFC;
 use anyhow::anyhow;
+use lightning::util::chacha20poly1305rfc::ChaCha20Poly1305RFC;
 
-pub const MSG_LEN: usize = 32; 
+pub const MSG_LEN: usize = 32;
 pub const KEY_LEN: usize = 32;
 pub const NONCE_END_LEN: usize = 8;
-const TAG_LEN: usize = 16;
-const CIPHER_LEN: usize = MSG_LEN + NONCE_END_LEN + TAG_LEN;
+pub const TAG_LEN: usize = 16;
+pub const CIPHER_LEN: usize = MSG_LEN + NONCE_END_LEN + TAG_LEN;
 
-pub fn encrypt(plaintext: [u8; MSG_LEN], key: [u8; KEY_LEN], nonce_end: [u8; NONCE_END_LEN]) -> anyhow::Result<[u8; CIPHER_LEN]> {
+pub fn encrypt(
+  plaintext: [u8; MSG_LEN],
+  key: [u8; KEY_LEN],
+  nonce_end: [u8; NONCE_END_LEN],
+) -> anyhow::Result<[u8; CIPHER_LEN]> {
   let mut nonce = [0; 4 + NONCE_END_LEN];
   nonce[4..].copy_from_slice(&nonce_end);
   let mut chacha = ChaCha20Poly1305RFC::new(&key, &nonce, &[0; 0]);
@@ -38,7 +42,7 @@ pub fn decrypt(ciphertext: [u8; CIPHER_LEN], key: [u8; KEY_LEN]) -> anyhow::Resu
 
 #[cfg(test)]
 mod tests {
-  use crate::chacha::{decrypt, encrypt, MSG_LEN, KEY_LEN, NONCE_END_LEN};
+  use crate::chacha::{decrypt, encrypt, KEY_LEN, MSG_LEN, NONCE_END_LEN};
   use rand::{rngs::OsRng, RngCore};
 
   #[test]
@@ -52,5 +56,4 @@ mod tests {
     assert_eq!(plaintext, plain);
     Ok(())
   }
-
 }

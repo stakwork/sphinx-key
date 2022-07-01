@@ -32,6 +32,7 @@ url = "2"
 serde_urlencoded = "0.7.1"
 serde = { version = "1.0.137", default-features = false }
 serde_json = { version = "1.0.81", default-features = false }
+hex = "0.4.3"
 
 [patch.crates-io]
 # updates the "rand" create to use esp RNG
