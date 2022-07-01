@@ -1,39 +1,42 @@
-use lightning::util::chacha20poly1305rfc::ChaCha20Poly1305RFC;
+pub mod chacha;
+pub mod ecdh;
 
-pub fn test_chacha20poly1305() {
-
-    let key = [0; 32];
-    // 32 bytes key
-    // 12 byte nonce
-    let n: u64 = 123456;
-    let mut nonce = [0; 12];
-    println!("chacha1");
-	nonce[4..].copy_from_slice(&n.to_le_bytes()[..]);
-    println!("chacha2");
-    let mut chacha = ChaCha20Poly1305RFC::new(&key, &nonce, &[0; 0]);
-    println!("chacha3");
-    let mut tag = [0; 16];
-    let plaintext = b"plaintext";
-    let mut res = [0; 50];
-    chacha.encrypt(plaintext, &mut res[0..plaintext.len()], &mut tag);
-    println!("chacha4 {:?}", res);
-    println!("tag {:?}", tag);
-
-    let mut chacha2 = ChaCha20Poly1305RFC::new(&key, &nonce, &[0; 0]);
-    let mut dec = [0; 9];
-    let ok = chacha2.decrypt(&res[0..9], &mut dec, &tag);
-
-    println!("ok {}", ok);
-    println!("dec {:?}", dec);
-    println!("decrypted: {}", String::from_utf8_lossy(&dec[..]));
-}
 
 #[cfg(test)]
 mod tests {
-  use crate::test_chacha20poly1305;
+  use crate::chacha::{decrypt, encrypt, MSG_LEN, NONCE_END_LEN};
+  use crate::ecdh::derive_shared_secret_from_slice;
+  use rand::{rngs::OsRng, RngCore, thread_rng};
+  use secp256k1::Secp256k1;
 
   #[test]
-  fn find_solution_1_btc() {
-    test_chacha20poly1305();
+  fn test_crypter() -> anyhow::Result<()> {
+    // two keypairs
+    let s = Secp256k1::new();
+    let (sk1, pk1) = s.generate_keypair(&mut thread_rng());
+    let (sk2, pk2) = s.generate_keypair(&mut thread_rng());
+
+    // derive shared secrets
+    let sec1 = derive_shared_secret_from_slice(
+        pk2.serialize(), sk1.secret_bytes()
+    )?;
+    let sec2 = derive_shared_secret_from_slice(
+        pk1.serialize(), sk2.secret_bytes()
+    )?;
+    assert_eq!(sec1, sec2);
+
+    // encrypt plaintext with sec1
+    let plaintext = [1; MSG_LEN];
+    let mut nonce_end = [0; NONCE_END_LEN];
+    OsRng.fill_bytes(&mut nonce_end);
+    let cipher = encrypt(plaintext, sec1, nonce_end)?;
+
+    // decrypt with sec2
+    let plain = decrypt(cipher, sec2)?;
+    assert_eq!(plaintext, plain);
+
+    println!("PLAINTEXT MATCHES!");
+    Ok(())
   }
+
 }

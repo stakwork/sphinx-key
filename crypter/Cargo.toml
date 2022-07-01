@@ -4,11 +4,20 @@ version = "0.1.0"
 authors = ["Evan Feenstra <evanfeenstra@gmail.com>"]
 edition = "2018"
 
+[dependencies]
+rand = "0.8"
+anyhow = {version = "1", features = ["backtrace"]}
+log = "0.4"
+base64 = { version = "0.13.0" }
+secp256k1 = { version = "0.22.0", features = ["std", "rand-std"] }
+
 [dependencies.lightning]
 version = "0.0.108"
 default-features = false
 features = ["std", "grind_signatures"]
 
 [patch.crates-io]
+getrandom = { version = "0.2", git = "https://github.com/esp-rs-compat/getrandom.git" }
+secp256k1 = { git = "https://github.com/Evanfeenstra/rust-secp256k1", branch = "v0.22.0-new-rand" }
 lightning = { git = "https://github.com/Evanfeenstra/rust-lightning", branch = "v0.0.108-branch" }
 
