@@ -1,12 +1,13 @@
 pub mod chacha;
 pub mod ecdh;
 
+pub use secp256k1;
 
 #[cfg(test)]
 mod tests {
   use crate::chacha::{decrypt, encrypt, MSG_LEN, NONCE_END_LEN};
   use crate::ecdh::derive_shared_secret_from_slice;
-  use rand::{rngs::OsRng, RngCore, thread_rng};
+  use rand::{rngs::OsRng, thread_rng, RngCore};
   use secp256k1::Secp256k1;
 
   #[test]
@@ -17,12 +18,8 @@ mod tests {
     let (sk2, pk2) = s.generate_keypair(&mut thread_rng());
 
     // derive shared secrets
-    let sec1 = derive_shared_secret_from_slice(
-        pk2.serialize(), sk1.secret_bytes()
-    )?;
-    let sec2 = derive_shared_secret_from_slice(
-        pk1.serialize(), sk2.secret_bytes()
-    )?;
+    let sec1 = derive_shared_secret_from_slice(pk2.serialize(), sk1.secret_bytes())?;
+    let sec2 = derive_shared_secret_from_slice(pk1.serialize(), sk2.secret_bytes())?;
     assert_eq!(sec1, sec2);
 
     // encrypt plaintext with sec1
@@ -38,5 +35,4 @@ mod tests {
     println!("PLAINTEXT MATCHES!");
     Ok(())
   }
-
 }

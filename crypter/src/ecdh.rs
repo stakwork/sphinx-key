@@ -2,9 +2,9 @@ use secp256k1::ecdh::SharedSecret;
 use secp256k1::{SecretKey, PublicKey};
 use anyhow::Result;
 
-const PUBLIC_KEY_LEN: usize = 33;
-const PRIVATE_KEY_LEN: usize = 32;
-const SECRET_LEN: usize = 32;
+pub const PUBLIC_KEY_LEN: usize = 33;
+pub const PRIVATE_KEY_LEN: usize = 32;
+pub const SECRET_LEN: usize = 32;
 
 pub fn derive_shared_secret_from_slice(their_public_key: [u8; PUBLIC_KEY_LEN], my_private_key: [u8; PRIVATE_KEY_LEN]) -> Result<[u8; SECRET_LEN]> {
   let public_key = PublicKey::from_slice(&their_public_key[..])?;
