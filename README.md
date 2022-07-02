@@ -43,6 +43,7 @@ SSID=my_ssid
 PASS=my_wifi_password
 BROKER=my_ip:1883
 SEED=my_seed
+NETWORK=regtest
 ```
 
 connect to the `sphinxkey` network on your computer

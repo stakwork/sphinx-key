@@ -15,6 +15,7 @@ pub struct Config {
     pub ssid: String,
     pub pass: String,
     pub seed: [u8; 32],
+    pub network: String,
 }
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ConfigDTO {
@@ -23,6 +24,7 @@ pub struct ConfigDTO {
     pub pass: String,
     pub pubkey: String,
     pub seed: String, // encrypted (56 bytes)
+    pub network: String,
 }
 
 /*

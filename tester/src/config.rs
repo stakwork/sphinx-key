@@ -22,6 +22,7 @@ pub struct ConfigBody {
   pub pass: String,
   pub broker: String,
   pub pubkey: String, // for ecdh
+  pub network: String,
 }
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ConfigResponse {
@@ -37,7 +38,11 @@ async fn main() -> anyhow::Result<()> {
   let broker: String = env::var("BROKER").expect("no broker");
   let seed_string: String = env::var("SEED").expect("no seed");
   let seed: [u8; MSG_LEN] = hex::decode(seed_string)?[..MSG_LEN].try_into()?; 
-  println!("seed {:?}", seed);
+  let network: String = env::var("NETWORK").unwrap_or("regtest".to_string());
+  if !(network == "bitcoin" || network == "mainnet" || network == "testnet" || network == "signet" || network == "regtest") {
+    panic!("invalid network string");
+  }
+  println!("network {:?}", network);
 
   let s = Secp256k1::new();
   let (sk1, pk1) = s.generate_keypair(&mut thread_rng());
@@ -65,7 +70,7 @@ async fn main() -> anyhow::Result<()> {
   let cipher_seed = hex::encode(cipher);
   let config = ConfigBody {
     seed: cipher_seed,
-    ssid, pass, broker,
+    ssid, pass, broker, network,
     pubkey: hex::encode(pk1.serialize()),
   };
 

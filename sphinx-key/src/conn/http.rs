@@ -57,6 +57,7 @@ pub fn config_server(mutex: Arc<(Mutex<Option<Config>>, Condvar)>) -> Result<idf
                 broker: dto.broker,
                 ssid: dto.ssid,
                 pass: dto.pass,
+                network: dto.network,
                 seed: seed,
             };
             let mut wait = mutex.0.lock().unwrap();
