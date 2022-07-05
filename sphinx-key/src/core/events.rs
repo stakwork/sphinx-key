@@ -1,4 +1,6 @@
 use crate::conn::mqtt::{QOS, RETURN_TOPIC, TOPIC};
+use crate::core::init::make_init_msg;
+
 use sphinx_key_signer::vls_protocol::model::PubKey;
 use sphinx_key_signer::{self, InitResponse};
 use sphinx_key_signer::lightning_signer::bitcoin::Network;
@@ -36,35 +38,35 @@ pub fn make_event_loop(
     rx: mpsc::Receiver<Event>,
     network: Network,
     do_log: bool,
-    led_tx: mpsc::Sender<Status>
+    led_tx: mpsc::Sender<Status>,
+    seed: [u8; 32]
 ) -> Result<()> {
-    // initialize the RootHandler
-    let root_handler = loop {
-        if let Ok(event) = rx.recv() {
-            match event {
-                Event::Connected => {
-                    log::info!("SUBSCRIBE to {}", TOPIC);
-                    mqtt.subscribe(TOPIC, QOS)
-                        .expect("could not MQTT subscribe");
-                    led_tx.send(Status::Connected).unwrap();
-                }
-                Event::Message(ref msg_bytes) => {
-                    let InitResponse {
-                        root_handler,
-                        init_reply,
-                    } = sphinx_key_signer::init(msg_bytes.clone(), network).expect("failed to init signer");
-                    mqtt.publish(RETURN_TOPIC, QOS, false, init_reply)
-                        .expect("could not publish init response");
-                    break root_handler;
-                }
-                Event::Disconnected => {
-                    led_tx.send(Status::ConnectingToMqtt).unwrap();
-                    log::info!("GOT an early Event::Disconnected msg!");
-                }
+    while let Ok(event) = rx.recv() {
+        match event {
+            Event::Connected => {
+                log::info!("SUBSCRIBE to {}", TOPIC);
+                mqtt.subscribe(TOPIC, QOS)
+                    .expect("could not MQTT subscribe");
+                led_tx.send(Status::Connected).unwrap();
+                break;
+            }
+            Event::Message(ref _msg_bytes) => {
+                panic!("should not be a message before connection");
+            }
+            Event::Disconnected => {
+                led_tx.send(Status::ConnectingToMqtt).unwrap();
+                log::info!("GOT an early Event::Disconnected msg!");
             }
         }
-    };
+    }
 
+    // initialize the RootHandler
+    let init_msg = make_init_msg(network, seed).expect("failed to make init msg");
+    let InitResponse {
+        root_handler,
+        init_reply: _,
+    } = sphinx_key_signer::init(init_msg, network).expect("failed to init signer");
+    
     // signing loop
     let dummy_peer = PubKey([0; 33]);
     while let Ok(event) = rx.recv() {
@@ -105,7 +107,8 @@ pub fn make_event_loop(
     rx: mpsc::Receiver<Event>,
     _network: Network,
     do_log: bool,
-    led_tx: mpsc::Sender<Status>
+    led_tx: mpsc::Sender<Status>,
+    _seed: [u8; 32]
 ) -> Result<()> {
     log::info!("About to subscribe to the mpsc channel");
     while let Ok(event) = rx.recv() {

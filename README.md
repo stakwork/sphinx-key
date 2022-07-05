@@ -22,7 +22,9 @@ Find the path to your `riscv32-esp-elf-gcc` binary within the `.embuild` dir:
 
 ### flash release
 
-`espflash target/riscv32imc-esp-espidf/release/sphinx-key --monitor`
+`esptool.py --chip esp32c3 elf2image target/riscv32imc-esp-espidf/release/sphinx-key`
+
+`esptool.py --chip esp32c3 -p /dev/tty.usbserial-1420 -b 460800 --before=default_reset --after=hard_reset write_flash --flash_mode dio --flash_freq 40m --flash_size 4MB 0x10000 target/riscv32imc-esp-espidf/release/sphinx-key.bin`
 
 ### monitor
 

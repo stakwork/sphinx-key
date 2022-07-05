@@ -65,7 +65,6 @@ fn main() -> Result<()> {
         let (mqtt, connection) = conn::mqtt::make_client(&exist.broker, CLIENT_ID)?;
         let mqtt_client = conn::mqtt::start_listening(mqtt, connection, tx)?;
         // this blocks forever... the "main thread"
-        log::info!(">>>>>>>>>>> blocking forever...");
         let do_log = true;
         let network = match exist.network.as_str() {
             "bitcoin" => Network::Bitcoin,
@@ -76,7 +75,8 @@ fn main() -> Result<()> {
             _ => Network::Regtest,
         };
         log::info!("Network set to {:?}", network);
-        make_event_loop(mqtt_client, rx, network, do_log, led_tx)?;
+        log::info!(">>>>>>>>>>> blocking forever...");
+        make_event_loop(mqtt_client, rx, network, do_log, led_tx, exist.seed)?;
     } else {
         led_tx.send(Status::WifiAccessPoint).unwrap();
         println!("=============> START SERVER NOW AND WAIT <==============");
