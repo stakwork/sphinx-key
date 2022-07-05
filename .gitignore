@@ -6,3 +6,4 @@ Cargo.lock
 sphinx-key/Cargo.lock
 notes.md
 test-flash
+.env

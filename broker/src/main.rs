@@ -9,7 +9,6 @@ mod util;
 use crate::chain_tracker::MqttSignerPort;
 use crate::mqtt::start_broker;
 use crate::unix_fd::SignerLoop;
-use bitcoin::Network;
 use clap::{arg, App, AppSettings, Arg};
 use std::env;
 use std::sync::Arc;
@@ -54,25 +53,8 @@ fn main() -> anyhow::Result<()> {
         .arg(arg!(--"log-io" "ignored dev flag"))
         .arg(arg!(--version "show a dummy version"))
         .arg(arg!(--test "run a test against the embedded device"))
-        .arg(
-            Arg::new("network")
-                .help("bitcoin network")
-                .long("network")
-                .value_parser(["regtest", "signet", "testnet", "mainnet", "bitcoin"])
-                .default_value("regtest"),
-        );
 
     let matches = app.get_matches();
-
-    let network_string: &String = matches.get_one("network").expect("expected a network");
-    let network: Network = match network_string.as_str() {
-        "bitcoin" => Network::Bitcoin,
-        "mainnet" => Network::Bitcoin,
-        "testnet" => Network::Testnet,
-        "signet" => Network::Signet,
-        "regtest" => Network::Regtest,
-        _ => Network::Regtest,
-    };
 
     if matches.is_present("version") {
         // Pretend to be the right version, given to us by an env var
@@ -82,7 +64,6 @@ fn main() -> anyhow::Result<()> {
         return Ok(());
     }
 
-    log::info!("NETWORK: {}", network.to_string());
     if matches.is_present("test") {
         run_test::run_test();
         return Ok(());
@@ -98,8 +79,6 @@ fn main() -> anyhow::Result<()> {
     log::info!("=> connection status: {}", status);
     assert_eq!(status, true, "expected connected = true");
     // runtime.block_on(async {
-    init::blocking_connect(tx.clone(), network);
-    log::info!("=====> sent seed!");
 
     if let Ok(btc_url) = env::var("BITCOIND_RPC_URL") {
         let signer_port = MqttSignerPort::new(tx.clone());
