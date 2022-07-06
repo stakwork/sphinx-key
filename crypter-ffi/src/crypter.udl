@@ -1,0 +1,19 @@
+[Error]
+enum CrypterError {
+  "DeriveSharedSecret",
+  "Encrypt",
+  "Decrypt",
+  "BadPubkey",
+  "BadSecret",
+  "BadNonce",
+  "BadCiper",
+};
+
+namespace crypter {
+  [Throws=CrypterError]
+  string derive_shared_secret(string their_pubkey, string my_secret_key);
+  [Throws=CrypterError]
+  string encrypt(string plaintext, string secret, string nonce);
+  [Throws=CrypterError]
+  string decrypt(string ciphertext, string secret);
+};
