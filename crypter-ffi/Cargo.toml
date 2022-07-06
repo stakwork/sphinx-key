@@ -1,20 +1,22 @@
 [package]
-name = "sphinx-key-crypter"
+name = "crypter-ffi"
 version = "0.1.0"
 authors = ["Evan Feenstra <evanfeenstra@gmail.com>"]
 edition = "2018"
 
+[lib]
+crate-type = ["cdylib"]
+name = "crypter"
+
 [dependencies]
-anyhow = {version = "1", features = ["backtrace"]}
-secp256k1 = { version = "0.22.0", features = ["std", "rand-std"] }
-rand = "0.8.5"
+sphinx-key-crypter = { path = "../crypter" }
+uniffi = "0.19.2"
+hex = "0.4.3"
+thiserror = "1.0.31"
+uniffi_macros = "0.11.0"
 
-[dependencies.lightning]
-version = "0.0.108"
-default-features = false
-features = ["std", "grind_signatures"]
-
-# [dev-dependencies]
+[build-dependencies]
+uniffi_build = "0.19.2"
 
 [patch.crates-io]
 getrandom = { version = "0.2", git = "https://github.com/esp-rs-compat/getrandom.git" }
