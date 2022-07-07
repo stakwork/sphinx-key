@@ -18,14 +18,22 @@ cross build --target x86_64-linux-android --release
 echo "=> renaming files"
 
 mkdir -p target/out
+mkdir -p target/out/x86
+mkdir -p target/out/arm64-v8a
+mkdir -p target/out/armeabi
+mkdir -p target/out/armeabi-v7a
+mkdir -p target/out/x86_64
 
-mv target/i686-linux-android/release/libcrypter.so target/out/i686-libcrypter.so
+mv target/i686-linux-android/release/libcrypter.so target/out/x86/libcrypter.so
+mv target/aarch64-linux-android/release/libcrypter.so target/out/arm64-v8a/libcrypter.so
+mv target/arm-linux-androideabi/release/libcrypter.so target/out/armeabi/libcrypter.so
+mv target/armv7-linux-androideabi/release/libcrypter.so target/out/armeabi-v7a/libcrypter.so
+mv target/x86_64-linux-android/release/libcrypter.so target/out/x86_64/libcrypter.so
 
-mv target/aarch64-linux-android/release/libcrypter.so target/out/aarch64-libcrypter.so
+zip -r target/kotlin-libraries.zip target/out
 
-mv target/arm-linux-androideabi/release/libcrypter.so target/out/arm-libcrypter.so
+echo "=> renaming uniffi_crypter to crypter"
 
-mv target/armv7-linux-androideabi/release/libcrypter.so target/out/armv7-libcrypter.so
+sed -i '' 's/return "uniffi_crypter"/return "crypter"/' src/uniffi/crypter/crypter.kt
 
-mv target/x86_64-linux-android/release/libcrypter.so target/out/x86_64-libcrypter.so
-
+echo "=> done!"

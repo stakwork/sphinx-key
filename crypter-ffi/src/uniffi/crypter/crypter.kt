@@ -237,7 +237,7 @@ private fun findLibraryName(componentName: String): String {
     if (libOverride != null) {
         return libOverride
     }
-    return "uniffi_crypter"
+    return "crypter"
 }
 
 private inline fun <reified Lib : Library> loadIndirect(
