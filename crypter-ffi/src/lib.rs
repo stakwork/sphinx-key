@@ -3,7 +3,7 @@ mod parse;
 use sphinx_key_crypter::chacha::{decrypt as chacha_decrypt, encrypt as chacha_encrypt};
 use sphinx_key_crypter::ecdh::derive_shared_secret_from_slice;
 
-uniffi_macros::include_scaffolding!("crypter");
+include!("crypter.uniffi.rs");
 
 pub type Result<T> = std::result::Result<T, CrypterError>;
 

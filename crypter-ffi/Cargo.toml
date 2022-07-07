@@ -13,7 +13,6 @@ sphinx-key-crypter = { path = "../crypter" }
 uniffi = "0.19.2"
 hex = "0.4.3"
 thiserror = "1.0.31"
-uniffi_macros = "0.19.2"
 
 [build-dependencies]
 uniffi_build = "0.19.2"
