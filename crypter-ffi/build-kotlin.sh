@@ -1,8 +1,11 @@
+echo "=> creating C FFI scaffolding"
+uniffi-bindgen scaffolding src/crypter.udl
+
 echo "=> creating kotlin bindings"
 uniffi-bindgen generate src/crypter.udl --language kotlin
 
-echo "=> creating C FFI scaffolding"
-uniffi-bindgen scaffolding src/crypter.udl
+echo "=> renaming uniffi_crypter to crypter"
+sed -i '' 's/return "uniffi_crypter"/return "crypter"/' src/uniffi/crypter/crypter.kt
 
 echo "=> building i686-linux-android"
 cross build --target i686-linux-android --release
@@ -31,9 +34,5 @@ mv target/armv7-linux-androideabi/release/libcrypter.so target/out/armeabi-v7a/l
 mv target/x86_64-linux-android/release/libcrypter.so target/out/x86_64/libcrypter.so
 
 zip -r target/kotlin-libraries.zip target/out
-
-echo "=> renaming uniffi_crypter to crypter"
-
-sed -i '' 's/return "uniffi_crypter"/return "crypter"/' src/uniffi/crypter/crypter.kt
 
 echo "=> done!"
