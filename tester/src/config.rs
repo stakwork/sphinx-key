@@ -1,14 +1,14 @@
+use dotenv::dotenv;
 use rand::{rngs::OsRng, thread_rng, RngCore};
 use serde::{Deserialize, Serialize};
 use sphinx_key_crypter::chacha::{encrypt, MSG_LEN, NONCE_END_LEN};
 use sphinx_key_crypter::ecdh::{derive_shared_secret_from_slice, PUBLIC_KEY_LEN};
 use sphinx_key_crypter::secp256k1::Secp256k1;
 use std::convert::TryInto;
-use std::time::Duration;
-use dotenv::dotenv;
 use std::env;
+use std::time::Duration;
 
-const URL: &str = "http://192.168.71.1/";
+const URL: &str = "http://192.168.71.1";
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct EcdhBody {
@@ -33,13 +33,20 @@ pub struct ConfigResponse {
 async fn main() -> anyhow::Result<()> {
   dotenv().ok();
 
+  let url: String = env::var("URL").unwrap_or(URL.to_string());
+
   let ssid: String = env::var("SSID").expect("no ssid");
   let pass: String = env::var("PASS").expect("no pass");
   let broker: String = env::var("BROKER").expect("no broker");
   let seed_string: String = env::var("SEED").expect("no seed");
-  let seed: [u8; MSG_LEN] = hex::decode(seed_string)?[..MSG_LEN].try_into()?; 
+  let seed: [u8; MSG_LEN] = hex::decode(seed_string)?[..MSG_LEN].try_into()?;
   let network: String = env::var("NETWORK").unwrap_or("regtest".to_string());
-  if !(network == "bitcoin" || network == "mainnet" || network == "testnet" || network == "signet" || network == "regtest") {
+  if !(network == "bitcoin"
+    || network == "mainnet"
+    || network == "testnet"
+    || network == "signet"
+    || network == "regtest")
+  {
     panic!("invalid network string");
   }
   println!("network {:?}", network);
@@ -53,7 +60,7 @@ async fn main() -> anyhow::Result<()> {
     .expect("couldnt build reqwest client");
 
   let res = client
-    .get(format!("{}{}", URL, "ecdh"))
+    .get(format!("{}/{}", url, "ecdh"))
     .header("Content-Type", "application/json")
     .send()
     .await?;
@@ -70,7 +77,10 @@ async fn main() -> anyhow::Result<()> {
   let cipher_seed = hex::encode(cipher);
   let config = ConfigBody {
     seed: cipher_seed,
-    ssid, pass, broker, network,
+    ssid,
+    pass,
+    broker,
+    network,
     pubkey: hex::encode(pk1.serialize()),
   };
 
@@ -78,7 +88,7 @@ async fn main() -> anyhow::Result<()> {
   let conf_encoded = urlencoding::encode(&conf_string).to_owned();
 
   let res2 = client
-    .post(format!("{}{}{}", URL, "config?config=", conf_encoded))
+    .post(format!("{}/{}={}", url, "config?config", conf_encoded))
     .send()
     .await?;
   let conf_res: ConfigResponse = res2.json().await?;
