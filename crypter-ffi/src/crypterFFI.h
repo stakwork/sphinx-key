@@ -46,31 +46,31 @@ typedef struct RustCallStatus {
 // ⚠️ increment the version suffix in all instances of UNIFFI_SHARED_HEADER_V4 in this file.           ⚠️
 #endif // def UNIFFI_SHARED_H
 
-RustBuffer crypter_b428_derive_shared_secret(
+RustBuffer crypter_a934_derive_shared_secret(
       RustBuffer their_pubkey,RustBuffer my_secret_key,
     RustCallStatus *_Nonnull out_status
     );
-RustBuffer crypter_b428_encrypt(
+RustBuffer crypter_a934_encrypt(
       RustBuffer plaintext,RustBuffer secret,RustBuffer nonce,
     RustCallStatus *_Nonnull out_status
     );
-RustBuffer crypter_b428_decrypt(
+RustBuffer crypter_a934_decrypt(
       RustBuffer ciphertext,RustBuffer secret,
     RustCallStatus *_Nonnull out_status
     );
-RustBuffer ffi_crypter_b428_rustbuffer_alloc(
+RustBuffer ffi_crypter_a934_rustbuffer_alloc(
       int32_t size,
     RustCallStatus *_Nonnull out_status
     );
-RustBuffer ffi_crypter_b428_rustbuffer_from_bytes(
+RustBuffer ffi_crypter_a934_rustbuffer_from_bytes(
       ForeignBytes bytes,
     RustCallStatus *_Nonnull out_status
     );
-void ffi_crypter_b428_rustbuffer_free(
+void ffi_crypter_a934_rustbuffer_free(
       RustBuffer buf,
     RustCallStatus *_Nonnull out_status
     );
-RustBuffer ffi_crypter_b428_rustbuffer_reserve(
+RustBuffer ffi_crypter_a934_rustbuffer_reserve(
       RustBuffer buf,int32_t additional,
     RustCallStatus *_Nonnull out_status
     );

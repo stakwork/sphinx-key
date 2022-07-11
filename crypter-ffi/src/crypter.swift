@@ -19,13 +19,13 @@ fileprivate extension RustBuffer {
     }
 
     static func from(_ ptr: UnsafeBufferPointer<UInt8>) -> RustBuffer {
-        try! rustCall { ffi_crypter_b428_rustbuffer_from_bytes(ForeignBytes(bufferPointer: ptr), $0) }
+        try! rustCall { ffi_crypter_a934_rustbuffer_from_bytes(ForeignBytes(bufferPointer: ptr), $0) }
     }
 
     // Frees the buffer in place.
     // The buffer must not be used after this is called.
     func deallocate() {
-        try! rustCall { ffi_crypter_b428_rustbuffer_free(self, $0) }
+        try! rustCall { ffi_crypter_a934_rustbuffer_free(self, $0) }
     }
 }
 
@@ -325,6 +325,9 @@ public enum CrypterError {
     
     
     // Simple error enums only carry a message
+    case DerivePublicKey(message: String)
+    
+    // Simple error enums only carry a message
     case DeriveSharedSecret(message: String)
     
     // Simple error enums only carry a message
@@ -357,31 +360,35 @@ fileprivate struct FfiConverterTypeCrypterError: FfiConverterRustBuffer {
         
 
         
-        case 1: return .DeriveSharedSecret(
+        case 1: return .DerivePublicKey(
             message: try FfiConverterString.read(from: buf)
         )
         
-        case 2: return .Encrypt(
+        case 2: return .DeriveSharedSecret(
             message: try FfiConverterString.read(from: buf)
         )
         
-        case 3: return .Decrypt(
+        case 3: return .Encrypt(
             message: try FfiConverterString.read(from: buf)
         )
         
-        case 4: return .BadPubkey(
+        case 4: return .Decrypt(
             message: try FfiConverterString.read(from: buf)
         )
         
-        case 5: return .BadSecret(
+        case 5: return .BadPubkey(
             message: try FfiConverterString.read(from: buf)
         )
         
-        case 6: return .BadNonce(
+        case 6: return .BadSecret(
             message: try FfiConverterString.read(from: buf)
         )
         
-        case 7: return .BadCiper(
+        case 7: return .BadNonce(
+            message: try FfiConverterString.read(from: buf)
+        )
+        
+        case 8: return .BadCiper(
             message: try FfiConverterString.read(from: buf)
         )
         
@@ -396,26 +403,29 @@ fileprivate struct FfiConverterTypeCrypterError: FfiConverterRustBuffer {
         
 
         
-        case let .DeriveSharedSecret(message):
+        case let .DerivePublicKey(message):
             buf.writeInt(Int32(1))
             FfiConverterString.write(message, into: buf)
-        case let .Encrypt(message):
+        case let .DeriveSharedSecret(message):
             buf.writeInt(Int32(2))
             FfiConverterString.write(message, into: buf)
-        case let .Decrypt(message):
+        case let .Encrypt(message):
             buf.writeInt(Int32(3))
             FfiConverterString.write(message, into: buf)
-        case let .BadPubkey(message):
+        case let .Decrypt(message):
             buf.writeInt(Int32(4))
             FfiConverterString.write(message, into: buf)
-        case let .BadSecret(message):
+        case let .BadPubkey(message):
             buf.writeInt(Int32(5))
             FfiConverterString.write(message, into: buf)
-        case let .BadNonce(message):
+        case let .BadSecret(message):
             buf.writeInt(Int32(6))
             FfiConverterString.write(message, into: buf)
-        case let .BadCiper(message):
+        case let .BadNonce(message):
             buf.writeInt(Int32(7))
+            FfiConverterString.write(message, into: buf)
+        case let .BadCiper(message):
+            buf.writeInt(Int32(8))
             FfiConverterString.write(message, into: buf)
 
         
@@ -434,7 +444,7 @@ public func deriveSharedSecret(theirPubkey: String, mySecretKey: String) throws 
     
     rustCallWithError(FfiConverterTypeCrypterError.self) {
     
-    crypter_b428_derive_shared_secret(
+    crypter_a934_derive_shared_secret(
         FfiConverterString.lower(theirPubkey), 
         FfiConverterString.lower(mySecretKey), $0)
 }
@@ -449,7 +459,7 @@ public func encrypt(plaintext: String, secret: String, nonce: String) throws -> 
     
     rustCallWithError(FfiConverterTypeCrypterError.self) {
     
-    crypter_b428_encrypt(
+    crypter_a934_encrypt(
         FfiConverterString.lower(plaintext), 
         FfiConverterString.lower(secret), 
         FfiConverterString.lower(nonce), $0)
@@ -465,7 +475,7 @@ public func decrypt(ciphertext: String, secret: String) throws -> String {
     
     rustCallWithError(FfiConverterTypeCrypterError.self) {
     
-    crypter_b428_decrypt(
+    crypter_a934_decrypt(
         FfiConverterString.lower(ciphertext), 
         FfiConverterString.lower(secret), $0)
 }

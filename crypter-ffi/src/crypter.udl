@@ -1,5 +1,6 @@
 [Error]
 enum CrypterError {
+  "DerivePublicKey",
   "DeriveSharedSecret",
   "Encrypt",
   "Decrypt",

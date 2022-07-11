@@ -2,6 +2,7 @@ mod parse;
 
 use sphinx_key_crypter::chacha::{decrypt as chacha_decrypt, encrypt as chacha_encrypt};
 use sphinx_key_crypter::ecdh::derive_shared_secret_from_slice;
+use sphinx_key_crypter::secp256k1::{PublicKey, Secp256k1, SecretKey};
 
 include!("crypter.uniffi.rs");
 
@@ -9,6 +10,8 @@ pub type Result<T> = std::result::Result<T, CrypterError>;
 
 #[derive(Debug, thiserror::Error)]
 pub enum CrypterError {
+    #[error("Failed to derive public key")]
+    DerivePublicKey,
     #[error("Failed to derive shared secret")]
     DeriveSharedSecret,
     #[error("Failed to encrypt")]
@@ -23,6 +26,17 @@ pub enum CrypterError {
     BadNonce,
     #[error("Bad cipher")]
     BadCiper,
+}
+
+pub fn pubkey_from_secret_key(my_secret_key: String) -> Result<String> {
+    let secret_key = parse::parse_secret_string(my_secret_key)?;
+    let sk = match SecretKey::from_slice(&secret_key[..]) {
+        Ok(s) => s,
+        Err(_) => return Err(CrypterError::BadSecret),
+    };
+    let ctx = Secp256k1::new();
+    let pk = PublicKey::from_secret_key(&ctx, &sk).serialize();
+    Ok(hex::encode(pk))
 }
 
 // their_pubkey: 33 bytes
@@ -68,7 +82,7 @@ pub fn decrypt(ciphertext: String, secret: String) -> Result<String> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{decrypt, derive_shared_secret, encrypt, Result};
+    use crate::{decrypt, derive_shared_secret, encrypt, pubkey_from_secret_key, Result};
 
     #[test]
     fn test_crypter() -> Result<()> {
@@ -93,6 +107,15 @@ mod tests {
         assert_eq!(plaintext, plain);
 
         println!("PLAINTEXT MATCHES!");
+        Ok(())
+    }
+
+    #[test]
+    fn test_derive_pubkey() -> Result<()> {
+        let sk1 = "86c8977989592a97beb409bc27fde76e981ce3543499fd61743755b832e92a3e";
+        let pk1 = "0362a684901b8d065fb034bc44ea972619a409aeafc2a698016a74f6eee1008aca";
+        let pk = pubkey_from_secret_key(sk1.to_string())?;
+        assert_eq!(pk, pk1);
         Ok(())
     }
 }

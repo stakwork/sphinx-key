@@ -40,7 +40,7 @@ open class RustBuffer : Structure() {
 
     companion object {
         internal fun alloc(size: Int = 0) = rustCall() { status ->
-            _UniFFILib.INSTANCE.ffi_crypter_b428_rustbuffer_alloc(size, status).also {
+            _UniFFILib.INSTANCE.ffi_crypter_a934_rustbuffer_alloc(size, status).also {
                 if(it.data == null) {
                    throw RuntimeException("RustBuffer.alloc() returned null data pointer (size=${size})")
                }
@@ -48,7 +48,7 @@ open class RustBuffer : Structure() {
         }
 
         internal fun free(buf: RustBuffer.ByValue) = rustCall() { status ->
-            _UniFFILib.INSTANCE.ffi_crypter_b428_rustbuffer_free(buf, status)
+            _UniFFILib.INSTANCE.ffi_crypter_a934_rustbuffer_free(buf, status)
         }
     }
 
@@ -257,31 +257,31 @@ internal interface _UniFFILib : Library {
         }
     }
 
-    fun crypter_b428_derive_shared_secret(`theirPubkey`: RustBuffer.ByValue,`mySecretKey`: RustBuffer.ByValue,
+    fun crypter_a934_derive_shared_secret(`theirPubkey`: RustBuffer.ByValue,`mySecretKey`: RustBuffer.ByValue,
     _uniffi_out_err: RustCallStatus
     ): RustBuffer.ByValue
 
-    fun crypter_b428_encrypt(`plaintext`: RustBuffer.ByValue,`secret`: RustBuffer.ByValue,`nonce`: RustBuffer.ByValue,
+    fun crypter_a934_encrypt(`plaintext`: RustBuffer.ByValue,`secret`: RustBuffer.ByValue,`nonce`: RustBuffer.ByValue,
     _uniffi_out_err: RustCallStatus
     ): RustBuffer.ByValue
 
-    fun crypter_b428_decrypt(`ciphertext`: RustBuffer.ByValue,`secret`: RustBuffer.ByValue,
+    fun crypter_a934_decrypt(`ciphertext`: RustBuffer.ByValue,`secret`: RustBuffer.ByValue,
     _uniffi_out_err: RustCallStatus
     ): RustBuffer.ByValue
 
-    fun ffi_crypter_b428_rustbuffer_alloc(`size`: Int,
+    fun ffi_crypter_a934_rustbuffer_alloc(`size`: Int,
     _uniffi_out_err: RustCallStatus
     ): RustBuffer.ByValue
 
-    fun ffi_crypter_b428_rustbuffer_from_bytes(`bytes`: ForeignBytes.ByValue,
+    fun ffi_crypter_a934_rustbuffer_from_bytes(`bytes`: ForeignBytes.ByValue,
     _uniffi_out_err: RustCallStatus
     ): RustBuffer.ByValue
 
-    fun ffi_crypter_b428_rustbuffer_free(`buf`: RustBuffer.ByValue,
+    fun ffi_crypter_a934_rustbuffer_free(`buf`: RustBuffer.ByValue,
     _uniffi_out_err: RustCallStatus
     ): Unit
 
-    fun ffi_crypter_b428_rustbuffer_reserve(`buf`: RustBuffer.ByValue,`additional`: Int,
+    fun ffi_crypter_a934_rustbuffer_reserve(`buf`: RustBuffer.ByValue,`additional`: Int,
     _uniffi_out_err: RustCallStatus
     ): RustBuffer.ByValue
 
@@ -344,6 +344,7 @@ public object FfiConverterString: FfiConverter<String, RustBuffer.ByValue> {
 sealed class CrypterException(message: String): Exception(message) {
         // Each variant is a nested class
         // Flat enums carries a string error message, so no special implementation is necessary.
+        class DerivePublicKey(message: String) : CrypterException(message)
         class DeriveSharedSecret(message: String) : CrypterException(message)
         class Encrypt(message: String) : CrypterException(message)
         class Decrypt(message: String) : CrypterException(message)
@@ -362,13 +363,14 @@ public object FfiConverterTypeCrypterError : FfiConverterRustBuffer<CrypterExcep
     override fun read(buf: ByteBuffer): CrypterException {
         
             return when(buf.getInt()) {
-            1 -> CrypterException.DeriveSharedSecret(FfiConverterString.read(buf))
-            2 -> CrypterException.Encrypt(FfiConverterString.read(buf))
-            3 -> CrypterException.Decrypt(FfiConverterString.read(buf))
-            4 -> CrypterException.BadPubkey(FfiConverterString.read(buf))
-            5 -> CrypterException.BadSecret(FfiConverterString.read(buf))
-            6 -> CrypterException.BadNonce(FfiConverterString.read(buf))
-            7 -> CrypterException.BadCiper(FfiConverterString.read(buf))
+            1 -> CrypterException.DerivePublicKey(FfiConverterString.read(buf))
+            2 -> CrypterException.DeriveSharedSecret(FfiConverterString.read(buf))
+            3 -> CrypterException.Encrypt(FfiConverterString.read(buf))
+            4 -> CrypterException.Decrypt(FfiConverterString.read(buf))
+            5 -> CrypterException.BadPubkey(FfiConverterString.read(buf))
+            6 -> CrypterException.BadSecret(FfiConverterString.read(buf))
+            7 -> CrypterException.BadNonce(FfiConverterString.read(buf))
+            8 -> CrypterException.BadCiper(FfiConverterString.read(buf))
             else -> throw RuntimeException("invalid error enum value, something is very wrong!!")
         }
         
@@ -390,7 +392,7 @@ public object FfiConverterTypeCrypterError : FfiConverterRustBuffer<CrypterExcep
 fun `deriveSharedSecret`(`theirPubkey`: String, `mySecretKey`: String): String {
     return FfiConverterString.lift(
     rustCallWithError(CrypterException) { _status ->
-    _UniFFILib.INSTANCE.crypter_b428_derive_shared_secret(FfiConverterString.lower(`theirPubkey`), FfiConverterString.lower(`mySecretKey`), _status)
+    _UniFFILib.INSTANCE.crypter_a934_derive_shared_secret(FfiConverterString.lower(`theirPubkey`), FfiConverterString.lower(`mySecretKey`), _status)
 })
 }
 
@@ -400,7 +402,7 @@ fun `deriveSharedSecret`(`theirPubkey`: String, `mySecretKey`: String): String {
 fun `encrypt`(`plaintext`: String, `secret`: String, `nonce`: String): String {
     return FfiConverterString.lift(
     rustCallWithError(CrypterException) { _status ->
-    _UniFFILib.INSTANCE.crypter_b428_encrypt(FfiConverterString.lower(`plaintext`), FfiConverterString.lower(`secret`), FfiConverterString.lower(`nonce`), _status)
+    _UniFFILib.INSTANCE.crypter_a934_encrypt(FfiConverterString.lower(`plaintext`), FfiConverterString.lower(`secret`), FfiConverterString.lower(`nonce`), _status)
 })
 }
 
@@ -410,7 +412,7 @@ fun `encrypt`(`plaintext`: String, `secret`: String, `nonce`: String): String {
 fun `decrypt`(`ciphertext`: String, `secret`: String): String {
     return FfiConverterString.lift(
     rustCallWithError(CrypterException) { _status ->
-    _UniFFILib.INSTANCE.crypter_b428_decrypt(FfiConverterString.lower(`ciphertext`), FfiConverterString.lower(`secret`), _status)
+    _UniFFILib.INSTANCE.crypter_a934_decrypt(FfiConverterString.lower(`ciphertext`), FfiConverterString.lower(`secret`), _status)
 })
 }
 
