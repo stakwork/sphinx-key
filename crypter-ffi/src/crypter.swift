@@ -19,13 +19,13 @@ fileprivate extension RustBuffer {
     }
 
     static func from(_ ptr: UnsafeBufferPointer<UInt8>) -> RustBuffer {
-        try! rustCall { ffi_crypter_a934_rustbuffer_from_bytes(ForeignBytes(bufferPointer: ptr), $0) }
+        try! rustCall { ffi_crypter_9c38_rustbuffer_from_bytes(ForeignBytes(bufferPointer: ptr), $0) }
     }
 
     // Frees the buffer in place.
     // The buffer must not be used after this is called.
     func deallocate() {
-        try! rustCall { ffi_crypter_a934_rustbuffer_free(self, $0) }
+        try! rustCall { ffi_crypter_9c38_rustbuffer_free(self, $0) }
     }
 }
 
@@ -438,13 +438,27 @@ extension CrypterError: Equatable, Hashable {}
 
 extension CrypterError: Error { }
 
+public func pubkeyFromSecretKey(mySecretKey: String) throws -> String {
+    return try FfiConverterString.lift(
+        try
+    
+    rustCallWithError(FfiConverterTypeCrypterError.self) {
+    
+    crypter_9c38_pubkey_from_secret_key(
+        FfiConverterString.lower(mySecretKey), $0)
+}
+    )
+}
+
+
+
 public func deriveSharedSecret(theirPubkey: String, mySecretKey: String) throws -> String {
     return try FfiConverterString.lift(
         try
     
     rustCallWithError(FfiConverterTypeCrypterError.self) {
     
-    crypter_a934_derive_shared_secret(
+    crypter_9c38_derive_shared_secret(
         FfiConverterString.lower(theirPubkey), 
         FfiConverterString.lower(mySecretKey), $0)
 }
@@ -459,7 +473,7 @@ public func encrypt(plaintext: String, secret: String, nonce: String) throws -> 
     
     rustCallWithError(FfiConverterTypeCrypterError.self) {
     
-    crypter_a934_encrypt(
+    crypter_9c38_encrypt(
         FfiConverterString.lower(plaintext), 
         FfiConverterString.lower(secret), 
         FfiConverterString.lower(nonce), $0)
@@ -475,7 +489,7 @@ public func decrypt(ciphertext: String, secret: String) throws -> String {
     
     rustCallWithError(FfiConverterTypeCrypterError.self) {
     
-    crypter_a934_decrypt(
+    crypter_9c38_decrypt(
         FfiConverterString.lower(ciphertext), 
         FfiConverterString.lower(secret), $0)
 }

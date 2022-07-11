@@ -12,6 +12,8 @@ enum CrypterError {
 
 namespace crypter {
   [Throws=CrypterError]
+  string pubkey_from_secret_key(string my_secret_key);
+  [Throws=CrypterError]
   string derive_shared_secret(string their_pubkey, string my_secret_key);
   [Throws=CrypterError]
   string encrypt(string plaintext, string secret, string nonce);
