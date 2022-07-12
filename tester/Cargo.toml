@@ -8,8 +8,8 @@ edition = "2018"
 sphinx-key-signer = { path = "../signer" }
 sphinx-key-parser = { path = "../parser" }
 sphinx-key-crypter = { path = "../crypter" }
-vls-protocol = { git = "https://gitlab.com/Evanfeenstra/validating-lightning-signer", branch = "partial-std" }
-vls-protocol-signer = { git = "https://gitlab.com/Evanfeenstra/validating-lightning-signer", branch = "partial-std", default-features = false, features = ["std", "secp-lowmemory"] }
+vls-protocol = { git = "https://gitlab.com/Evanfeenstra/validating-lightning-signer", branch = "sphinx-key-1" }
+vls-protocol-signer = { git = "https://gitlab.com/Evanfeenstra/validating-lightning-signer", branch = "sphinx-key-1", default-features = false, features = ["std", "secp-lowmemory"] }
 # vls-protocol = { path = "../../../evanf/validating-lightning-signer/vls-protocol" }
 # vls-protocol-signer = { path = "../../../evanf/validating-lightning-signer/vls-protocol-signer", default-features = false, features = ["std", "secp-lowmemory"] }
 anyhow = {version = "1", features = ["backtrace"]}
@@ -17,8 +17,8 @@ log = "0.4"
 rumqttc = "0.12.0"
 tokio = { version = "1.4.0", features = ["rt", "rt-multi-thread", "macros"] }
 pretty_env_logger = "0.4.0"
-clap = "3.2.6"
-clap_derive = "3.2.6"
+clap = "=3.0.0-beta.2"
+clap_derive = "=3.0.0-beta.5"
 fern = { version = "0.6", features = ["colored"] }
 chrono = "0.4"
 rand = "0.8"

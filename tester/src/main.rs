@@ -1,7 +1,7 @@
 use sphinx_key_parser as parser;
 use sphinx_key_signer::lightning_signer::bitcoin::Network;
 
-use clap::{arg, App, AppSettings};
+use clap::{App, AppSettings, Arg};
 use rumqttc::{self, AsyncClient, Event, MqttOptions, Packet, QoS};
 use sphinx_key_signer::vls_protocol::model::PubKey;
 use sphinx_key_signer::{self, InitResponse};
@@ -23,8 +23,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let app = App::new("tester")
         .setting(AppSettings::NoAutoVersion)
         .about("CLN:mqtt-tester - MQTT client signer")
-        .arg(arg!(--test "run a test against the embedded device"))
-        .arg(arg!(--log "log each VLS message"));
+        .arg(Arg::from("--test run a test against the embedded device"))
+        .arg(Arg::from("--log log each VLS message"));
     let matches = app.get_matches();
     let is_test = matches.is_present("test");
     let is_log = matches.is_present("log");

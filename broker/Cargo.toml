@@ -6,12 +6,14 @@ default-run = "sphinx-key-broker"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-vls-protocol = { git = "https://gitlab.com/Evanfeenstra/validating-lightning-signer", branch = "partial-std" }
-vls-proxy = { git = "https://gitlab.com/Evanfeenstra/validating-lightning-signer", branch = "partial-std" }
-vls-frontend = { git = "https://gitlab.com/Evanfeenstra/validating-lightning-signer", branch = "partial-std" }
-vls-protocol-client = { git = "https://gitlab.com/Evanfeenstra/validating-lightning-signer", branch = "partial-std" }
 # vls-protocol = { path = "../../../evanf/validating-lightning-signer/vls-protocol" }
 # vls-proxy = { path = "../../../evanf/validating-lightning-signer/vls-proxy" }
+# vls-frontend = { path = "../../../evanf/validating-lightning-signer/vls-frontend" }
+# vls-protocol-client = { path = "../../../evanf/validating-lightning-signer/vls-protocol-client" }
+vls-protocol = { git = "https://gitlab.com/Evanfeenstra/validating-lightning-signer", branch = "sphinx-key-1" }
+vls-proxy = { git = "https://gitlab.com/Evanfeenstra/validating-lightning-signer", branch = "sphinx-key-1" }
+vls-frontend = { git = "https://gitlab.com/Evanfeenstra/validating-lightning-signer", branch = "sphinx-key-1" }
+vls-protocol-client = { git = "https://gitlab.com/Evanfeenstra/validating-lightning-signer", branch = "sphinx-key-1" }
 rumqttd = { git = "https://github.com/Evanfeenstra/rumqtt", branch = "metrics" } 
 pretty_env_logger = "0.4.0"
 confy = "0.4.0"
@@ -22,8 +24,8 @@ anyhow = {version = "1", features = ["backtrace"]}
 log = "0.4"
 fern = { version = "0.6", features = ["colored"] }
 rumqttc = "0.12.0"
-clap = "3.2.6"
-clap_derive = "3.2.6"
+clap = "=3.0.0-beta.2"
+clap_derive = "=3.0.0-beta.5"
 chrono = "0.4"
 once_cell = "1.12.0"
 bitcoin = "0.28.1"

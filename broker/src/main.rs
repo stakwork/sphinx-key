@@ -9,7 +9,7 @@ mod util;
 use crate::chain_tracker::MqttSignerPort;
 use crate::mqtt::start_broker;
 use crate::unix_fd::SignerLoop;
-use clap::{arg, App, AppSettings, Arg};
+use clap::{App, AppSettings, Arg};
 use std::env;
 use std::sync::Arc;
 use tokio::sync::{mpsc, oneshot};
@@ -45,14 +45,14 @@ fn main() -> anyhow::Result<()> {
         .setting(AppSettings::NoAutoVersion)
         .about("CLN:mqtt - connects to an embedded VLS over a MQTT connection")
         .arg(
-            Arg::new("dev-disconnect")
-                .help("ignored dev flag")
+            Arg::new("--dev-disconnect")
+                .about("ignored dev flag")
                 .long("dev-disconnect")
                 .takes_value(true),
         )
-        .arg(arg!(--"log-io" "ignored dev flag"))
-        .arg(arg!(--version "show a dummy version"))
-        .arg(arg!(--test "run a test against the embedded device"))
+        .arg(Arg::from("--log-io ignored dev flag"))
+        .arg(Arg::from("--version show a dummy version"))
+        .arg(Arg::from("--test run a test against the embedded device"));
 
     let matches = app.get_matches();
 
