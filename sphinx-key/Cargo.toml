@@ -22,6 +22,7 @@ pingpong = []
 esp-idf-sys = { version = "0.31.5", features = ["binstart"] }
 sphinx-key-signer = { path = "../signer", optional = true }
 sphinx-key-crypter = { path = "../crypter" }
+sphinx-key-persister = { path = "../persister" }
 embedded-svc = { version = "0.21.2" }
 esp-idf-svc = "0.41"
 esp-idf-hal = "0.37"
