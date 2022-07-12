@@ -85,10 +85,14 @@ pub fn make_event_loop(
                     dummy_peer.clone(),
                     do_log,
                 ) {
-                    Ok(b) => mqtt
-                        .publish(RETURN_TOPIC, QOS, false, b)
-                        .expect("could not publish init response"),
-                    Err(e) => panic!("HANDLE FAILED {:?}", e),
+                    Ok(b) => {
+                        mqtt.publish(RETURN_TOPIC, QOS, false, b)
+                            .expect("could not publish init response");
+                    },
+                    Err(e) => {
+                        log::error!("HANDLE FAILED {:?}", e);
+                        // panic!("HANDLE FAILED {:?}", e);
+                    }
                 };
             }
             Event::Disconnected => {
