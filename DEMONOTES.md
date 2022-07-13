@@ -45,4 +45,4 @@ Get the node pubkey: `alice-cli getinfo`\
 List the utxos of the node: `alice-cli listfunds`\
 List the peers and channels of the node: `alice-cli listpeers`\
 Stop the node: `alice-cli stop`\
-Completely reset the regtest environment: `cleanup`\
+Completely reset the regtest environment: `cleanup`
