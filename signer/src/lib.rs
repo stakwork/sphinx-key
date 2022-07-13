@@ -69,7 +69,7 @@ pub fn handle(
         log::info!("VLS msg: {:?}", message);
     }
     let reply = if dbid > 0 {
-        let handler = root_handler.for_new_client(0, dummy_peer.clone(), dbid);
+        let handler = root_handler.for_new_client(dbid, dummy_peer.clone(), dbid);
         handler.handle(message).expect("handle")
     } else {
         root_handler.handle(message).expect("handle")
