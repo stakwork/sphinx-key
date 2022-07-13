@@ -28,10 +28,10 @@ Password: password of the wifi from the previous step
 - SSH all of the windows onto the AWS EC2 instance
 - Run `cleanup` in window A. This completely resets the regtest environment on the AWS instance.
 - Then run `regd` in window A. This launches the regtest node.
-- In window B, do `cd core_lightning_nodes`, and launch `aliced`. This launches alice, a generic regtest CLN node.
-- In window C, launch `alice-cli newaddr`.
-- In the same window, launch `touchwallet && genbtc {address of previous step} && blkdump`
-- In window D, run `cd core_lightning_nodes`, and launch `bobd`. This launches bob, our MQTT remote signer node.
+- In window B, launch `aliced`. This launches alice, a generic regtest CLN node.
+- In window C, run `alice-cli newaddr`.
+- In the same window, run `touchwallet && genbtc {address of previous step} && blkdump`
+- In window D, launch `bobd`. This launches bob, our MQTT remote signer node.
 - Once its pubkey is logged, copy it.
 - Back in window C, run `alice-cli connect {bob pubkey} localhost:20000`.
 - Then `alice-cli fundchannel {bob pubkey} 100000`. This opens a 100'000 sat channel from alice to bob.
@@ -42,5 +42,7 @@ Generate invoice: `bob-cli invoice 1000 {label} {description}`\
 Pay invoice: `alice-cli pay {invoice}`\
 Close channel: `alice-cli close {bob pubkey}`\
 Get the node pubkey: `alice-cli getinfo`\
-List the utxos of the node: `alice-cli listfunds`
-List the peers and channels of the node: `alice-cli listpeers`
+List the utxos of the node: `alice-cli listfunds`\
+List the peers and channels of the node: `alice-cli listpeers`\
+Stop the node: `alice-cli stop`\
+Completely reset the regtest environment: `cleanup`\
