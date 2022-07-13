@@ -2,7 +2,7 @@
 
 ### ESP32
 
-- Log in to the ubuntu machine, launch terminal, and `cd code/sphinx-key/sphinx-key`.
+- Log in to the ubuntu machine, connect the ESP, launch terminal, and `cd code/sphinx-key/sphinx-key`.
 - Then launch `clearstorage`, and do a `ctrl-c` when you see the message `NVS cleared!` in the logs.
 - Launch `buildkey`. This builds the signer software that will run on the esp.
 - `flashkey`. This writes the signer software to the esp.
@@ -32,6 +32,7 @@ Password: password of the wifi from the previous step
 - In window C, run `alice-cli newaddr`.
 - In the same window, run `touchwallet && genbtc {address of previous step} && blkdump`
 - In window D, launch `bobd`. This launches bob, our MQTT remote signer node.
+- On the ESP32, the LED should blink white when the signer is ready to sign for the node.
 - Once its pubkey is logged, copy it.
 - Back in window C, run `alice-cli connect {bob pubkey} localhost:20000`.
 - Then `alice-cli fundchannel {bob pubkey} 100000`. This opens a 100'000 sat channel from alice to bob.
