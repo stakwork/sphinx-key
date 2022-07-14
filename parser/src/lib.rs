@@ -111,3 +111,33 @@ impl Write for MsgDriver {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::MsgDriver;
+    use vls_protocol::msgs;
+    use vls_protocol::serde_bolt::WireString;
+
+    #[test]
+    fn test_parser() {
+        let msg = "hello";
+        let ping = msgs::Ping {
+            id: 0,
+            message: WireString(msg.as_bytes().to_vec()),
+        };
+        let mut md = MsgDriver::new_empty();
+        msgs::write_serial_request_header(&mut md, 0, 0)
+            .expect("failed to write_serial_request_header");
+        msgs::write(&mut md, ping).expect("failed to serial write");
+        let mut m = MsgDriver::new(md.bytes());
+        let (_sequence, _dbid) =
+            msgs::read_serial_request_header(&mut m).expect("read ping header");
+        let parsed_ping: msgs::Ping =
+            msgs::read_message(&mut m).expect("failed to read ping message");
+        assert_eq!(parsed_ping.id, 0);
+        assert_eq!(
+            String::from_utf8(parsed_ping.message.0).unwrap(),
+            msg.to_string()
+        );
+    }
+}
