@@ -2,6 +2,12 @@
 
 These notes were tested for macOS
 
+### set CFLAGS
+
+Before building the sphinx-key esp software, run this:
+
+`export CFLAGS=-fno-pic`
+
 ### find your esp GCC 
 
 Find the path to your `riscv32-esp-elf-gcc` binary within the `.embuild` dir:
