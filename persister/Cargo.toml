@@ -6,8 +6,8 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-lightning-signer-core = { git = "https://gitlab.com/Evanfeenstra/validating-lightning-signer", branch = "partial-std", default-features = false, features = ["std", "secp-lowmemory"] }
-lightning-signer-server = { git = "https://gitlab.com/Evanfeenstra/validating-lightning-signer", branch = "partial-std", default-features = false, features = ["persist"] }
+lightning-signer-core = { git = "https://gitlab.com/Evanfeenstra/validating-lightning-signer", branch = "patch-sign-chan", default-features = false, features = ["std", "secp-lowmemory"] }
+lightning-signer-server = { git = "https://gitlab.com/Evanfeenstra/validating-lightning-signer", branch = "patch-sign-chan", default-features = false, features = ["persist"] }
 serde = { version = "1.0.105" }
 postcard = "1.0.0"
 hex = "0.4.3"
