@@ -10,6 +10,7 @@ pub use vls_protocol_signer::lightning_signer;
 pub use vls_protocol_signer::lightning_signer::bitcoin::Network;
 pub use vls_protocol_signer::vls_protocol;
 pub use sphinx_key_parser::MsgDriver;
+pub use sphinx_key_persister::persist_fs::FsPersister;
 
 pub struct InitResponse {
     pub root_handler: RootHandler,
@@ -17,7 +18,8 @@ pub struct InitResponse {
 }
 
 pub fn init(bytes: Vec<u8>, network: Network) -> anyhow::Result<InitResponse> {
-    let persister: Arc<dyn Persist> = Arc::new(DummyPersister);
+    //let persister: Arc<dyn Persist> = Arc::new(DummyPersister);
+    let persister: Arc<dyn Persist> = Arc::new(FsPersister::new());
     let mut md = MsgDriver::new(bytes);
     let (sequence, dbid) = read_serial_request_header(&mut md).expect("read init header");
     assert_eq!(dbid, 0);
