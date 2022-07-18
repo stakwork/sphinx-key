@@ -5,7 +5,7 @@ mod periph;
 
 use crate::core::{config::*, events::*};
 use crate::periph::led::led_control_loop;
-use crate::periph::sd::sd_card;
+use crate::periph::sd::{sd_card, simple_fs_test};
 
 use anyhow::Result;
 use esp_idf_sys as _; // If using the `binstart` feature of `esp-idf-sys`, always keep this module imported
@@ -43,7 +43,8 @@ fn main() -> Result<()> {
     led_control_loop(pins.gpio8, peripherals.rmt.channel0, led_rx);
 
     // sd card
-    sd_card(peripherals.spi2);
+    sd_card();
+    simple_fs_test();
 
     let default_nvs = Arc::new(EspDefaultNvs::new()?);
     let mut store =
