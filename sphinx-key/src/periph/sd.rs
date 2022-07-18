@@ -1,5 +1,4 @@
 use bitflags::bitflags;
-use esp_idf_hal::spi;
 use esp_idf_sys::c_types::c_char;
 use esp_idf_sys::{
     esp, esp_vfs_fat_sdmmc_mount_config_t, esp_vfs_fat_sdspi_mount, gpio_num_t, sdmmc_card_t,
@@ -14,7 +13,6 @@ use std::io::Write;
 use std::ptr;
 use std::string::String;
 
-pub const MOUNT_POINT: &'static str = "/sdcard";
 const C_MOUNT_POINT: &'static [u8] = b"/sdcard\0";
 
 const SPI_HOST_SLOT: spi_host_device_t = spi_host_device_t_SPI2_HOST;
@@ -41,6 +39,7 @@ bitflags! {
     }
 }
 
+#[allow(dead_code)]
 enum SDMMCFreq {
     /// SD/MMC Default speed (limited by clock divider)
     Default = 20000,
@@ -53,7 +52,6 @@ enum SDMMCFreq {
     /// MMC 26MHz speed
     _26M = 26000,
 }
-
 
 pub fn sd_card() {
     let mount_config = esp_vfs_fat_sdmmc_mount_config_t {
@@ -144,7 +142,6 @@ pub fn sd_card() {
         }
     }
 }
-
 
 pub fn simple_fs_test() {
     // Create and write a file, append a file, read a file, delete a file, create a directory, write a file
