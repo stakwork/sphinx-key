@@ -65,6 +65,10 @@ impl Persist for FsPersister {
         let pk = hex::encode(node_id.serialize());
         let id = NodeChannelId::new(node_id, &stub.id0);
         let chan_id = hex::encode(id.channel_id().as_slice());
+        // should not exist
+        if let Ok(_) = self.channels.get(&pk, &chan_id) {
+            return Err(()); // already exists
+        }
         let entry = ChannelEntry {
             channel_value_satoshis: 0,
             channel_setup: None,
@@ -99,6 +103,10 @@ impl Persist for FsPersister {
         let pk = hex::encode(node_id.serialize());
         let id = NodeChannelId::new(node_id, &channel.id0);
         let chan_id = hex::encode(id.channel_id().as_slice());
+        // should exist
+        if let Err(_) = self.channels.get(&pk, &chan_id) {
+            return Err(()); // not found
+        }
         let entry = ChannelEntry {
             id: if channel.id.is_none() {
                 Some(id.channel_id())
