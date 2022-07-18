@@ -19,7 +19,7 @@ pub struct InitResponse {
 
 pub fn init(bytes: Vec<u8>, network: Network) -> anyhow::Result<InitResponse> {
     //let persister: Arc<dyn Persist> = Arc::new(DummyPersister);
-    let persister: Arc<dyn Persist> = Arc::new(FsPersister::new());
+    let persister: Arc<dyn Persist> = Arc::new(FsPersister::new("/sdcard/store"));
     let mut md = MsgDriver::new(bytes);
     let (sequence, dbid) = read_serial_request_header(&mut md).expect("read init header");
     assert_eq!(dbid, 0);

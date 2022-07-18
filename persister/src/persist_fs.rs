@@ -30,8 +30,8 @@ pub struct FsPersister {
 }
 
 impl FsPersister {
-    pub fn new() -> Self {
-        let db = Fsdb::new("home/ubuntu/sdcard").expect("could not create db");
+    pub fn new(dir: &str) -> Self {
+        let db = Fsdb::new(dir).expect("could not create db");
         let max = Some(FAT32_MAXFILENAMESIZE);
         Self {
             nodes: db.bucket("nodes", max).expect("fail nodes"),
