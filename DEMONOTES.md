@@ -31,6 +31,7 @@ Password: password of the wifi from the previous step
 - In window B, launch `aliced`. This launches alice, a generic regtest CLN node.
 - In window C, run `alice-cli newaddr`.
 - In the same window, run `touchwallet && genbtc {address of previous step} && blkdump`
+- export BITCOIND_RPC_URL=http://localhost
 - In window D, launch `bobd`. This launches bob, our MQTT remote signer node.
 - On the ESP32, the LED should blink white when the signer is ready to sign for the node.
 - Once its pubkey is logged, copy it.

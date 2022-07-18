@@ -9,7 +9,7 @@ pub use vls_protocol_signer::lightning_signer;
 pub use vls_protocol_signer::lightning_signer::bitcoin::Network;
 pub use vls_protocol_signer::vls_protocol;
 pub use sphinx_key_parser::MsgDriver;
-pub use sphinx_key_persister::persist_fs::FsPersister;
+pub use sphinx_key_persister::FsPersister;
 
 pub struct InitResponse {
     pub root_handler: RootHandler,
