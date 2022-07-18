@@ -43,6 +43,11 @@ impl FsPersister {
     }
 }
 
+fn get_channel_key(channel_id: &[u8]) -> &[u8] {
+        let length = channel_id.len();
+        channel_id.get(length-11..length-7).unwrap()
+}
+
 impl Persist for FsPersister {
     fn new_node(&self, node_id: &PublicKey, config: &NodeConfig, seed: &[u8]) {
         let pk = hex::encode(node_id.serialize());
@@ -63,16 +68,15 @@ impl Persist for FsPersister {
     }
     fn new_channel(&self, node_id: &PublicKey, stub: &ChannelStub) -> Result<(), ()> {
         let pk = hex::encode(node_id.serialize());
-        let id = NodeChannelId::new(node_id, &stub.id0);
-        let chan_id = hex::encode(id.channel_id().as_slice());
+        let chan_id = hex::encode(get_channel_key(stub.id0.as_slice()));
         // should not exist
         if let Ok(_) = self.channels.get(&pk, &chan_id) {
             return Err(()); // already exists
         }
         let entry = ChannelEntry {
+            id: Some(stub.id0.clone()),
             channel_value_satoshis: 0,
             channel_setup: None,
-            id: Some(id.channel_id()),
             enforcement_state: EnforcementState::new(0),
         };
         let _ = self.channels.put(&pk, &chan_id, entry);
@@ -101,18 +105,13 @@ impl Persist for FsPersister {
     }
     fn update_channel(&self, node_id: &PublicKey, channel: &Channel) -> Result<(), ()> {
         let pk = hex::encode(node_id.serialize());
-        let id = NodeChannelId::new(node_id, &channel.id0);
-        let chan_id = hex::encode(id.channel_id().as_slice());
+        let chan_id = hex::encode(get_channel_key(channel.id0.as_slice()));
         // should exist
         if let Err(_) = self.channels.get(&pk, &chan_id) {
             return Err(()); // not found
         }
         let entry = ChannelEntry {
-            id: if channel.id.is_none() {
-                Some(id.channel_id())
-            } else {
-                channel.id.clone()
-            },
+            id: Some(channel.id0.clone()),
             channel_value_satoshis: channel.setup.channel_value_sat,
             channel_setup: Some(channel.setup.clone()),
             enforcement_state: channel.enforcement_state.clone(),
@@ -126,8 +125,7 @@ impl Persist for FsPersister {
         channel_id: &ChannelId,
     ) -> Result<CoreChannelEntry, ()> {
         let pk = hex::encode(node_id.serialize());
-        let id = NodeChannelId::new(node_id, channel_id);
-        let chan_id = hex::encode(id.channel_id().as_slice());
+        let chan_id = hex::encode(get_channel_key(channel_id.as_slice()));
         let ret: ChannelEntry = match self.channels.get(&pk, &chan_id) {
             Ok(ce) => ce,
             Err(_) => return Err(()),
