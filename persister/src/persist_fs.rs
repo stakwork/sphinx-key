@@ -1,19 +1,15 @@
 use fsdb::{Bucket, DoubleBucket, Fsdb};
-use lightning_signer::persist::Persist;
-use lightning_signer_server::persist::model::{ChannelEntry, NodeEntry};
-use std::string::String;
-
 use lightning_signer::bitcoin::secp256k1::PublicKey;
 use lightning_signer::chain::tracker::ChainTracker;
-use lightning_signer::channel::Channel;
-use lightning_signer::channel::ChannelId;
-use lightning_signer::channel::ChannelStub;
+use lightning_signer::channel::{Channel, ChannelId, ChannelStub};
 use lightning_signer::monitor::ChainMonitor;
 use lightning_signer::node::NodeConfig;
+use lightning_signer::persist::Persist;
 use lightning_signer::policy::validator::EnforcementState;
-use lightning_signer_server::persist::model::AllowlistItemEntry;
-use lightning_signer_server::persist::model::ChainTrackerEntry;
-use lightning_signer_server::persist::model::NodeChannelId;
+use lightning_signer_server::persist::model::{
+    AllowlistItemEntry, ChainTrackerEntry, ChannelEntry, NodeEntry,
+};
+use std::string::String;
 
 use lightning_signer::persist::model::{
     ChannelEntry as CoreChannelEntry, NodeEntry as CoreNodeEntry,
@@ -44,8 +40,8 @@ impl FsPersister {
 }
 
 fn get_channel_key(channel_id: &[u8]) -> &[u8] {
-        let length = channel_id.len();
-        channel_id.get(length-11..length-7).unwrap()
+    let length = channel_id.len();
+    channel_id.get(length - 11..length - 7).unwrap()
 }
 
 impl Persist for FsPersister {
