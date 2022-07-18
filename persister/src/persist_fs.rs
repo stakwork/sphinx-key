@@ -32,22 +32,13 @@ pub struct FsPersister {
 impl FsPersister {
     pub fn new() -> Self {
         let db = Fsdb::new("home/ubuntu/sdcard").expect("could not create db");
-        let mut nodes = db.bucket("nodes").expect("fail nodes");
-        nodes.set_max_file_name(FAT32_MAXFILENAMESIZE);
-        let mut channels = db.double_bucket("channel").expect("fail channel");
-        channels.set_max_file_name(FAT32_MAXFILENAMESIZE);
-        let mut allowlist = db.bucket("allowlis").expect("fail allowlis");
-        allowlist.set_max_file_name(FAT32_MAXFILENAMESIZE);
-        let mut chaintracker = db.bucket("chaintra").expect("fail chaintra");
-        chaintracker.set_max_file_name(FAT32_MAXFILENAMESIZE);
-        let mut pubkeys = db.bucket("pubkey").expect("fail pubkey");
-        pubkeys.set_max_file_name(FAT32_MAXFILENAMESIZE);
+        let max = Some(FAT32_MAXFILENAMESIZE);
         Self {
-            nodes,
-            channels,
-            allowlist,
-            chaintracker,
-            pubkeys,
+            nodes: db.bucket("nodes", max).expect("fail nodes"),
+            channels: db.double_bucket("channel", max).expect("fail channel"),
+            allowlist: db.bucket("allowlis", max).expect("fail allowlis"),
+            chaintracker: db.bucket("chaintra", max).expect("fail chaintra"),
+            pubkeys: db.bucket("pubkey", max).expect("fail pubkey"),
         }
     }
 }
