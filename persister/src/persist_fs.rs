@@ -1,4 +1,4 @@
-use fsdb::{Bucket, Fsdb};
+use fsdb::{Bucket, DoubleBucket, Fsdb};
 use lightning_signer::persist::Persist;
 use lightning_signer_server::persist::model::{ChannelEntry, NodeEntry};
 use std::string::String;
@@ -23,7 +23,7 @@ const FAT32_MAXFILENAMESIZE: usize = 8;
 
 pub struct FsPersister {
     nodes: Bucket<NodeEntry>,
-    channels: Bucket<ChannelEntry>,
+    channels: DoubleBucket<ChannelEntry>,
     allowlist: Bucket<AllowlistItemEntry>,
     chaintracker: Bucket<ChainTrackerEntry>,
     pubkeys: Bucket<PublicKey>,
@@ -34,7 +34,7 @@ impl FsPersister {
         let db = Fsdb::new("home/ubuntu/sdcard").expect("could not create db");
         let mut nodes = db.bucket("nodes").expect("fail nodes");
         nodes.set_max_file_name(FAT32_MAXFILENAMESIZE);
-        let mut channels = db.bucket("channel").expect("fail channel");
+        let mut channels = db.double_bucket("channel").expect("fail channel");
         channels.set_max_file_name(FAT32_MAXFILENAMESIZE);
         let mut allowlist = db.bucket("allowlis").expect("fail allowlis");
         allowlist.set_max_file_name(FAT32_MAXFILENAMESIZE);
@@ -66,7 +66,7 @@ impl Persist for FsPersister {
     fn delete_node(&self, node_id: &PublicKey) {
         let pk = hex::encode(node_id.serialize());
         // clear all channel entries within "pk" sub-bucket
-        let _ = self.channels.clear_within(&pk);
+        let _ = self.channels.clear(&pk);
         let _ = self.nodes.remove(&pk);
         let _ = self.pubkeys.remove(&pk);
     }
@@ -80,7 +80,7 @@ impl Persist for FsPersister {
             id: Some(id.channel_id()),
             enforcement_state: EnforcementState::new(0),
         };
-        let _ = self.channels.put_within(&chan_id, entry, &pk);
+        let _ = self.channels.put(&pk, &chan_id, entry);
         Ok(())
     }
     fn new_chain_tracker(&self, node_id: &PublicKey, tracker: &ChainTracker<ChainMonitor>) {
@@ -118,7 +118,7 @@ impl Persist for FsPersister {
             channel_setup: Some(channel.setup.clone()),
             enforcement_state: channel.enforcement_state.clone(),
         };
-        let _ = self.channels.put_within(&chan_id, entry, &pk);
+        let _ = self.channels.put(&pk, &chan_id, entry);
         Ok(())
     }
     fn get_channel(
@@ -129,7 +129,7 @@ impl Persist for FsPersister {
         let pk = hex::encode(node_id.serialize());
         let id = NodeChannelId::new(node_id, channel_id);
         let chan_id = hex::encode(id.channel_id().as_slice());
-        let ret: ChannelEntry = match self.channels.get_within(&chan_id, &pk) {
+        let ret: ChannelEntry = match self.channels.get(&pk, &chan_id) {
             Ok(ce) => ce,
             Err(_) => return Err(()),
         };
@@ -138,12 +138,12 @@ impl Persist for FsPersister {
     fn get_node_channels(&self, node_id: &PublicKey) -> Vec<(ChannelId, CoreChannelEntry)> {
         let mut res = Vec::new();
         let pk = hex::encode(node_id.serialize());
-        let list = match self.channels.list_within(&pk) {
+        let list = match self.channels.list(&pk) {
             Ok(l) => l,
             Err(_) => return res,
         };
         for channel in list {
-            if let Ok(entry) = self.channels.get_within(&channel, &pk) {
+            if let Ok(entry) = self.channels.get(&pk, &channel) {
                 let id = entry.id.clone().unwrap();
                 res.push((id, entry.into()));
             };
@@ -181,7 +181,7 @@ impl Persist for FsPersister {
     }
     fn clear_database(&self) {
         let _ = self.nodes.clear();
-        let _ = self.channels.clear();
+        let _ = self.channels.clear_all();
         let _ = self.allowlist.clear();
         let _ = self.chaintracker.clear();
         let _ = self.pubkeys.clear();

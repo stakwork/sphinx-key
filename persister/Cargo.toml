@@ -10,4 +10,4 @@ lightning-signer-core = { git = "https://gitlab.com/Evanfeenstra/validating-ligh
 lightning-signer-server = { git = "https://gitlab.com/Evanfeenstra/validating-lightning-signer", branch = "patch-sign-chan", default-features = false, features = ["persist"] }
 serde = { version = "1.0.105" }
 hex = "0.4.3"
-fsdb = "0.1.4"
+fsdb = "0.1.7"
