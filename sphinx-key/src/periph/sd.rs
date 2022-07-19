@@ -21,7 +21,6 @@ const SPI_GPIO_CLK: gpio_num_t = 5;
 const SPI_GPIO_MISO: gpio_num_t = 6;
 const SPI_GPIO_CS: gpio_num_t = 1;
 
-
 bitflags! {
     struct SDMMCHostFlag: u32 {
         /// host supports 1-line SD and MMC protocol

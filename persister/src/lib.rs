@@ -67,7 +67,8 @@ impl Persist for FsPersister {
         let chan_id = hex::encode(get_channel_key(stub.id0.as_slice()));
         // should not exist
         if let Ok(_) = self.channels.get(&pk, &chan_id) {
-            return Err(()); // already exists
+            log::error!("persister: failed to create new_channel: already exists");
+            // return Err(()); // already exists
         }
         let entry = ChannelEntry {
             id: Some(stub.id0.clone()),
@@ -95,7 +96,10 @@ impl Persist for FsPersister {
         let pk = hex::encode(node_id.serialize());
         let ret: ChainTrackerEntry = match self.chaintracker.get(&pk) {
             Ok(ct) => ct,
-            Err(_) => return Err(()),
+            Err(_) => {
+                log::error!("persister: failed to get_tracker");
+                return Err(());
+            }
         };
         Ok(ret.into())
     }
@@ -104,7 +108,8 @@ impl Persist for FsPersister {
         let chan_id = hex::encode(get_channel_key(channel.id0.as_slice()));
         // should exist
         if let Err(_) = self.channels.get(&pk, &chan_id) {
-            return Err(()); // not found
+            log::error!("persister: failed to update_channel");
+            // return Err(()); // not found
         }
         let entry = ChannelEntry {
             id: Some(channel.id0.clone()),
@@ -124,7 +129,10 @@ impl Persist for FsPersister {
         let chan_id = hex::encode(get_channel_key(channel_id.as_slice()));
         let ret: ChannelEntry = match self.channels.get(&pk, &chan_id) {
             Ok(ce) => ce,
-            Err(_) => return Err(()),
+            Err(_) => {
+                log::error!("persister: failed to get_channel");
+                return Err(());
+            }
         };
         Ok(ret.into())
     }

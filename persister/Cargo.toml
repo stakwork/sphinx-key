@@ -11,3 +11,4 @@ lightning-signer-server = { git = "https://gitlab.com/Evanfeenstra/validating-li
 serde = { version = "1.0.105" }
 hex = "0.4.3"
 fsdb = "0.1.9"
+log = "0.4"

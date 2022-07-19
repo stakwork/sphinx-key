@@ -44,7 +44,7 @@ fn main() -> Result<()> {
 
     // sd card
     sd_card();
-    simple_fs_test();
+    // simple_fs_test();
 
     let default_nvs = Arc::new(EspDefaultNvs::new()?);
     let mut store =
