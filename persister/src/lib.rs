@@ -88,8 +88,10 @@ impl Persist for FsPersister {
         node_id: &PublicKey,
         tracker: &ChainTracker<ChainMonitor>,
     ) -> Result<(), ()> {
+        log::info!("=> update_tracker");
         let pk = hex::encode(node_id.serialize());
         let _ = self.chaintracker.put(&pk, tracker.into());
+        log::info!("=> update_tracker complete");
         Ok(())
     }
     fn get_tracker(&self, node_id: &PublicKey) -> Result<ChainTracker<ChainMonitor>, ()> {
@@ -104,8 +106,12 @@ impl Persist for FsPersister {
         Ok(ret.into())
     }
     fn update_channel(&self, node_id: &PublicKey, channel: &Channel) -> Result<(), ()> {
+        log::info!("=> update_channel");
         let pk = hex::encode(node_id.serialize());
+        log::info!("=> update_channel: pk {}", pk);
+        log::info!("=> channel.id0.as_slice(): {:?}", channel.id0.as_slice());
         let chan_id = hex::encode(get_channel_key(channel.id0.as_slice()));
+        log::info!("=> chan_id: {:?}", chan_id);
         // should exist
         if let Err(_) = self.channels.get(&pk, &chan_id) {
             log::error!("persister: failed to update_channel");
@@ -117,7 +123,9 @@ impl Persist for FsPersister {
             channel_setup: Some(channel.setup.clone()),
             enforcement_state: channel.enforcement_state.clone(),
         };
+        log::error!("channel entry id: {:?}", entry.id);
         let _ = self.channels.put(&pk, &chan_id, entry);
+        log::info!("=> update_channel complete!");
         Ok(())
     }
     fn get_channel(
