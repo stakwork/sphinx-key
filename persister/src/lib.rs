@@ -65,11 +65,11 @@ impl Persist for FsPersister {
     fn new_channel(&self, node_id: &PublicKey, stub: &ChannelStub) -> Result<(), ()> {
         let pk = hex::encode(node_id.serialize());
         let chan_id = hex::encode(get_channel_key(stub.id0.as_slice()));
-        // should not exist
-        if let Ok(_) = self.channels.get(&pk, &chan_id) {
-            log::error!("persister: failed to create new_channel: already exists");
-            // return Err(()); // already exists
-        }
+        // this breaks things...
+        // if let Ok(_) = self.channels.get(&pk, &chan_id) {
+        //     log::error!("persister: failed to create new_channel: already exists");
+        //     // return Err(()); // already exists
+        // }
         let entry = ChannelEntry {
             id: Some(stub.id0.clone()),
             channel_value_satoshis: 0,
@@ -108,22 +108,18 @@ impl Persist for FsPersister {
     fn update_channel(&self, node_id: &PublicKey, channel: &Channel) -> Result<(), ()> {
         log::info!("=> update_channel");
         let pk = hex::encode(node_id.serialize());
-        log::info!("=> update_channel: pk {}", pk);
-        log::info!("=> channel.id0.as_slice(): {:?}", channel.id0.as_slice());
         let chan_id = hex::encode(get_channel_key(channel.id0.as_slice()));
-        log::info!("=> chan_id: {:?}", chan_id);
-        // should exist
-        if let Err(_) = self.channels.get(&pk, &chan_id) {
-            log::error!("persister: failed to update_channel");
-            // return Err(()); // not found
-        }
+        // this breaks things...
+        // if let Err(_) = self.channels.get(&pk, &chan_id) {
+        //     log::error!("persister: failed to update_channel");
+        //     // return Err(()); // not found
+        // }
         let entry = ChannelEntry {
             id: Some(channel.id0.clone()),
             channel_value_satoshis: channel.setup.channel_value_sat,
             channel_setup: Some(channel.setup.clone()),
             enforcement_state: channel.enforcement_state.clone(),
         };
-        log::error!("channel entry id: {:?}", entry.id);
         let _ = self.channels.put(&pk, &chan_id, entry);
         log::info!("=> update_channel complete!");
         Ok(())
