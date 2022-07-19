@@ -8,6 +8,7 @@ edition = "2021"
 [dependencies]
 lightning-signer-core = { git = "https://gitlab.com/Evanfeenstra/validating-lightning-signer", branch = "patch-sign-chan", default-features = false, features = ["std", "secp-lowmemory"] }
 lightning-signer-server = { git = "https://gitlab.com/Evanfeenstra/validating-lightning-signer", branch = "patch-sign-chan", default-features = false, features = ["persist"] }
-serde = { version = "1.0.105" }
+serde = { version = "1.0.105", features = ["derive"] }
+serde_with = { version = "1.6.4", features = ["hex"] }
 hex = "0.4.3"
 fsdb = "0.1.9"

@@ -1,3 +1,6 @@
+mod model;
+mod ser_util;
+
 use fsdb::{Bucket, DoubleBucket, Fsdb};
 use lightning_signer::bitcoin::secp256k1::PublicKey;
 use lightning_signer::chain::tracker::ChainTracker;

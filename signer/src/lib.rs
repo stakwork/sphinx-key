@@ -1,4 +1,4 @@
-use lightning_signer::persist::Persist;
+use lightning_signer::persist::{DummyPersister, Persist};
 use std::sync::Arc;
 use vls_protocol::model::PubKey;
 use vls_protocol::msgs::{self, read_serial_request_header, write_serial_response_header, Message};
@@ -17,8 +17,8 @@ pub struct InitResponse {
 }
 
 pub fn init(bytes: Vec<u8>, network: Network) -> anyhow::Result<InitResponse> {
-    //let persister: Arc<dyn Persist> = Arc::new(DummyPersister);
-    let persister: Arc<dyn Persist> = Arc::new(FsPersister::new("/sdcard/store"));
+    let persister: Arc<dyn Persist> = Arc::new(DummyPersister);
+    // let persister: Arc<dyn Persist> = Arc::new(FsPersister::new("/sdcard/store"));
     let mut md = MsgDriver::new(bytes);
     let (sequence, dbid) = read_serial_request_header(&mut md).expect("read init header");
     assert_eq!(dbid, 0);
