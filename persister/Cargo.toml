@@ -10,5 +10,5 @@ lightning-signer-core = { git = "https://gitlab.com/Evanfeenstra/validating-ligh
 lightning-signer-server = { git = "https://gitlab.com/Evanfeenstra/validating-lightning-signer", branch = "patch-sign-chan", default-features = false, features = ["persist", "secp-lowmemory"] }
 serde = { version = "1.0.105" }
 hex = "0.4.3"
-fsdb = "0.1.9"
+fsdb = "0.1.10"
 log = "0.4"
