@@ -54,10 +54,7 @@ impl FsPersister {
         }
     }
     fn add_pubkey(&self, pubkey: &PublicKey) {
-        let mut pks: Vec<PublicKey> = match self.pubkeys.get(PUBKEY_KEY) {
-            Ok(ps) => ps,
-            Err(_) => Vec::new(),
-        };
+        let mut pks = self.get_pubkeys();
         let pk = pubkey.clone();
         if !pks.contains(&pk) {
             pks.push(pk);
@@ -65,10 +62,7 @@ impl FsPersister {
         }
     }
     fn remove_pubkey(&self, pk: &PublicKey) {
-        let pks: Vec<PublicKey> = match self.pubkeys.get(PUBKEY_KEY) {
-            Ok(ps) => ps,
-            Err(_) => Vec::new(),
-        };
+        let pks = self.get_pubkeys();
         let newpks = pks.iter().filter(|p| *p != pk).map(|p| p.clone()).collect();
         let _ = self.pubkeys.put(PUBKEY_KEY, newpks);
     }
