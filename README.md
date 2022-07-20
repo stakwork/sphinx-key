@@ -1,6 +1,6 @@
 # sphinx-key
 
-These notes were tested for macOS
+A Lightning Hardware Wallet based on [Validating Lightning Signer](https://gitlab.com/lightning-signer/validating-lightning-signer)
 
 ### set CFLAGS
 
@@ -34,11 +34,11 @@ Find the path to your `riscv32-esp-elf-gcc` binary within the `.embuild` dir:
 
 ### monitor
 
-```sh
-ls /dev/tty.*
-ls /dev/cu.*
-espmonitor /dev/tty.usbserial-1420
-```
+Find your port (`ls /dev/tty.*`)
+
+`PORT=/dev/tty.usbserial-1420`
+
+`espmonitor $PORT`
 
 ### configure the hardware
 
@@ -47,10 +47,10 @@ make a seed: `./sphinx-key/newseed.sh`
 make a `.env` file like:
 
 ```
-SSID=my_ssid
-PASS=my_wifi_password
-BROKER=my_ip:1883
-SEED=my_seed
+SSID={my_ssid}
+PASS={my_wifi_password}
+BROKER={my_ip}:1883
+SEED={my_seed_hex}
 NETWORK=regtest
 ```
 
@@ -60,9 +60,13 @@ connect to the `sphinxkey` network on your computer
 
 This will encrypt your seed and send to the hardware, along with your home wifi information and broker address
 
-# dependencies
+### clear NVS storage
 
-`cd sphinx-key`
+`espflash target/riscv32imc-esp-espidf/debug/clear`
+
+`espmonitor /dev/tty.usbserial-1420`
+
+## dependencies
 
 ##### cargo nightly:
 
@@ -84,12 +88,7 @@ This will encrypt your seed and send to the hardware, along with your home wifi 
 
 `cargo install espmonitor`
 
-### clear NVS
-
-espflash target/riscv32imc-esp-espidf/debug/clear
-espmonitor /dev/tty.usbserial-1420
-
-### cargo generate esp-rs
+##### cargo generate esp-rs
 
 `cargo generate --git https://github.com/esp-rs/esp-idf-template cargo`
 
@@ -102,35 +101,16 @@ nightly
 
 `cargo build`
 
-### to tell sphinx-key where to find the MQTT broker:
+#### espflash notes
 
-clear the NVS with instructions above if sphinx-key has stale Wifi creds.\
-restart sphinx key, then from computer connect to sphinxkey AP.\
-go to `http://192.168.71.1/?broker=52.91.253.115%3A1883`.\
-input internet wifi SSID and password, and the IP address of the broker.\
-after pressing the ok button, restart the sphinx key, and wait for a MQTT connection.
+`espflash save-image esp32-c3 target/riscv32imc-esp-espidf/release/sphinx-key ./test-flash`
 
-### espflash notes
+`espflash board-info`
 
-espflash save-image esp32-c3 target/riscv32imc-esp-espidf/release/sphinx-key ./test-flash
+`esptool.py --chip esp32c3 elf2image target/riscv32imc-esp-espidf/release/sphinx-key`
 
-espflash board-info
+`esptool.py --chip esp32c3 -p /dev/tty.usbserial-1420 -b 460800 --before=default_reset --after=hard_reset write_flash --flash_mode dio --flash_freq 40m --flash_size 4MB 0x10000 target/riscv32imc-esp-espidf/release/sphinx-key.bin`
 
-export CC=$PWD/.embuild/espressif/tools/riscv32-esp-elf/esp-2021r2-8.4.0/riscv32-esp-elf/bin/riscv32-esp-elf-gcc
+`espmonitor /dev/tty.usbserial-1420`
 
-
-cargo +nightly build --release
-
-esptool.py --chip esp32c3 elf2image target/riscv32imc-esp-espidf/release/sphinx-key
-
-esptool.py --chip esp32c3 -p /dev/tty.usbserial-1420 -b 460800 --before=default_reset --after=hard_reset write_flash --flash_mode dio --flash_freq 40m --flash_size 4MB 0x10000 target/riscv32imc-esp-espidf/release/sphinx-key.bin
-
-espmonitor /dev/tty.usbserial-1420
-
-### config
-
-./sphinx-key/rando.sh
-
-make your .env
-
-cargo run --bin config
+for ESP-IDF#4.3.2: `export CC=$PWD/.embuild/espressif/tools/riscv32-esp-elf/esp-2021r2-8.4.0/riscv32-esp-elf/bin/riscv32-esp-elf-gcc`
