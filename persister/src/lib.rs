@@ -192,7 +192,9 @@ impl Persist for FsPersister {
             log::warn!("=> I am here");
             while std::ptr::null() != dir_ent {
                 log::warn!("=> Good morning");
-                log::warn!("{:?}", from_utf8(transmute((*dir_ent).d_name.as_slice())));
+                let x = from_utf8(transmute((*dir_ent).d_name.as_slice()));
+                log::warn!("{:?}", x);
+                let y = x.unwrap();
                 log::warn!("Good afternoon");
                 /*
                 if let Ok(pubkey) = self.pubkeys.get(&pk) {
