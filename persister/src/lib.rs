@@ -10,10 +10,16 @@ use lightning_signer_server::persist::model::{
     AllowlistItemEntry, ChainTrackerEntry, ChannelEntry, NodeEntry,
 };
 use std::string::String;
+use std::str::from_utf8;
+use std::mem::transmute;
 
 use lightning_signer::persist::model::{
     ChannelEntry as CoreChannelEntry, NodeEntry as CoreNodeEntry,
 };
+
+use esp_idf_sys::{closedir, opendir, readdir};
+use esp_idf_sys::c_types::c_char;
+
 
 const FAT32_MAXFILENAMESIZE: usize = 8;
 
@@ -170,17 +176,34 @@ impl Persist for FsPersister {
         entry.allowlist
     }
     fn get_nodes(&self) -> Vec<(PublicKey, CoreNodeEntry)> {
+        log::warn!("=> Get nodes called");
         let mut res = Vec::new();
-        let list = match self.nodes.list() {
-            Ok(ns) => ns,
-            Err(_) => return res,
-        };
-        for pk in list {
-            if let Ok(pubkey) = self.pubkeys.get(&pk) {
-                if let Ok(node) = self.nodes.get(&pk) {
-                    res.push((pubkey, node.into()));
-                }
+        const C_NODE_DIR: &'static [u8] = b"/sdcard/store/nodes\0";
+        unsafe {
+            let dir = opendir(
+                C_NODE_DIR.as_ptr() as *const c_char,
+            );
+            log::warn!("=> Nodes directory opened");
+            if std::ptr::null() == dir {
+                panic!("No nodes directory found");
             }
+            log::warn!("=> Nodes directory is not null, start to read...");
+            let mut dir_ent = readdir(dir);
+            log::warn!("=> I am here");
+            while std::ptr::null() != dir_ent {
+                log::warn!("=> Good morning");
+                log::warn!("{:?}", from_utf8(transmute((*dir_ent).d_name.as_slice())));
+                log::warn!("Good afternoon");
+                /*
+                if let Ok(pubkey) = self.pubkeys.get(&pk) {
+                    if let Ok(node) = self.nodes.get(&pk) {
+                        res.push((pubkey, node.into()));
+                    }
+                }
+                */
+                dir_ent = readdir(dir);
+            }
+            closedir(dir);
         }
         res
     }
