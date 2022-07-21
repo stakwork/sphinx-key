@@ -13,7 +13,7 @@ use std::sync::{mpsc, Arc};
 use std::thread;
 use std::time::Duration;
 
-use embedded_svc::storage::Storage;
+use embedded_svc::storage::StorageBase;
 use esp_idf_hal::peripherals::Peripherals;
 use esp_idf_svc::nvs::*;
 use esp_idf_svc::nvs_storage::EspNvsStorage;
