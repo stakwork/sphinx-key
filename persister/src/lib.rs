@@ -12,6 +12,7 @@ use lightning_signer_server::persist::model::{
 use std::string::String;
 use std::str::from_utf8;
 use std::mem::transmute;
+use std::slice;
 
 use lightning_signer::persist::model::{
     ChannelEntry as CoreChannelEntry, NodeEntry as CoreNodeEntry,
@@ -19,6 +20,7 @@ use lightning_signer::persist::model::{
 
 use esp_idf_sys::{closedir, opendir, readdir};
 use esp_idf_sys::c_types::c_char;
+use esp_idf_sys::cfree;
 
 
 const FAT32_MAXFILENAMESIZE: usize = 8;
@@ -148,16 +150,41 @@ impl Persist for FsPersister {
     }
     fn get_node_channels(&self, node_id: &PublicKey) -> Vec<(ChannelId, CoreChannelEntry)> {
         let mut res = Vec::new();
+        const C_CHANNEL_DIR: &'static [u8] = b"/sdcard/store/channel/";
         let pk = hex::encode(node_id.serialize());
-        let list = match self.channels.list(&pk) {
-            Ok(l) => l,
-            Err(_) => return res,
-        };
-        for channel in list {
-            if let Ok(entry) = self.channels.get(&pk, &channel) {
-                let id = entry.id.clone().unwrap();
-                res.push((id, entry.into()));
-            };
+        let full_dir = [C_CHANNEL_DIR, &pk.as_bytes()[..8], &[0]].concat();
+        unsafe {
+            log::info!("About to open dir");
+            let dir = opendir(
+                full_dir.as_ptr() as *const c_char,
+            );
+            log::info!("Opened dir");
+            if std::ptr::null() == dir {
+                return res;
+            }
+            log::info!("About to call readdir on channels");
+            let mut dir_ent = readdir(dir);
+            log::info!("Entering while loop");
+            while std::ptr::null() != dir_ent {
+                log::info!("Creating the pointer");
+                let ptr = (*dir_ent).d_name.as_ptr() as *const u8;
+                log::info!("Converting to utf8");
+                let result = from_utf8(slice::from_raw_parts(ptr, 8));
+                log::info!("Unwrapping the result");
+                let channel = result.unwrap();
+                drop(dir_ent);
+                log::info!("PK: {}", &pk[..8]);
+                log::info!("CH: {}", &channel[..8]);
+                if let Ok(entry) = self.channels.get(&pk[..8], &channel[..8]) {
+                    log::info!("Got an entry!");
+                    let id = entry.id.clone().unwrap();
+                    res.push((id, entry.into()));
+                };
+                dir_ent = readdir(dir);
+            }
+            closedir(dir);
+            drop(dir);
+            drop(dir_ent);
         }
         res
     }
@@ -176,35 +203,31 @@ impl Persist for FsPersister {
         entry.allowlist
     }
     fn get_nodes(&self) -> Vec<(PublicKey, CoreNodeEntry)> {
-        log::warn!("=> Get nodes called");
         let mut res = Vec::new();
         const C_NODE_DIR: &'static [u8] = b"/sdcard/store/nodes\0";
         unsafe {
             let dir = opendir(
                 C_NODE_DIR.as_ptr() as *const c_char,
             );
-            log::warn!("=> Nodes directory opened");
             if std::ptr::null() == dir {
                 panic!("No nodes directory found");
             }
-            log::warn!("=> Nodes directory is not null, start to read...");
             let mut dir_ent = readdir(dir);
-            log::warn!("=> I am here");
             while std::ptr::null() != dir_ent {
-                log::warn!("=> Good morning");
-                let result = from_utf8(transmute((*dir_ent).d_name.as_slice()));
-                //log::warn!("{:?}", x);
+                let ptr = (*dir_ent).d_name.as_ptr() as *const u8;
+                let result = from_utf8(slice::from_raw_parts(ptr, 8));
                 let pk = result.unwrap();
-                log::warn!("I unwrapped the bomb! It has length: {}", pk.len());
-                log::warn!("Key: {}", &pk[..8]);
                 if let Ok(pubkey) = self.pubkeys.get(&pk[..8]) {
                     if let Ok(node) = self.nodes.get(&pk[..8]) {
                         res.push((pubkey, node.into()));
                     }
                 }
+                drop(dir_ent);
                 dir_ent = readdir(dir);
             }
             closedir(dir);
+            drop(dir);
+            drop(C_NODE_DIR);
         }
         res
     }
