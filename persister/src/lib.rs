@@ -11,6 +11,7 @@ use lightning_signer_server::persist::model::{
 };
 use std::string::String;
 use std::str::from_utf8;
+use std::str::from_utf8_unchecked;
 use std::mem::transmute;
 use std::slice;
 
@@ -21,6 +22,8 @@ use lightning_signer::persist::model::{
 use esp_idf_sys::{closedir, opendir, readdir};
 use esp_idf_sys::c_types::c_char;
 use esp_idf_sys::cfree;
+use esp_idf_sys::mem_free;
+use esp_idf_sys::c_types::c_void;
 
 
 const FAT32_MAXFILENAMESIZE: usize = 8;
@@ -172,7 +175,6 @@ impl Persist for FsPersister {
                 let result = from_utf8(slice::from_raw_parts(ptr, 8));
                 log::info!("Unwrapping the result");
                 let channel = result.unwrap();
-                drop(dir_ent);
                 log::info!("PK: {}", &pk[..8]);
                 log::info!("CH: {}", &channel[..8]);
                 if let Ok(entry) = self.channels.get(&pk[..8], &channel[..8]) {
@@ -183,9 +185,8 @@ impl Persist for FsPersister {
                 dir_ent = readdir(dir);
             }
             closedir(dir);
-            drop(dir);
-            drop(dir_ent);
         }
+        println!("Returned the list!");
         res
     }
     fn update_node_allowlist(&self, node_id: &PublicKey, allowlist: Vec<String>) -> Result<(), ()> {
@@ -222,12 +223,9 @@ impl Persist for FsPersister {
                         res.push((pubkey, node.into()));
                     }
                 }
-                drop(dir_ent);
                 dir_ent = readdir(dir);
             }
             closedir(dir);
-            drop(dir);
-            drop(C_NODE_DIR);
         }
         res
     }

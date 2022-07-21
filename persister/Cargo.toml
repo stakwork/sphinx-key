@@ -11,5 +11,6 @@ lightning-signer-server = { git = "https://gitlab.com/Evanfeenstra/validating-li
 serde = { version = "1.0.105" }
 hex = "0.4.3"
 fsdb = "0.1.10"
+# fsdb = { path = "/Users/beraf/summer_2022/fsdb" }
 log = "0.4"
 esp-idf-sys = { version = "0.31.6", features = ["binstart"] }
