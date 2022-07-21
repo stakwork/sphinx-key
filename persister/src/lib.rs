@@ -192,17 +192,16 @@ impl Persist for FsPersister {
             log::warn!("=> I am here");
             while std::ptr::null() != dir_ent {
                 log::warn!("=> Good morning");
-                let x = from_utf8(transmute((*dir_ent).d_name.as_slice()));
-                log::warn!("{:?}", x);
-                let y = x.unwrap();
-                log::warn!("Good afternoon");
-                /*
-                if let Ok(pubkey) = self.pubkeys.get(&pk) {
-                    if let Ok(node) = self.nodes.get(&pk) {
+                let result = from_utf8(transmute((*dir_ent).d_name.as_slice()));
+                //log::warn!("{:?}", x);
+                let pk = result.unwrap();
+                log::warn!("I unwrapped the bomb! It has length: {}", pk.len());
+                log::warn!("Key: {}", &pk[..8]);
+                if let Ok(pubkey) = self.pubkeys.get(&pk[..8]) {
+                    if let Ok(node) = self.nodes.get(&pk[..8]) {
                         res.push((pubkey, node.into()));
                     }
                 }
-                */
                 dir_ent = readdir(dir);
             }
             closedir(dir);
