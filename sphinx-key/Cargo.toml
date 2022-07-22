@@ -17,15 +17,16 @@ default = ["std"]
 std = ["sphinx-key-signer"]
 pio = ["esp-idf-sys/pio"]
 pingpong = []
+no_persist = []
 
 [dependencies]
 bitflags = "1.3.2"
 esp-idf-sys = { version = "0.31.6", features = ["binstart"] }
 sphinx-key-signer = { path = "../signer", optional = true }
 sphinx-key-crypter = { path = "../crypter" }
-embedded-svc = { version = "0.21.2" }
-esp-idf-svc = "0.41"
-esp-idf-hal = "0.37"
+embedded-svc = "0.22.0" 
+esp-idf-svc = "0.42.1"
+esp-idf-hal = "0.38.0"
 embedded-hal = "=1.0.0-alpha.8"
 anyhow = {version = "1", features = ["backtrace"]}
 log = "0.4"
@@ -34,6 +35,7 @@ serde_urlencoded = "0.7.1"
 serde = { version = "1.0.137", default-features = false }
 serde_json = { version = "1.0.81", default-features = false }
 hex = "0.4.3"
+rmp-serde = "1.1.0"
 
 [patch.crates-io]
 # updates the "rand" create to use esp RNG

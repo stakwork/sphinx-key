@@ -13,7 +13,7 @@ use std::sync::{mpsc, Arc};
 use std::thread;
 use std::time::Duration;
 
-use embedded_svc::storage::Storage;
+use embedded_svc::storage::RawStorage;
 use esp_idf_hal::peripherals::Peripherals;
 use esp_idf_svc::nvs::*;
 use esp_idf_svc::nvs_storage::EspNvsStorage;
@@ -49,8 +49,11 @@ fn main() -> Result<()> {
     let default_nvs = Arc::new(EspDefaultNvs::new()?);
     let mut store =
         EspNvsStorage::new_default(default_nvs.clone(), "sphinx", true).expect("no storage");
-    let existing: Option<Config> = store.get("config").expect("failed");
-    if let Some(exist) = existing {
+    let mut buf = [0u8; 250];
+    // let existing: Option<Config> = store.get_raw("config", buf).expect("failed");
+    let existing = store.get_raw("config", &mut buf).expect("failed");
+    if let Some((exist_bytes, _)) = existing {
+        let exist: Config = rmp_serde::from_slice(exist_bytes).expect("failed to parse Config");
         println!(
             "=============> START CLIENT NOW <============== {:?}",
             exist
@@ -82,8 +85,9 @@ fn main() -> Result<()> {
         led_tx.send(Status::WifiAccessPoint).unwrap();
         println!("=============> START SERVER NOW AND WAIT <==============");
         if let Ok((wifi, config)) = start_config_server_and_wait(default_nvs.clone()) {
+            let conf = rmp_serde::to_vec(&config).expect("couldnt rmp Config");
             store
-                .put("config", &config)
+                .put_raw("config", &conf[..])
                 .expect("could not store config");
             println!("CONFIG SAVED");
             drop(wifi);

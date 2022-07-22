@@ -175,6 +175,7 @@ impl Persist for FsPersister {
             Ok(ns) => ns,
             Err(_) => return res,
         };
+        log::info!("NODE LIST LEN {}", list.len());
         for pk in list {
             if let Ok(pubkey) = self.pubkeys.get(&pk) {
                 if let Ok(node) = self.nodes.get(&pk) {

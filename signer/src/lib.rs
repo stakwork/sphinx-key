@@ -1,4 +1,5 @@
-use lightning_signer::persist::{DummyPersister, Persist};
+use lightning_signer::persist::Persist;
+// use lightning_signer::persist::DummyPersister;
 use std::sync::Arc;
 use vls_protocol::model::PubKey;
 use vls_protocol::msgs::{self, read_serial_request_header, write_serial_response_header, Message};
