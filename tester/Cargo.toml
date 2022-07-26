@@ -8,8 +8,8 @@ edition = "2018"
 sphinx-key-signer = { path = "../signer" }
 sphinx-key-parser = { path = "../parser" }
 sphinx-key-crypter = { path = "../crypter" }
-vls-protocol = { git = "https://gitlab.com/Evanfeenstra/validating-lightning-signer", branch = "patch-sign-chan" }
-vls-protocol-signer = { git = "https://gitlab.com/Evanfeenstra/validating-lightning-signer", branch = "patch-sign-chan", default-features = false, features = ["std", "secp-lowmemory"] }
+vls-protocol = { git = "https://gitlab.com/Evanfeenstra/validating-lightning-signer", branch = "sphinx-key-1.1" }
+vls-protocol-signer = { git = "https://gitlab.com/Evanfeenstra/validating-lightning-signer", branch = "sphinx-key-1.1", default-features = false, features = ["std", "secp-lowmemory"] }
 # vls-protocol = { path = "../../../evanf/validating-lightning-signer/vls-protocol" }
 # vls-protocol-signer = { path = "../../../evanf/validating-lightning-signer/vls-protocol-signer", default-features = false, features = ["std", "secp-lowmemory"] }
 anyhow = {version = "1", features = ["backtrace"]}
