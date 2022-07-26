@@ -23,6 +23,7 @@ pub enum Event {
 #[derive(Debug, Ord, PartialOrd, Eq, PartialEq)]
 pub enum Status {
     Starting,
+    MountingSDCard,
     WifiAccessPoint,
     Configuring,
     ConnectingToWifi,

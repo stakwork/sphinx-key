@@ -20,6 +20,7 @@ pub struct Led {
 fn states() -> BTreeMap<Status, (Color, Time)> {
   let mut s = BTreeMap::new();
   s.insert(Status::Starting, (0x000001, 100));
+  s.insert(Status::MountingSDCard, (0x000102, 100));
   s.insert(Status::WifiAccessPoint, (0x000100, 100));
   s.insert(Status::Configuring, (0x010000, 20));
   s.insert(Status::ConnectingToWifi, (0x010100, 350));

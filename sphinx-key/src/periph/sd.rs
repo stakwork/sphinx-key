@@ -52,7 +52,7 @@ enum SDMMCFreq {
     _26M = 26000,
 }
 
-pub fn sd_card() {
+pub fn mount_sd_card() -> anyhow::Result<()> {
     let mount_config = esp_vfs_fat_sdmmc_mount_config_t {
         format_if_mount_failed: false,
         max_files: 5,
@@ -80,18 +80,15 @@ pub fn sd_card() {
         intr_flags: 0,
     };
 
-    let res = esp!(unsafe {
+    if let Err(error) = esp!(unsafe {
         spi_bus_initialize(
             SPI_HOST_SLOT as u32,
             &bus_cfg,
             esp_idf_sys::spi_common_dma_t_SPI_DMA_CH_AUTO,
         )
-    });
-
-    match res {
-        Ok(_) => (),
-        Err(e) => {
-            println!("Failed to initialize SPI Bus: {}", e);
+    }) {
+        if error.code() != 259 {
+            return Err(anyhow::Error::new(error));
         }
     }
 
@@ -124,7 +121,7 @@ pub fn sd_card() {
         command_timeout_ms: 0,
     };
 
-    let res = esp!(unsafe {
+    esp!(unsafe {
         esp_vfs_fat_sdspi_mount(
             C_MOUNT_POINT.as_ptr() as *const c_char,
             &host,
@@ -132,14 +129,8 @@ pub fn sd_card() {
             &mount_config,
             &mut card as *mut *mut sdmmc_card_t,
         )
-    });
-
-    match res {
-        Ok(_) => (),
-        Err(e) => {
-            println!("Failed to mount filesystem: {}", e);
-        }
-    }
+    })?;
+    Ok(())
 }
 
 pub fn simple_fs_test() {
