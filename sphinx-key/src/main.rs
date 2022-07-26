@@ -5,7 +5,7 @@ mod periph;
 
 use crate::core::{config::*, events::*};
 use crate::periph::led::led_control_loop;
-use crate::periph::sd::{sd_card, simple_fs_test};
+use crate::periph::sd::{mount_sd_card, simple_fs_test};
 
 use anyhow::Result;
 use esp_idf_sys as _; // If using the `binstart` feature of `esp-idf-sys`, always keep this module imported
@@ -42,9 +42,13 @@ fn main() -> Result<()> {
     // LED control thread
     led_control_loop(pins.gpio8, peripherals.rmt.channel0, led_rx);
 
-    // sd card
-    sd_card();
-    // simple_fs_test();
+    led_tx.send(Status::MountingSDCard).unwrap();
+    println!("About to mount the sdcard...");
+    while let Err(_e) = mount_sd_card() {
+        println!("Failed to mount sd card. Make sure it is connected, trying again...");
+        thread::sleep(Duration::from_secs(5));
+    }
+    println!("SD card mounted!");
 
     let default_nvs = Arc::new(EspDefaultNvs::new()?);
     let mut store =
