@@ -84,18 +84,18 @@ fn main() -> Result<()> {
         };
         log::info!("Network set to {:?}", network);
         log::info!(">>>>>>>>>>> blocking forever...");
-        make_event_loop(mqtt_client, rx, network, do_log, led_tx, exist.seed)?;
+        log::info!("{:?}", exist);
+        make_event_loop(mqtt_client, rx, network, do_log, led_tx, exist.seed, exist)?;
     } else {
         led_tx.send(Status::WifiAccessPoint).unwrap();
         println!("=============> START SERVER NOW AND WAIT <==============");
-        if let Ok((wifi, config)) = start_config_server_and_wait(default_nvs.clone()) {
+        if let Ok((_wifi, config)) = start_config_server_and_wait(default_nvs.clone()) {
             let conf = rmp_serde::to_vec(&config).expect("couldnt rmp Config");
             store
                 .put_raw("config", &conf[..])
                 .expect("could not store config");
             println!("CONFIG SAVED");
-            drop(wifi);
-            thread::sleep(Duration::from_secs(1));
+            loop {};
         }
     }
 

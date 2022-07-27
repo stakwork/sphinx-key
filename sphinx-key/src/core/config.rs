@@ -79,6 +79,7 @@ pub fn start_config_server_and_wait(
 
     let httpd = conn::http::config_server(mutex.clone());
     let mut wait = mutex.0.lock().unwrap();
+    log::info!("Waiting for data from the phone!");
 
     let config: &Config = loop {
         if let Some(conf) = &*wait {
