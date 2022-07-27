@@ -85,3 +85,19 @@ And then print the logs on your screen with this command:
 ```
 espmonitor $FLASHPORT
 ```
+
+- Wait for the message `Waiting for data from the phone!`. The LED should blink green.
+- On your phone connect to the Wifi `sphinxkey`. This is served from the ESP32, and has no password.
+- Launch the signer setup flow on the sphinx app, and input the following settings:
+
+ESP IP address: `192.168.71.1`\
+Broker IP address and port: `44.198.193.18:1883`\
+SSID: ssid of a local wifi with access to the internet\
+Password: password of the wifi from the previous step
+
+- Once the setup is complete, the message `CONFIG SAVED` should appear. Check in the log right above that all the settings are correct.
+- Press the `RST` button, to the right of the USB cable on the ESP. This does a hard reset of the ESP, and now launches the signer.
+- The LED will first blink yellow while it is connecting to the wifi.
+- When the signer is pinging for the broker, the LED on the ESP blinks purple.
+- On the logs, you should see `BROKER IP AND PORT` and `LED STATUS: ConnectingToMqtt`
+- Soon after, the LED should start to blink white, which means your signer is now connected to your node, and is ready for normal operation.
