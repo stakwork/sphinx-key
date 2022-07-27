@@ -15,7 +15,7 @@
 - Jumper Wire Kit - 140pcs: https://www.sparkfun.com/products/124
 
 ##### Soldering and SD Card Format
-- You'll also need a sizeable SD Card formatted using the FAT32 filesystem.
+- You'll also need a sizeable microSD card formatted using the FAT32 filesystem.
 - Once you have the parts, solder the breakaway headers to the microSD card board as shown in the picture above.
 
 Now follow the table below and the picture above to make all the connections:
@@ -61,20 +61,20 @@ cargo generate --vcs none --git https://github.com/esp-rs/esp-idf-template cargo
 espflash --monitor $FLASHPORT target/riscv32imc-esp-espidf/debug/tiny-esp32
 ```
 - This flashes the program onto the dev board, and then monitors the logs as soon as the program starts to run. By the end of execution, you should see a little `Hello World` log on your screen.
-- You are now ready to build, flash, and run the signer :)
+- Do a `ctrl-c` to quit the monitor. You are now ready to build, flash, and run the signer :)
 
 ### Signer
 
 - `cd ~`
 - `git clone https://github.com/stakwork/sphinx-key.git`
 - `cd sphinx-key/sphinx-key`
+- `export CFLAGS=-fno-pic`
+- `export CC=$HOME/tiny-esp32/.embuild/espressif/tools/riscv32-esp-elf/*/riscv32-esp-elf/bin/riscv32-esp-elf-gcc`
+- `cargo build`. You are now building the sphinx-key signer!
 - `virtualenv venv`
 - `source venv/bin/activate`
 - `pip3 install --upgrade pip`
 - `pip3 install esptool`
-- `export CFLAGS=-fno-pic`
-- `export CC=$HOME/tiny-esp32/.embuild/espressif/tools/riscv32-esp-elf/*/riscv32-esp-elf/bin/riscv32-esp-elf-gcc`
-- `cargo build`. You are now building the sphinx-key signer!
 - `esptool.py --chip esp32-c3 elf2image target/riscv32imc-esp-espidf/debug/sphinx-key`
 
 Now flash the software onto the dev board using this command:
