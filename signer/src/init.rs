@@ -1,8 +1,7 @@
-use crate::policy::Policy;
+use crate::policy::{make_factory, Policy};
 
 use lightning_signer::node::{Node, NodeConfig};
 use lightning_signer::persist::Persist;
-use lightning_signer::policy::simple_validator::SimpleValidatorFactory;
 use lightning_signer::signer::derive::KeyDerivationStyle;
 use std::sync::Arc;
 use vls_protocol_signer::handler::RootHandler;
@@ -27,7 +26,7 @@ pub fn new_root_handler_with_policy(
     // [permissive mode]
     // policy.filter = PolicyFilter::new_permissive();
 
-    let validator_factory = Arc::new(SimpleValidatorFactory::new_with_policy(policy.into()));
+    let validator_factory = Arc::new(make_factory(policy, network));
     let node = if nodes.is_empty() {
         let node = Arc::new(Node::new(
             config,
