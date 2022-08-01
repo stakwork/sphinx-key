@@ -1,3 +1,6 @@
+mod init;
+mod policy;
+
 use lightning_signer::persist::Persist;
 // use lightning_signer::persist::DummyPersister;
 use std::sync::Arc;
