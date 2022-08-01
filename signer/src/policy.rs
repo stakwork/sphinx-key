@@ -1,9 +1,11 @@
 use lightning_signer::policy::filter::PolicyFilter;
 use lightning_signer::policy::simple_validator::SimplePolicy;
 use lightning_signer::policy::simple_validator::SimpleValidatorFactory;
+use serde::{Deserialize, Serialize};
 use vls_protocol_signer::lightning_signer;
 use vls_protocol_signer::lightning_signer::bitcoin::Network;
 
+#[derive(Serialize, Deserialize)]
 pub struct Policy {
     pub max_htlc_value_sat: u64,
 }

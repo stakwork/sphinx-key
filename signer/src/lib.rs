@@ -1,6 +1,7 @@
 mod init;
 mod policy;
 
+use init::new_root_handler_with_policy;
 use lightning_signer::persist::Persist;
 // use lightning_signer::persist::DummyPersister;
 use std::sync::Arc;
@@ -9,6 +10,7 @@ use vls_protocol::msgs::{self, read_serial_request_header, write_serial_response
 use vls_protocol::serde_bolt::WireString;
 use vls_protocol_signer::handler::{Handler, RootHandler};
 
+pub use policy::Policy;
 pub use sphinx_key_parser::MsgDriver;
 pub use sphinx_key_persister::FsPersister;
 pub use vls_protocol_signer::lightning_signer;
@@ -22,7 +24,7 @@ pub struct InitResponse {
 
 pub const ROOT_STORE: &str = "/sdcard/store";
 
-pub fn init(bytes: Vec<u8>, network: Network) -> anyhow::Result<InitResponse> {
+pub fn init(bytes: Vec<u8>, network: Network, policy: Policy) -> anyhow::Result<InitResponse> {
     // let persister: Arc<dyn Persist> = Arc::new(DummyPersister);
     let persister: Arc<dyn Persist> = Arc::new(FsPersister::new(ROOT_STORE));
     let mut md = MsgDriver::new(bytes);
@@ -36,10 +38,9 @@ pub fn init(bytes: Vec<u8>, network: Network) -> anyhow::Result<InitResponse> {
         .iter()
         .map(|s| from_wire_string(s))
         .collect::<Vec<_>>();
-    log::info!("allowlist {:?}", allowlist);
     let seed = init.dev_seed.as_ref().map(|s| s.0).expect("no seed");
-    log::info!("create root handler now");
-    let root_handler = RootHandler::new(network, 0, Some(seed), persister, allowlist);
+    let root_handler = new_root_handler_with_policy(network, 0, seed, persister, allowlist, policy);
+    // let root_handler = RootHandler::new(network, 0, Some(seed), persister, allowlist);
     log::info!("root_handler created");
     let init_reply = root_handler
         .handle(Message::HsmdInit2(init))

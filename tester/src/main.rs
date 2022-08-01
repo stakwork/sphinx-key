@@ -4,7 +4,7 @@ use sphinx_key_signer::lightning_signer::bitcoin::Network;
 use clap::{App, AppSettings, Arg};
 use rumqttc::{self, AsyncClient, Event, MqttOptions, Packet, QoS};
 use sphinx_key_signer::vls_protocol::model::PubKey;
-use sphinx_key_signer::{self, InitResponse};
+use sphinx_key_signer::{self, InitResponse, Policy};
 use std::env;
 use std::error::Error;
 use std::str::FromStr;
@@ -99,10 +99,13 @@ async fn main() -> Result<(), Box<dyn Error>> {
                     // this may be another kind of message like MQTT ConnAck
                     // loop around again and wait for the init
                     if let Some(init_msg_bytes) = incoming_bytes(init_event) {
+                        let policy = Policy {
+                            max_htlc_value_sat: 16_777_216,
+                        };
                         let InitResponse {
                             root_handler,
                             init_reply,
-                        } = sphinx_key_signer::init(init_msg_bytes, Network::Regtest)
+                        } = sphinx_key_signer::init(init_msg_bytes, Network::Regtest, policy)
                             .expect("failed to init signer");
                         client
                             .publish(PUB_TOPIC, QoS::AtMostOnce, false, init_reply)

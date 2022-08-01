@@ -5,7 +5,7 @@ mod periph;
 
 use crate::core::{config::*, events::*};
 use crate::periph::led::led_control_loop;
-use crate::periph::sd::{mount_sd_card, simple_fs_test};
+use crate::periph::sd::mount_sd_card;
 
 use anyhow::Result;
 use esp_idf_sys as _; // If using the `binstart` feature of `esp-idf-sys`, always keep this module imported
@@ -19,6 +19,7 @@ use esp_idf_svc::nvs::*;
 use esp_idf_svc::nvs_storage::EspNvsStorage;
 
 use sphinx_key_signer::lightning_signer::bitcoin::Network;
+use sphinx_key_signer::Policy;
 
 #[cfg(not(feature = "pingpong"))]
 const CLIENT_ID: &str = "sphinx-1";
@@ -85,7 +86,13 @@ fn main() -> Result<()> {
         log::info!("Network set to {:?}", network);
         log::info!(">>>>>>>>>>> blocking forever...");
         log::info!("{:?}", exist);
-        make_event_loop(mqtt_client, rx, network, do_log, led_tx, exist.seed, exist)?;
+
+        // initial default policy
+        let policy = Policy {
+            max_htlc_value_sat: 16_777_216,
+        };
+
+        make_event_loop(mqtt_client, rx, network, do_log, led_tx, exist.seed, exist, policy)?;
     } else {
         led_tx.send(Status::WifiAccessPoint).unwrap();
         println!("=============> START SERVER NOW AND WAIT <==============");

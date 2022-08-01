@@ -4,7 +4,7 @@ use crate::core::config::Config;
 
 use sphinx_key_signer::lightning_signer::bitcoin::Network;
 use sphinx_key_signer::vls_protocol::model::PubKey;
-use sphinx_key_signer::{self, InitResponse};
+use sphinx_key_signer::{self, InitResponse, Policy};
 use std::sync::mpsc;
 
 use embedded_svc::httpd::Result;
@@ -42,7 +42,8 @@ pub fn make_event_loop(
     do_log: bool,
     led_tx: mpsc::Sender<Status>,
     seed: [u8; 32],
-    config: Config
+    config: Config,
+    policy: Policy,
 ) -> Result<()> {
     while let Ok(event) = rx.recv() {
         log::info!("BROKER IP AND PORT: {}", config.broker);
@@ -69,7 +70,7 @@ pub fn make_event_loop(
     let InitResponse {
         root_handler,
         init_reply: _,
-    } = sphinx_key_signer::init(init_msg, network).expect("failed to init signer");
+    } = sphinx_key_signer::init(init_msg, network, policy).expect("failed to init signer");
     // signing loop
     let dummy_peer = PubKey([0; 33]);
     while let Ok(event) = rx.recv() {
@@ -116,6 +117,8 @@ pub fn make_event_loop(
     do_log: bool,
     led_tx: mpsc::Sender<Status>,
     _seed: [u8; 32],
+    _config: Config,
+    _policy: Policy,
 ) -> Result<()> {
     log::info!("About to subscribe to the mpsc channel");
     while let Ok(event) = rx.recv() {
