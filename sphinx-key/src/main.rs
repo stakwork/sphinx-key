@@ -64,28 +64,22 @@ fn main() -> Result<()> {
         );
         // store.remove("config").expect("couldnt remove config");
         led_tx.send(Status::ConnectingToWifi).unwrap();
-        let _wifi = start_wifi_client(default_nvs.clone(), &exist)?;
-
-        let (tx, rx) = mpsc::channel();
+        while let Err(_e) = start_wifi_client(default_nvs.clone(), &exist) {
+            println!("Failed to connect to wifi. Make sure the details are correct, trying again in 5 seconds...");
+            thread::sleep(Duration::from_secs(5));
+        }
 
         led_tx.send(Status::ConnectingToMqtt).unwrap();
         // _conn needs to stay in scope or its dropped
-        let (mqtt, connection) = conn::mqtt::make_client(&exist.broker, CLIENT_ID)?;
-        let mqtt_client = conn::mqtt::start_listening(mqtt, connection, tx)?;
-        // this blocks forever... the "main thread"
-        let do_log = true;
-        let network = match exist.network.as_str() {
-            "bitcoin" => Network::Bitcoin,
-            "mainnet" => Network::Bitcoin,
-            "testnet" => Network::Testnet,
-            "signet" => Network::Signet,
-            "regtest" => Network::Regtest,
-            _ => Network::Regtest,
-        };
-        log::info!("Network set to {:?}", network);
-        log::info!(">>>>>>>>>>> blocking forever...");
-        log::info!("{:?}", exist);
-        make_event_loop(mqtt_client, rx, network, do_log, led_tx, exist)?;
+        loop {
+            if let Ok(()) = make_and_launch_client(exist.clone(), led_tx.clone()) {
+                println!("Exited out of the event loop, trying again in 5 seconds...");
+                thread::sleep(Duration::from_secs(5));
+            } else {
+                println!("Failed to setup MQTT. Make sure the details are correct, trying again in 5 seconds...");
+                thread::sleep(Duration::from_secs(5));
+            }
+        }
     } else {
         led_tx.send(Status::WifiAccessPoint).unwrap();
         println!("=============> START SERVER NOW AND WAIT <==============");
@@ -99,5 +93,27 @@ fn main() -> Result<()> {
         }
     }
 
+    Ok(())
+}
+
+fn make_and_launch_client(config: Config, led_tx: mpsc::Sender<Status>) -> anyhow::Result<()> {
+    let (tx, rx) = mpsc::channel();
+    let (mqtt, connection) = conn::mqtt::make_client(&config.broker, CLIENT_ID)?;
+    let mqtt_client = conn::mqtt::start_listening(mqtt, connection, tx)?;
+
+    // this blocks forever... the "main thread"
+    let do_log = true;
+    let network = match config.network.as_str() {
+        "bitcoin" => Network::Bitcoin,
+        "mainnet" => Network::Bitcoin,
+        "testnet" => Network::Testnet,
+        "signet" => Network::Signet,
+        "regtest" => Network::Regtest,
+        _ => Network::Regtest,
+    };
+    log::info!("Network set to {:?}", network);
+    log::info!(">>>>>>>>>>> blocking forever...");
+    log::info!("{:?}", config);
+    make_event_loop(mqtt_client, rx, network, do_log, led_tx, config)?;
     Ok(())
 }
