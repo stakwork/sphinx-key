@@ -41,7 +41,6 @@ pub fn make_event_loop(
     network: Network,
     do_log: bool,
     led_tx: mpsc::Sender<Status>,
-    seed: [u8; 32],
     config: Config
 ) -> Result<()> {
     while let Ok(event) = rx.recv() {
@@ -65,7 +64,7 @@ pub fn make_event_loop(
     }
 
     // initialize the RootHandler
-    let init_msg = make_init_msg(network, seed).expect("failed to make init msg");
+    let init_msg = make_init_msg(network, config.seed).expect("failed to make init msg");
     let InitResponse {
         root_handler,
         init_reply: _,

@@ -85,7 +85,7 @@ fn main() -> Result<()> {
         log::info!("Network set to {:?}", network);
         log::info!(">>>>>>>>>>> blocking forever...");
         log::info!("{:?}", exist);
-        make_event_loop(mqtt_client, rx, network, do_log, led_tx, exist.seed, exist)?;
+        make_event_loop(mqtt_client, rx, network, do_log, led_tx, exist)?;
     } else {
         led_tx.send(Status::WifiAccessPoint).unwrap();
         println!("=============> START SERVER NOW AND WAIT <==============");
