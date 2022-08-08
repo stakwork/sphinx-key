@@ -1,9 +1,8 @@
 .vscode
 .embuild
 target
-Cargo.lock
 .DS_Store
-sphinx-key/Cargo.lock
 notes.md
 test-flash
 .env
+/Cargo.lock
