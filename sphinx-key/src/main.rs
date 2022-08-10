@@ -64,10 +64,15 @@ fn main() -> Result<()> {
         );
         // store.remove("config").expect("couldnt remove config");
         led_tx.send(Status::ConnectingToWifi).unwrap();
-        while let Err(_e) = start_wifi_client(default_nvs.clone(), &exist) {
-            println!("Failed to connect to wifi. Make sure the details are correct, trying again in 5 seconds...");
-            thread::sleep(Duration::from_secs(5));
-        }
+        let _wifi = loop {
+            if let Ok(wifi) = start_wifi_client(default_nvs.clone(), &exist) {
+                println!("Wifi connected!");
+                break wifi;
+            } else {
+                println!("Failed to connect to wifi. Make sure the details are correct, trying again in 5 seconds...");
+                thread::sleep(Duration::from_secs(5));
+            }
+        };
 
         led_tx.send(Status::ConnectingToMqtt).unwrap();
         // _conn needs to stay in scope or its dropped
