@@ -17,9 +17,9 @@
 ##### Soldering and SD Card Format
 
 > **Warning**
-> This signer currently does not work with SDCards that come with the UHS-I feature.
+> This signer currently does not work with SD cards that come with the UHS-I feature.
 
-- You'll also a microSD card formatted using the FAT32 filesystem.
+- You'll need a microSD card formatted using the FAT32 filesystem.
   - On MacOS, go to `Disk Utility`.
   - Click on the SDCard's disk in the left hand pane.
   - Click on the `Erase` button on the cetner top toolbar.
