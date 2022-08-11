@@ -15,7 +15,11 @@
 - Jumper Wire Kit - 140pcs: https://www.sparkfun.com/products/124
 
 ##### Soldering and SD Card Format
-- You'll also need a sizeable microSD card formatted using the FAT32 filesystem.
+
+> **Warning**
+> This signer currently does not work with SDCards that come with the UHS-I feature.
+
+- You'll also a microSD card formatted using the FAT32 filesystem.
   - On MacOS, go to `Disk Utility`.
   - Click on the SDCard's disk in the left hand pane.
   - Click on the `Erase` button on the cetner top toolbar.
