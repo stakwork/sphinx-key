@@ -16,6 +16,11 @@
 
 ##### Soldering and SD Card Format
 - You'll also need a sizeable microSD card formatted using the FAT32 filesystem.
+  - On MacOS, go to `Disk Utility`.
+  - Click on the SDCard's disk in the left hand pane.
+  - Click on the `Erase` button on the cetner top toolbar.
+  - Then choose `MS-DOS (FAT)` for the format.
+  - Finally click on `Erase`, at the bottom right of the dialogue box.
 - Once you have the parts, solder the breakaway headers to the microSD card board as shown in the picture above.
 
 Now follow the table below and the picture above to make all the connections:
