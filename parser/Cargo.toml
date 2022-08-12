@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 # vls-protocol = { path = "../../../evanf/validating-lightning-signer/vls-protocol" }
-vls-protocol = { git = "https://gitlab.com/Evanfeenstra/validating-lightning-signer", branch = "sphinx-key-1.1" }
+vls-protocol = { git = "https://gitlab.com/Evanfeenstra/validating-lightning-signer", branch = "sphinx-key-1.2" }
 serde = { version = "1.0", default-features = false }
 serde_bolt = { version = "0.2", default-features = false }
 

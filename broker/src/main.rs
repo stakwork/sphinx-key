@@ -10,6 +10,7 @@ use crate::chain_tracker::MqttSignerPort;
 use crate::mqtt::start_broker;
 use crate::unix_fd::SignerLoop;
 use clap::{App, AppSettings, Arg};
+use bitcoin::Network;
 use std::env;
 use std::sync::Arc;
 use tokio::sync::{mpsc, oneshot};
@@ -50,6 +51,12 @@ fn main() -> anyhow::Result<()> {
                 .long("dev-disconnect")
                 .takes_value(true),
         )
+        .arg(
+            Arg::new("network")
+                .about("Bitcoin network the broker will run on")
+                .long("network")
+                .default_value("regtest"),
+        )
         .arg(Arg::from("--log-io ignored dev flag"))
         .arg(Arg::from("--version show a dummy version"))
         .arg(Arg::from("--test run a test against the embedded device"));
@@ -69,9 +76,20 @@ fn main() -> anyhow::Result<()> {
         return Ok(());
     }
 
+    let mut network = Network::Regtest;
+    if let Some(network_arg) = matches.value_of("network") {
+        network = match network_arg {
+            "bitcoin" => Network::Bitcoin,
+            "mainnet" => Network::Bitcoin,
+            "testnet" => Network::Testnet,
+            "signet" => Network::Signet,
+            _ => Network::Regtest,
+        };
+    };
+
     let (tx, rx) = mpsc::channel(1000);
     let (status_tx, mut status_rx) = mpsc::channel(1000);
-    log::info!("=> start broker");
+    log::info!("=> start broker on network: {}", network);
     let runtime = start_broker(rx, status_tx, "sphinx-1");
     log::info!("=> wait for connected status");
     // wait for connection = true
@@ -85,6 +103,7 @@ fn main() -> anyhow::Result<()> {
         let frontend = Frontend::new(
             Arc::new(SignerPortFront {
                 signer_port: Box::new(signer_port),
+                network,
             }),
             Url::parse(&btc_url).expect("malformed btc rpc url"),
         );

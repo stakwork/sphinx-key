@@ -31,10 +31,10 @@ Now follow the table below and the picture above to make all the connections:
 
 SD card pin | ESP32-C3-DevKitM-1 v1.0 | Notes
 ------------|-------------------------|--------------------
- DO         | GPIO6                   | Pin numbered 6 on board, same for the others below
- CS         | GPIO1                   | 
- SCK        | GPIO5                   |
- DI         | GPIO4                   |
+ DO         | GPIO2                   | Pin numbered 6 on board, same for the others below
+ CS         | GPIO10                  | No need for any of the 10kOhm resistors mentioned in docs as of July 2022
+ SCK        | GPIO6                   |
+ DI         | GPIO7                   |
  VCC        | 3V3                     |
  GND        | GND                     |
 

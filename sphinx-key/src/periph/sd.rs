@@ -16,10 +16,10 @@ use std::string::String;
 const C_MOUNT_POINT: &'static [u8] = b"/sdcard\0";
 
 const SPI_HOST_SLOT: spi_host_device_t = spi_host_device_t_SPI2_HOST;
-const SPI_GPIO_MOSI: gpio_num_t = 4;
-const SPI_GPIO_CLK: gpio_num_t = 5;
-const SPI_GPIO_MISO: gpio_num_t = 6;
-const SPI_GPIO_CS: gpio_num_t = 1;
+const SPI_GPIO_MOSI: gpio_num_t = 7;
+const SPI_GPIO_CLK: gpio_num_t = 6;
+const SPI_GPIO_MISO: gpio_num_t = 2;
+const SPI_GPIO_CS: gpio_num_t = 10;
 
 bitflags! {
     struct SDMMCHostFlag: u32 {

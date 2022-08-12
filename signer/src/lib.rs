@@ -1,4 +1,7 @@
+mod randomstartingtime;
+
 use lightning_signer::persist::Persist;
+use randomstartingtime::RandomStartingTimeFactory;
 // use lightning_signer::persist::DummyPersister;
 use std::sync::Arc;
 use vls_protocol::model::PubKey;
@@ -35,8 +38,16 @@ pub fn init(bytes: Vec<u8>, network: Network) -> anyhow::Result<InitResponse> {
         .collect::<Vec<_>>();
     log::info!("allowlist {:?}", allowlist);
     let seed = init.dev_seed.as_ref().map(|s| s.0).expect("no seed");
+    let starting_time_factory = RandomStartingTimeFactory::new();
     log::info!("create root handler now");
-    let root_handler = RootHandler::new(network, 0, Some(seed), persister, allowlist);
+    let root_handler = RootHandler::new(
+        network,
+        0,
+        Some(seed),
+        persister,
+        allowlist,
+        &starting_time_factory,
+    );
     log::info!("root_handler created");
     let init_reply = root_handler
         .handle(Message::HsmdInit2(init))
@@ -78,6 +89,9 @@ pub fn handle(
     } else {
         root_handler.handle(message).expect("handle")
     };
+    if do_log {
+        log::info!("VLS msg handled");
+    }
     let mut out_md = MsgDriver::new_empty();
     write_serial_response_header(&mut out_md, sequence).expect("write reply header");
     msgs::write_vec(&mut out_md, reply.as_vec()).expect("write reply");
