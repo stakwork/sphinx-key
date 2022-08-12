@@ -89,6 +89,9 @@ pub fn handle(
     } else {
         root_handler.handle(message).expect("handle")
     };
+    if do_log {
+        log::info!("VLS msg handled");
+    }
     let mut out_md = MsgDriver::new_empty();
     write_serial_response_header(&mut out_md, sequence).expect("write reply header");
     msgs::write_vec(&mut out_md, reply.as_vec()).expect("write reply");
