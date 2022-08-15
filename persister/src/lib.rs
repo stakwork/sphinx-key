@@ -1,4 +1,5 @@
 use fsdb::{Bucket, DoubleBucket, Fsdb};
+use lightning_signer_server::lightning_signer;
 use lightning_signer::bitcoin::secp256k1::PublicKey;
 use lightning_signer::chain::tracker::ChainTracker;
 use lightning_signer::channel::{Channel, ChannelId, ChannelStub};

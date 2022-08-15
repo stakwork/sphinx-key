@@ -1,5 +1,7 @@
 mod randomstartingtime;
 
+pub use vls_protocol_signer::lightning_signer;
+pub use vls_protocol_signer::vls_protocol;
 use lightning_signer::persist::Persist;
 use randomstartingtime::RandomStartingTimeFactory;
 // use lightning_signer::persist::DummyPersister;
@@ -8,12 +10,10 @@ use vls_protocol::model::PubKey;
 use vls_protocol::msgs::{self, read_serial_request_header, write_serial_response_header, Message};
 use vls_protocol::serde_bolt::WireString;
 use vls_protocol_signer::handler::{Handler, RootHandler};
+use vls_protocol_signer::lightning_signer::bitcoin::Network;
 
 pub use sphinx_key_parser::MsgDriver;
 pub use sphinx_key_persister::FsPersister;
-pub use vls_protocol_signer::lightning_signer;
-pub use vls_protocol_signer::lightning_signer::bitcoin::Network;
-pub use vls_protocol_signer::vls_protocol;
 
 pub struct InitResponse {
     pub root_handler: RootHandler,

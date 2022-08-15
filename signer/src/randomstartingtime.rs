@@ -1,3 +1,4 @@
+use vls_protocol_signer::lightning_signer;
 use lightning_signer::signer::StartingTimeFactory;
 use rand::{rngs::OsRng, RngCore};
 

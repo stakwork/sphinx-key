@@ -3,13 +3,12 @@ use sphinx_key_signer::lightning_signer::bitcoin::Network;
 
 use clap::{App, AppSettings, Arg};
 use rumqttc::{self, AsyncClient, Event, MqttOptions, Packet, QoS};
-use sphinx_key_signer::vls_protocol::model::PubKey;
+use sphinx_key_signer::vls_protocol::{model::PubKey, msgs};
 use sphinx_key_signer::{self, InitResponse};
 use std::env;
 use std::error::Error;
 use std::str::FromStr;
 use std::time::Duration;
-use vls_protocol::msgs;
 
 const SUB_TOPIC: &str = "sphinx";
 const PUB_TOPIC: &str = "sphinx-return";
