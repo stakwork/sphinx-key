@@ -44,7 +44,7 @@ SD card pin | ESP32-C3-DevKitM-1 v1.0 | Notes
 - Install rust. You can grab the installation command at https://www.rust-lang.org/tools/install
 - Install brew. Get the installation command at https://brew.sh/
 - Install python3 and virtualenv. You can run `brew install python3 virtualenv` if necessary.
-- Run the following commands:
+- Run the following commands (the last one will take a while, go for a walk or something 😀):
 ```
 rustup install nightly
 rustup component add rust-src --toolchain nightly
@@ -70,7 +70,7 @@ cargo generate --vcs none --git https://github.com/esp-rs/esp-idf-template cargo
 espflash --monitor $FLASHPORT target/riscv32imc-esp-espidf/debug/tiny-esp32
 ```
 - This flashes the program onto the dev board, and then monitors the logs as soon as the program starts to run. By the end of execution, you should see a little `Hello World` log on your screen.
-- Do a `ctrl-c` to quit the monitor. You are now ready to build, flash, and run the signer :)
+- Do a `ctrl-c` to quit the monitor. You are now ready to build, flash, and run the signer 🙂
 
 ### Signer
 
@@ -111,7 +111,8 @@ Password: password of the wifi from the previous step
 - On the logs, you should see `BROKER IP AND PORT` and `LED STATUS: ConnectingToMqtt`
 - Soon after, the LED should start to blink white, which means your signer is now connected to your node, and is ready for normal operation.
 
-### Launch the signer again
+### How to launch the signer again
+
 - Run `ls /dev/tty.*` and note the files you see in that directory.
 - Plug in the ESP32-C3 dev board to your computer via Micro-USB, and again run `ls /dev/tty.*`. A new file should now appear, similar to this one `/dev/tty.usbserial-1420`
 - Run `export FLASHPORT=[full file path noted in the previous step]`. In my case: `export FLASHPORT=/dev/tty.usbserial-1420`
@@ -130,3 +131,18 @@ And then print the logs on your screen with this command:
 ```
 espmonitor $FLASHPORT
 ```
+
+### How to completely reset the signer
+
+- Run `ls /dev/tty.*` and note the files you see in that directory.
+- Plug in the ESP32-C3 dev board to your computer via Micro-USB, and again run `ls /dev/tty.*`. A new file should now appear, similar to this one `/dev/tty.usbserial-1420`
+- Run `export FLASHPORT=[full file path noted in the previous step]`. In my case: `export FLASHPORT=/dev/tty.usbserial-1420`
+- `cd ~/sphinx-key/sphinx-key`
+- `export CFLAGS=-fno-pic`
+- `export CC=$HOME/tiny-esp32/.embuild/espressif/tools/riscv32-esp-elf/*/riscv32-esp-elf/bin/riscv32-esp-elf-gcc`
+- `cargo build`.
+- `espflash --monitor $FLASHPORT target/riscv32imc-esp-espidf/debug/clear`.
+- In the logs, wait until you see the message `NVS cleared!`. Congratulations, you have now cleared all the persistent data on the ESP32.
+- Next, unplug your ESP32 from your computer.
+- Take out the SD card from its slot, and use your computer to clear all the data on it. Place it back in its slot after you've done so.
+- You can now go to [this](#how-to-launch-the-signer-again) section to get going again.
