@@ -121,6 +121,7 @@ Password: password of the wifi from the previous step
 - `cargo build`. You are now building the sphinx-key signer!
 - `source venv/bin/activate`
 - `esptool.py --chip esp32-c3 elf2image target/riscv32imc-esp-espidf/debug/sphinx-key`
+
 Now flash the software onto the dev board using this command:
 ```
 esptool.py --chip esp32c3 -p $FLASHPORT -b 460800 --before=default_reset --after=hard_reset write_flash --flash_mode dio --flash_freq 40m --flash_size 4MB 0x10000 target/riscv32imc-esp-espidf/debug/sphinx-key.bin
