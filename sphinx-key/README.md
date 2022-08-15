@@ -110,3 +110,22 @@ Password: password of the wifi from the previous step
 - When the signer is pinging for the broker, the LED on the ESP blinks purple.
 - On the logs, you should see `BROKER IP AND PORT` and `LED STATUS: ConnectingToMqtt`
 - Soon after, the LED should start to blink white, which means your signer is now connected to your node, and is ready for normal operation.
+
+### Launch the signer again
+- Run `ls /dev/tty.*` and note the files you see in that directory.
+- Plug in the ESP32-C3 dev board to your computer via Micro-USB, and again run `ls /dev/tty.*`. A new file should now appear, similar to this one `/dev/tty.usbserial-1420`
+- Run `export FLASHPORT=[full file path noted in the previous step]`. In my case: `export FLASHPORT=/dev/tty.usbserial-1420`
+- `cd ~/sphinx-key/sphinx-key`
+- `export CFLAGS=-fno-pic`
+- `export CC=$HOME/tiny-esp32/.embuild/espressif/tools/riscv32-esp-elf/*/riscv32-esp-elf/bin/riscv32-esp-elf-gcc`
+- `cargo build`. You are now building the sphinx-key signer!
+- `source venv/bin/activate`
+- `esptool.py --chip esp32-c3 elf2image target/riscv32imc-esp-espidf/debug/sphinx-key`
+Now flash the software onto the dev board using this command:
+```
+esptool.py --chip esp32c3 -p $FLASHPORT -b 460800 --before=default_reset --after=hard_reset write_flash --flash_mode dio --flash_freq 40m --flash_size 4MB 0x10000 target/riscv32imc-esp-espidf/debug/sphinx-key.bin
+```
+And then print the logs on your screen with this command:
+```
+espmonitor $FLASHPORT
+```
