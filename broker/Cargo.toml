@@ -6,10 +6,10 @@ default-run = "sphinx-key-broker"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-vls-protocol = { git = "https://gitlab.com/Evanfeenstra/validating-lightning-signer", branch = "sphinx-key-1.2" }
-vls-proxy = { git = "https://gitlab.com/Evanfeenstra/validating-lightning-signer", branch = "sphinx-key-1.2" }
-vls-frontend = { git = "https://gitlab.com/Evanfeenstra/validating-lightning-signer", branch = "sphinx-key-1.2" }
-vls-protocol-client = { git = "https://gitlab.com/Evanfeenstra/validating-lightning-signer", branch = "sphinx-key-1.2" }
+vls-protocol = { git = "https://gitlab.com/Evanfeenstra/validating-lightning-signer", branch = "sphinx-key-1.4" }
+vls-proxy = { git = "https://gitlab.com/Evanfeenstra/validating-lightning-signer", branch = "sphinx-key-1.4" }
+vls-frontend = { git = "https://gitlab.com/Evanfeenstra/validating-lightning-signer", branch = "sphinx-key-1.4" }
+vls-protocol-client = { git = "https://gitlab.com/Evanfeenstra/validating-lightning-signer", branch = "sphinx-key-1.4" }
 rumqttd = { git = "https://github.com/Evanfeenstra/rumqtt", branch = "metrics" } 
 pretty_env_logger = "0.4.0"
 confy = "0.4.0"
