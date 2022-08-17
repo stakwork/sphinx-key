@@ -12,6 +12,7 @@ use esp_idf_sys as _; // If using the `binstart` feature of `esp-idf-sys`, alway
 use std::sync::{mpsc, Arc};
 use std::thread;
 use std::time::Duration;
+use std::time::SystemTime;
 
 use embedded_svc::storage::RawStorage;
 use esp_idf_hal::peripherals::Peripherals;
@@ -73,6 +74,15 @@ fn main() -> Result<()> {
                 thread::sleep(Duration::from_secs(5));
             }
         };
+
+        conn::sntp::sync_time();
+        let now = SystemTime::now()
+            .duration_since(SystemTime::UNIX_EPOCH)
+            .unwrap();
+        println!(
+            "Completed the time sync, here is the UNIX time: {}",
+            now.as_secs(),
+        );
 
         led_tx.send(Status::ConnectingToMqtt).unwrap();
         // _conn needs to stay in scope or its dropped
