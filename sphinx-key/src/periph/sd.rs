@@ -133,6 +133,7 @@ pub fn mount_sd_card() -> anyhow::Result<()> {
     Ok(())
 }
 
+#[allow(dead_code)]
 pub fn simple_fs_test() {
     // Create and write a file, append a file, read a file, delete a file, create a directory, write a file
 

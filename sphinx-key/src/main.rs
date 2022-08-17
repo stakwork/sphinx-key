@@ -5,6 +5,7 @@ mod periph;
 
 use crate::core::{config::*, events::*};
 use crate::periph::led::led_control_loop;
+#[allow(unused_imports)]
 use crate::periph::sd::{mount_sd_card, simple_fs_test};
 
 use anyhow::Result;
