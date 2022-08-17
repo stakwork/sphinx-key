@@ -3,9 +3,11 @@ mod randomstartingtime;
 pub use vls_protocol_signer::lightning_signer;
 pub use vls_protocol_signer::vls_protocol;
 use lightning_signer::persist::Persist;
-use lightning_signer::policy::simple_validator::SimpleValidatorFactory;
+use lightning_signer::policy::simple_validator::{make_simple_policy, SimpleValidatorFactory};
+use lightning_signer::policy::filter::PolicyFilter;
 use lightning_signer::node::NodeServices;
 use lightning_signer::util::clock::StandardClock;
+use lightning_signer::util::velocity::{VelocityControlIntervalType, VelocityControlSpec};
 use randomstartingtime::RandomStartingTimeFactory;
 // use lightning_signer::persist::DummyPersister;
 use std::sync::Arc;
@@ -41,7 +43,16 @@ pub fn init(bytes: Vec<u8>, network: Network) -> anyhow::Result<InitResponse> {
         .map(|s| from_wire_string(s))
         .collect::<Vec<_>>();
     log::info!("allowlist {:?}", allowlist);
-    let validator_factory = Arc::new(SimpleValidatorFactory::new());
+    let mut policy = make_simple_policy(network);
+    policy.filter = PolicyFilter::new_permissive();
+    policy.require_invoices = true;
+    policy.enforce_balance = true;
+    let velocity_spec = VelocityControlSpec {
+        limit: 10,
+        interval_type: VelocityControlIntervalType::Hourly,
+    };
+    policy.global_velocity_control = velocity_spec;
+    let validator_factory = Arc::new(SimpleValidatorFactory::new_with_policy(policy));
     let random_time_factory = RandomStartingTimeFactory::new();
     let persister: Arc<dyn Persist> = Arc::new(FsPersister::new(ROOT_STORE));
     let clock = Arc::new(StandardClock());
