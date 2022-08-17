@@ -3,6 +3,9 @@ mod randomstartingtime;
 pub use vls_protocol_signer::lightning_signer;
 pub use vls_protocol_signer::vls_protocol;
 use lightning_signer::persist::Persist;
+use lightning_signer::policy::simple_validator::SimpleValidatorFactory;
+use lightning_signer::node::NodeServices;
+use lightning_signer::util::clock::StandardClock;
 use randomstartingtime::RandomStartingTimeFactory;
 // use lightning_signer::persist::DummyPersister;
 use std::sync::Arc;
@@ -24,29 +27,38 @@ pub const ROOT_STORE: &str = "/sdcard/store";
 
 pub fn init(bytes: Vec<u8>, network: Network) -> anyhow::Result<InitResponse> {
     // let persister: Arc<dyn Persist> = Arc::new(DummyPersister);
-    let persister: Arc<dyn Persist> = Arc::new(FsPersister::new(ROOT_STORE));
     let mut md = MsgDriver::new(bytes);
     let (sequence, dbid) = read_serial_request_header(&mut md).expect("read init header");
     assert_eq!(dbid, 0);
     assert_eq!(sequence, 0);
     let init: msgs::HsmdInit2 = msgs::read_message(&mut md).expect("failed to read init message");
     log::info!("init {:?}", init);
+
+    let seed = init.dev_seed.as_ref().map(|s| s.0).expect("no seed");
     let allowlist = init
         .dev_allowlist
         .iter()
         .map(|s| from_wire_string(s))
         .collect::<Vec<_>>();
     log::info!("allowlist {:?}", allowlist);
-    let seed = init.dev_seed.as_ref().map(|s| s.0).expect("no seed");
-    let starting_time_factory = RandomStartingTimeFactory::new();
+    let validator_factory = Arc::new(SimpleValidatorFactory::new());
+    let random_time_factory = RandomStartingTimeFactory::new();
+    let persister: Arc<dyn Persist> = Arc::new(FsPersister::new(ROOT_STORE));
+    let clock = Arc::new(StandardClock());
+    let services = NodeServices {
+        validator_factory,
+        starting_time_factory: random_time_factory,
+        persister,
+        clock,
+    };
+
     log::info!("create root handler now");
     let root_handler = RootHandler::new(
         network,
         0,
         Some(seed),
-        persister,
         allowlist,
-        &starting_time_factory,
+        services,
     );
     log::info!("root_handler created");
     let init_reply = root_handler
