@@ -75,6 +75,7 @@ fn main() -> Result<()> {
             }
         };
 
+        led_tx.send(Status::SyncingTime).unwrap();
         conn::sntp::sync_time();
         let now = SystemTime::now()
             .duration_since(SystemTime::UNIX_EPOCH)

@@ -25,6 +25,7 @@ pub enum Event {
 pub enum Status {
     Starting,
     MountingSDCard,
+    SyncingTime,
     WifiAccessPoint,
     Configuring,
     ConnectingToWifi,
