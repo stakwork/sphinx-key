@@ -7,7 +7,7 @@ edition = "2018"
 [dependencies]
 sphinx-key-parser = { path = "../parser" }
 sphinx-key-persister = { path = "../persister" }
-vls-protocol-signer = { git = "https://gitlab.com/Evanfeenstra/validating-lightning-signer", branch = "sphinx-key-1.4", default-features = false, features = ["std", "secp-lowmemory"] }
+vls-protocol-signer = { git = "https://gitlab.com/lightning-signer/validating-lightning-signer.git", branch = "2022-08-persist-reorg", default-features = false, features = ["std", "secp-lowmemory"] }
 anyhow = {version = "1", features = ["backtrace"]}
 log = "0.4"
 rand = { version = "0.8" }

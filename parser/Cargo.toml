@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-vls-protocol = { git = "https://gitlab.com/Evanfeenstra/validating-lightning-signer", branch = "sphinx-key-1.4" }
+vls-protocol = { git = "https://gitlab.com/lightning-signer/validating-lightning-signer.git", branch = "2022-08-persist-reorg" }
 serde = { version = "1.0", default-features = false }
 serde_bolt = { version = "0.2", default-features = false }
 
