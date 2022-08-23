@@ -1,9 +1,9 @@
 use dotenv::dotenv;
 use rand::{rngs::OsRng, thread_rng, RngCore};
 use serde::{Deserialize, Serialize};
-use sphinx_key_crypter::chacha::{encrypt, MSG_LEN, NONCE_END_LEN};
-use sphinx_key_crypter::ecdh::{derive_shared_secret_from_slice, PUBLIC_KEY_LEN};
-use sphinx_key_crypter::secp256k1::Secp256k1;
+use sphinx_crypter::chacha::{encrypt, MSG_LEN, NONCE_LEN};
+use sphinx_crypter::ecdh::{derive_shared_secret_from_slice, PUBLIC_KEY_LEN};
+use sphinx_crypter::secp256k1::Secp256k1;
 use std::convert::TryInto;
 use std::env;
 use std::time::Duration;
@@ -70,7 +70,7 @@ async fn main() -> anyhow::Result<()> {
   let their_pk_bytes: [u8; PUBLIC_KEY_LEN] = their_pk[..PUBLIC_KEY_LEN].try_into()?;
   let shared_secret = derive_shared_secret_from_slice(their_pk_bytes, sk1.secret_bytes())?;
 
-  let mut nonce_end = [0; NONCE_END_LEN];
+  let mut nonce_end = [0; NONCE_LEN];
   OsRng.fill_bytes(&mut nonce_end);
   let cipher = encrypt(seed, shared_secret, nonce_end)?;
 

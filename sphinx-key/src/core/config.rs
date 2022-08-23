@@ -10,10 +10,10 @@ use embedded_svc::wifi::*;
 use esp_idf_svc::nvs::*;
 use esp_idf_svc::wifi::*;
 
-use sphinx_key_crypter::chacha::{decrypt, CIPHER_LEN};
-use sphinx_key_crypter::ecdh::{derive_shared_secret_from_slice, PUBLIC_KEY_LEN};
-use sphinx_key_crypter::secp256k1::rand::thread_rng;
-use sphinx_key_crypter::secp256k1::{Secp256k1, SecretKey, PublicKey};
+use sphinx_crypter::chacha::{decrypt, PAYLOAD_LEN};
+use sphinx_crypter::ecdh::{derive_shared_secret_from_slice, PUBLIC_KEY_LEN};
+use sphinx_crypter::secp256k1::rand::thread_rng;
+use sphinx_crypter::secp256k1::{Secp256k1, SecretKey, PublicKey};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Config {
@@ -56,7 +56,7 @@ pub fn decrypt_seed(dto: ConfigDTO, sk1: SecretKey) -> Result<Config> {
         derive_shared_secret_from_slice(their_pk_bytes, sk1.secret_bytes())?;
     // decrypt seed
     let cipher_seed = hex::decode(dto.seed)?;
-    let cipher: [u8; CIPHER_LEN] = cipher_seed[..CIPHER_LEN].try_into()?;
+    let cipher: [u8; PAYLOAD_LEN] = cipher_seed[..PAYLOAD_LEN].try_into()?;
     let seed = decrypt(cipher, shared_secret)?;
 
     Ok(Config {
