@@ -1,6 +1,6 @@
 use crate::conn::mqtt::{QOS, RETURN_TOPIC, TOPIC};
-use crate::core::init::make_init_msg;
 use crate::core::config::Config;
+use crate::core::init::make_init_msg;
 
 use sphinx_key_signer::lightning_signer::bitcoin::Network;
 use sphinx_key_signer::vls_protocol::model::PubKey;
@@ -43,7 +43,7 @@ pub fn make_event_loop(
     network: Network,
     do_log: bool,
     led_tx: mpsc::Sender<Status>,
-    config: Config
+    config: Config,
 ) -> Result<()> {
     while let Ok(event) = rx.recv() {
         log::info!("BROKER IP AND PORT: {}", config.broker);

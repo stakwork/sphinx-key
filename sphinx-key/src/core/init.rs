@@ -1,7 +1,7 @@
-use sphinx_key_signer::MsgDriver;
+use sphinx_key_signer::lightning_signer::bitcoin::Network;
 use sphinx_key_signer::vls_protocol::model::Secret;
 use sphinx_key_signer::vls_protocol::{msgs, serde_bolt::WireString};
-use sphinx_key_signer::lightning_signer::bitcoin::Network;
+use sphinx_key_signer::MsgDriver;
 
 pub fn make_init_msg(network: Network, seed: [u8; 32]) -> anyhow::Result<Vec<u8>> {
     let allowlist = Vec::new();

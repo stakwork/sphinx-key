@@ -1,13 +1,13 @@
 use crate::core::events::Status;
 use embedded_hal::delay::blocking::DelayUs;
 use esp_idf_hal::delay::Ets;
-use esp_idf_hal::{gpio, rmt};
 use esp_idf_hal::rmt::config::TransmitConfig;
 use esp_idf_hal::rmt::{FixedLengthSignal, PinState, Pulse, Transmit};
+use esp_idf_hal::{gpio, rmt};
+use std::collections::BTreeMap;
 use std::sync::{mpsc, Arc, Mutex};
 use std::thread;
 use std::time::Duration;
-use std::collections::BTreeMap;
 
 type Color = u32;
 type Time = u32;
@@ -18,23 +18,23 @@ pub struct Led {
 }
 
 fn states() -> BTreeMap<Status, (Color, Time)> {
-  let mut s = BTreeMap::new();
-  s.insert(Status::Starting, (0x000001, 100));
-  s.insert(Status::MountingSDCard, (0x000102, 100));
-  s.insert(Status::SyncingTime, (0x000122, 100));
-  s.insert(Status::WifiAccessPoint, (0x000100, 100));
-  s.insert(Status::Configuring, (0x010000, 20));
-  s.insert(Status::ConnectingToWifi, (0x010100, 350));
-  s.insert(Status::ConnectingToMqtt, (0x010001, 100));
-  s.insert(Status::Connected, (0x000101, 400));
-  s.insert(Status::Signing, (0x111111, 100));
-  s
+    let mut s = BTreeMap::new();
+    s.insert(Status::Starting, (0x000001, 100));
+    s.insert(Status::MountingSDCard, (0x000102, 100));
+    s.insert(Status::SyncingTime, (0x000122, 100));
+    s.insert(Status::WifiAccessPoint, (0x000100, 100));
+    s.insert(Status::Configuring, (0x010000, 20));
+    s.insert(Status::ConnectingToWifi, (0x010100, 350));
+    s.insert(Status::ConnectingToMqtt, (0x010001, 100));
+    s.insert(Status::Connected, (0x000101, 400));
+    s.insert(Status::Signing, (0x111111, 100));
+    s
 }
 
 pub fn led_control_loop(
-    gpio8: gpio::Gpio8<gpio::Unknown>, 
-    channel0: rmt::CHANNEL0, 
-    rx: mpsc::Receiver<Status>
+    gpio8: gpio::Gpio8<gpio::Unknown>,
+    channel0: rmt::CHANNEL0,
+    rx: mpsc::Receiver<Status>,
 ) {
     let led = gpio8.into_output().unwrap();
     let config = TransmitConfig::new().clock_divider(1);
@@ -68,7 +68,10 @@ impl Led {
         self.blink_length = blink_length;
     }
 
-    pub fn blink(&mut self, transmit: Arc<Mutex<Transmit<gpio::Gpio8<gpio::Output>, rmt::CHANNEL0>>>) {
+    pub fn blink(
+        &mut self,
+        transmit: Arc<Mutex<Transmit<gpio::Gpio8<gpio::Output>, rmt::CHANNEL0>>>,
+    ) {
         // Prepare signal
         let mut tx = transmit.lock().unwrap();
         let ticks_hz = tx.counter_clock().unwrap();

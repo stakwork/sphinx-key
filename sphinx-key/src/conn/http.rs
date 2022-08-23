@@ -1,5 +1,5 @@
 use crate::conn::html;
-use crate::core::config::{Config, ConfigDTO, ecdh_keypair, decrypt_seed};
+use crate::core::config::{decrypt_seed, ecdh_keypair, Config, ConfigDTO};
 
 use serde::Deserialize;
 use std::sync::{Arc, Condvar, Mutex};
@@ -19,14 +19,19 @@ pub struct Params {
 
 #[allow(unused_variables)]
 pub fn config_server(mutex: Arc<(Mutex<Option<Config>>, Condvar)>) -> Result<idf::Server> {
-    
     let (sk1, pk1) = ecdh_keypair();
 
     let server = idf::ServerRegistry::new()
         .at("/")
         .get(|_| Ok(html::HTML.into()))?
         .at("/ecdh")
-        .get(move |_| Ok(format!("{{\"pubkey\":\"{}\"}}",  hex::encode(pk1.serialize())).to_owned().into()))?
+        .get(move |_| {
+            Ok(
+                format!("{{\"pubkey\":\"{}\"}}", hex::encode(pk1.serialize()))
+                    .to_owned()
+                    .into(),
+            )
+        })?
         .at("/config")
         .post(move |request| {
             let bod = &request
@@ -38,7 +43,7 @@ pub fn config_server(mutex: Arc<(Mutex<Option<Config>>, Condvar)>) -> Result<idf
             let dto = serde_json::from_str::<ConfigDTO>(&params.config)?;
 
             let conf = decrypt_seed(dto, sk1)?;
-            
+
             let mut wait = mutex.0.lock().unwrap();
             *wait = Some(conf);
             mutex.1.notify_one();

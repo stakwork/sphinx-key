@@ -2,9 +2,9 @@ use crate::conn;
 
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
+use std::convert::TryInto;
 use std::sync::{Arc, Condvar, Mutex};
 use std::time::Duration;
-use std::convert::TryInto;
 
 use embedded_svc::wifi::*;
 use esp_idf_svc::nvs::*;
@@ -13,7 +13,7 @@ use esp_idf_svc::wifi::*;
 use sphinx_crypter::chacha::{decrypt, PAYLOAD_LEN};
 use sphinx_crypter::ecdh::{derive_shared_secret_from_slice, PUBLIC_KEY_LEN};
 use sphinx_crypter::secp256k1::rand::thread_rng;
-use sphinx_crypter::secp256k1::{Secp256k1, SecretKey, PublicKey};
+use sphinx_crypter::secp256k1::{PublicKey, Secp256k1, SecretKey};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Config {
@@ -52,8 +52,7 @@ pub fn ecdh_keypair() -> (SecretKey, PublicKey) {
 pub fn decrypt_seed(dto: ConfigDTO, sk1: SecretKey) -> Result<Config> {
     let their_pk = hex::decode(dto.pubkey)?;
     let their_pk_bytes: [u8; PUBLIC_KEY_LEN] = their_pk[..PUBLIC_KEY_LEN].try_into()?;
-    let shared_secret =
-        derive_shared_secret_from_slice(their_pk_bytes, sk1.secret_bytes())?;
+    let shared_secret = derive_shared_secret_from_slice(their_pk_bytes, sk1.secret_bytes())?;
     // decrypt seed
     let cipher_seed = hex::decode(dto.seed)?;
     let cipher: [u8; PAYLOAD_LEN] = cipher_seed[..PAYLOAD_LEN].try_into()?;

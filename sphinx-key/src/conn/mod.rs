@@ -1,8 +1,5 @@
-pub mod wifi;
+mod html;
 pub mod http;
 pub mod mqtt;
 pub mod sntp;
-mod html;
-
-
-
+pub mod wifi;

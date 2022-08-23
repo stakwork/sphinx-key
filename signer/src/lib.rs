@@ -1,14 +1,14 @@
 mod randomstartingtime;
 
-pub use vls_protocol_signer::lightning_signer;
-pub use vls_protocol_signer::vls_protocol;
-use lightning_signer::persist::Persist;
-use lightning_signer::policy::simple_validator::{make_simple_policy, SimpleValidatorFactory};
-use lightning_signer::policy::filter::PolicyFilter;
 use lightning_signer::node::NodeServices;
+use lightning_signer::persist::Persist;
+use lightning_signer::policy::filter::PolicyFilter;
+use lightning_signer::policy::simple_validator::{make_simple_policy, SimpleValidatorFactory};
 use lightning_signer::util::clock::StandardClock;
 use lightning_signer::util::velocity::{VelocityControlIntervalType, VelocityControlSpec};
 use randomstartingtime::RandomStartingTimeFactory;
+pub use vls_protocol_signer::lightning_signer;
+pub use vls_protocol_signer::vls_protocol;
 // use lightning_signer::persist::DummyPersister;
 use std::sync::Arc;
 use vls_protocol::model::PubKey;
@@ -62,13 +62,7 @@ pub fn init(bytes: Vec<u8>, network: Network) -> anyhow::Result<InitResponse> {
     };
 
     log::info!("create root handler now");
-    let root_handler = RootHandler::new(
-        network,
-        0,
-        Some(seed),
-        allowlist,
-        services,
-    );
+    let root_handler = RootHandler::new(network, 0, Some(seed), allowlist, services);
     log::info!("root_handler created");
     let init_reply = root_handler
         .handle(Message::HsmdInit2(init))

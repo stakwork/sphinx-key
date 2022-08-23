@@ -106,7 +106,7 @@ fn main() -> Result<()> {
                 .put_raw("config", &conf[..])
                 .expect("could not store config");
             println!("CONFIG SAVED");
-            loop {};
+            loop {}
         }
     }
 

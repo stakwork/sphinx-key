@@ -1,5 +1,4 @@
 use fsdb::{Bucket, DoubleBucket, Fsdb};
-use lightning_signer_server::lightning_signer;
 use lightning_signer::bitcoin::secp256k1::PublicKey;
 use lightning_signer::chain::tracker::ChainTracker;
 use lightning_signer::channel::{Channel, ChannelId, ChannelStub};
@@ -7,6 +6,7 @@ use lightning_signer::monitor::ChainMonitor;
 use lightning_signer::node::{NodeConfig, NodeState as CoreNodeState};
 use lightning_signer::persist::Persist;
 use lightning_signer::policy::validator::EnforcementState;
+use lightning_signer_server::lightning_signer;
 use lightning_signer_server::persist::model::{
     AllowlistItemEntry, ChainTrackerEntry, ChannelEntry, NodeEntry, NodeStateEntry,
 };
@@ -48,7 +48,13 @@ fn get_channel_key(channel_id: &[u8]) -> &[u8] {
 }
 
 impl Persist for FsPersister {
-    fn new_node(&self, node_id: &PublicKey, config: &NodeConfig, state: &CoreNodeState, seed: &[u8]) {
+    fn new_node(
+        &self,
+        node_id: &PublicKey,
+        config: &NodeConfig,
+        state: &CoreNodeState,
+        seed: &[u8],
+    ) {
         let pk = hex::encode(node_id.serialize());
         let state_entry = state.into();
         let _ = self.states.put(&pk, state_entry);
@@ -198,7 +204,6 @@ impl Persist for FsPersister {
                             excess_amount: 0,
                             log_prefix: "".to_string(),
                             velocity_control: state_entry.velocity_control.into(),
-
                         };
                         let entry = CoreNodeEntry {
                             seed: node.seed,

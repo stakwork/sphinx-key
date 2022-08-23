@@ -1,11 +1,11 @@
 use crate::ChannelRequest;
+use bitcoin::Network;
 use sphinx_key_parser as parser;
 use sphinx_key_parser::MsgDriver;
 use tokio::sync::{mpsc, oneshot};
 use vls_protocol::model::Secret;
 use vls_protocol::{msgs, serde_bolt::WireString};
 use vls_proxy::util::{read_allowlist, read_integration_test_seed};
-use bitcoin::Network;
 
 pub fn blocking_connect(tx: mpsc::Sender<ChannelRequest>, network: Network) {
     let init_msg_2 = crate::init::make_init_msg(network).expect("couldnt make init msg");
@@ -40,8 +40,12 @@ pub fn make_init_msg(network: Network) -> anyhow::Result<Vec<u8>> {
         .into_iter()
         .map(|s| WireString(s.as_bytes().to_vec()))
         .collect::<Vec<_>>();
-    let seed = if network==Network::Bitcoin {
-        Some(Secret([0x8c, 0xe8, 0x62, 0xab, 0xd5, 0x6b, 0xb4, 0x6a, 0x61, 0x7f, 0xaf, 0x13, 0x50, 0xc1, 0xca, 0xf5, 0xb1, 0xee, 0x02, 0x97, 0xbf, 0xf3, 0xb8, 0xc9, 0x56, 0x63, 0x58, 0x9f, 0xec, 0x8c, 0x45, 0x79]))
+    let seed = if network == Network::Bitcoin {
+        Some(Secret([
+            0x8c, 0xe8, 0x62, 0xab, 0xd5, 0x6b, 0xb4, 0x6a, 0x61, 0x7f, 0xaf, 0x13, 0x50, 0xc1,
+            0xca, 0xf5, 0xb1, 0xee, 0x02, 0x97, 0xbf, 0xf3, 0xb8, 0xc9, 0x56, 0x63, 0x58, 0x9f,
+            0xec, 0x8c, 0x45, 0x79,
+        ]))
     } else {
         read_integration_test_seed()
             .map(|s| Secret(s))
