@@ -45,8 +45,6 @@ pub fn init(bytes: Vec<u8>, network: Network) -> anyhow::Result<InitResponse> {
     log::info!("allowlist {:?}", allowlist);
     let mut policy = make_simple_policy(network);
     policy.filter = PolicyFilter::new_permissive();
-    policy.require_invoices = true;
-    policy.enforce_balance = true;
     let velocity_spec = VelocityControlSpec {
         limit: 10,
         interval_type: VelocityControlIntervalType::Hourly,
