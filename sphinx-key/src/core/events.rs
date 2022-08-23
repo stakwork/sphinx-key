@@ -6,6 +6,7 @@ use sphinx_key_signer::lightning_signer::bitcoin::Network;
 use sphinx_key_signer::vls_protocol::model::PubKey;
 use sphinx_key_signer::{self, InitResponse};
 use std::sync::mpsc;
+use std::time::SystemTime;
 
 use embedded_svc::httpd::Result;
 use embedded_svc::mqtt::client::utils::ConnState;
@@ -25,6 +26,7 @@ pub enum Event {
 pub enum Status {
     Starting,
     MountingSDCard,
+    SyncingTime,
     WifiAccessPoint,
     Configuring,
     ConnectingToWifi,
@@ -59,6 +61,10 @@ pub fn make_event_loop(
             Event::Disconnected => {
                 led_tx.send(Status::ConnectingToMqtt).unwrap();
                 log::info!("GOT an early Event::Disconnected msg!");
+                let now = SystemTime::now()
+                    .duration_since(SystemTime::UNIX_EPOCH)
+                    .unwrap();
+                log::info!("Tracking the time: {}", now.as_secs());
             }
         }
     }

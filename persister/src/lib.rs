@@ -4,11 +4,11 @@ use lightning_signer::bitcoin::secp256k1::PublicKey;
 use lightning_signer::chain::tracker::ChainTracker;
 use lightning_signer::channel::{Channel, ChannelId, ChannelStub};
 use lightning_signer::monitor::ChainMonitor;
-use lightning_signer::node::NodeConfig;
+use lightning_signer::node::{NodeConfig, NodeState as CoreNodeState};
 use lightning_signer::persist::Persist;
 use lightning_signer::policy::validator::EnforcementState;
 use lightning_signer_server::persist::model::{
-    AllowlistItemEntry, ChainTrackerEntry, ChannelEntry, NodeEntry,
+    AllowlistItemEntry, ChainTrackerEntry, ChannelEntry, NodeEntry, NodeStateEntry,
 };
 use std::string::String;
 
@@ -20,6 +20,7 @@ const FAT32_MAXFILENAMESIZE: usize = 8;
 
 pub struct FsPersister {
     nodes: Bucket<NodeEntry>,
+    states: Bucket<NodeStateEntry>,
     channels: DoubleBucket<ChannelEntry>,
     allowlist: Bucket<AllowlistItemEntry>,
     chaintracker: Bucket<ChainTrackerEntry>,
@@ -32,6 +33,7 @@ impl FsPersister {
         let max = Some(FAT32_MAXFILENAMESIZE);
         Self {
             nodes: db.bucket("nodes", max).expect("fail nodes"),
+            states: db.bucket("states", max).expect("fail states"),
             channels: db.double_bucket("channel", max).expect("fail channel"),
             allowlist: db.bucket("allowlis", max).expect("fail allowlis"),
             chaintracker: db.bucket("chaintra", max).expect("fail chaintra"),
@@ -46,15 +48,23 @@ fn get_channel_key(channel_id: &[u8]) -> &[u8] {
 }
 
 impl Persist for FsPersister {
-    fn new_node(&self, node_id: &PublicKey, config: &NodeConfig, seed: &[u8]) {
+    fn new_node(&self, node_id: &PublicKey, config: &NodeConfig, state: &CoreNodeState, seed: &[u8]) {
         let pk = hex::encode(node_id.serialize());
-        let entry = NodeEntry {
+        let state_entry = state.into();
+        let _ = self.states.put(&pk, state_entry);
+        let node_entry = NodeEntry {
             seed: seed.to_vec(),
             key_derivation_style: config.key_derivation_style as u8,
             network: config.network.to_string(),
         };
-        let _ = self.nodes.put(&pk, entry);
+        let _ = self.nodes.put(&pk, node_entry);
         let _ = self.pubkeys.put(&pk, node_id.clone());
+    }
+    fn update_node(&self, node_id: &PublicKey, state: &CoreNodeState) -> Result<(), ()> {
+        let pk = hex::encode(node_id.serialize());
+        let state_entry = state.into();
+        let _ = self.states.put(&pk, state_entry);
+        Ok(())
     }
     fn delete_node(&self, node_id: &PublicKey) {
         let pk = hex::encode(node_id.serialize());
@@ -180,7 +190,24 @@ impl Persist for FsPersister {
         for pk in list {
             if let Ok(pubkey) = self.pubkeys.get(&pk) {
                 if let Ok(node) = self.nodes.get(&pk) {
-                    res.push((pubkey, node.into()));
+                    if let Ok(state_entry) = self.states.get(&pk) {
+                        let state = CoreNodeState {
+                            invoices: Default::default(),
+                            issued_invoices: Default::default(),
+                            payments: Default::default(),
+                            excess_amount: 0,
+                            log_prefix: "".to_string(),
+                            velocity_control: state_entry.velocity_control.into(),
+
+                        };
+                        let entry = CoreNodeEntry {
+                            seed: node.seed,
+                            key_derivation_style: node.key_derivation_style,
+                            network: node.network,
+                            state,
+                        };
+                        res.push((pubkey, entry));
+                    }
                 }
             }
         }

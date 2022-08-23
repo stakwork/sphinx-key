@@ -5,6 +5,7 @@ mod periph;
 
 use crate::core::{config::*, events::*};
 use crate::periph::led::led_control_loop;
+#[allow(unused_imports)]
 use crate::periph::sd::{mount_sd_card, simple_fs_test};
 
 use anyhow::Result;
@@ -12,6 +13,7 @@ use esp_idf_sys as _; // If using the `binstart` feature of `esp-idf-sys`, alway
 use std::sync::{mpsc, Arc};
 use std::thread;
 use std::time::Duration;
+use std::time::SystemTime;
 
 use embedded_svc::storage::RawStorage;
 use esp_idf_hal::peripherals::Peripherals;
@@ -73,6 +75,16 @@ fn main() -> Result<()> {
                 thread::sleep(Duration::from_secs(5));
             }
         };
+
+        led_tx.send(Status::SyncingTime).unwrap();
+        conn::sntp::sync_time();
+        let now = SystemTime::now()
+            .duration_since(SystemTime::UNIX_EPOCH)
+            .unwrap();
+        println!(
+            "Completed the time sync, here is the UNIX time: {}",
+            now.as_secs(),
+        );
 
         led_tx.send(Status::ConnectingToMqtt).unwrap();
         // _conn needs to stay in scope or its dropped
