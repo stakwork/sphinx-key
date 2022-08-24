@@ -12,6 +12,7 @@ use crate::unix_fd::SignerLoop;
 use bitcoin::Network;
 use clap::{App, AppSettings, Arg};
 use std::env;
+use std::str::FromStr;
 use std::sync::Arc;
 use tokio::sync::{mpsc, oneshot};
 use url::Url;
@@ -51,12 +52,6 @@ fn main() -> anyhow::Result<()> {
                 .long("dev-disconnect")
                 .takes_value(true),
         )
-        .arg(
-            Arg::new("network")
-                .about("Bitcoin network the broker will run on")
-                .long("network")
-                .default_value("regtest"),
-        )
         .arg(Arg::from("--log-io ignored dev flag"))
         .arg(Arg::from("--version show a dummy version"))
         .arg(Arg::from("--test run a test against the embedded device"));
@@ -76,16 +71,11 @@ fn main() -> anyhow::Result<()> {
         return Ok(());
     }
 
-    let mut network = Network::Regtest;
-    if let Some(network_arg) = matches.value_of("network") {
-        network = match network_arg {
-            "bitcoin" => Network::Bitcoin,
-            "mainnet" => Network::Bitcoin,
-            "testnet" => Network::Testnet,
-            "signet" => Network::Signet,
-            _ => Network::Regtest,
-        };
-    };
+    let network = Network::from_str(
+        &env::var("VLS_NETWORK")
+            .expect("Please set the env var VLS_NETWORK to either bitcoin or regtest"),
+    )
+    .expect("The env var VLS_NETWORK isn't set to bitcoin or regtest");
 
     let (tx, rx) = mpsc::channel(1000);
     let (status_tx, mut status_rx) = mpsc::channel(1000);
