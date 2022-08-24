@@ -71,11 +71,12 @@ fn main() -> anyhow::Result<()> {
         return Ok(());
     }
 
-    let network = Network::from_str(
-        &env::var("VLS_NETWORK")
-            .expect("Please set the env var VLS_NETWORK to either bitcoin or regtest"),
-    )
-    .expect("The env var VLS_NETWORK isn't set to bitcoin or regtest");
+    let net_var = env::var("VLS_NETWORK").unwrap_or("regtest".to_string());
+    let net_var = match net_var.as_str() {
+        ret @ ("bitcoin" | "regtest") => ret,
+        _ => panic!("Please set VLS_NETWORK to either 'bitcoin' or 'regtest'"),
+    };
+    let network = Network::from_str(net_var).unwrap();
 
     let (tx, rx) = mpsc::channel(1000);
     let (status_tx, mut status_rx) = mpsc::channel(1000);
