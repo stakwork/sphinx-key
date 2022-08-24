@@ -25,6 +25,7 @@
   - Click on the `Erase` button on the cetner top toolbar.
   - Then choose `MS-DOS (FAT)` for the format.
   - Finally click on `Erase`, at the bottom right of the dialogue box.
+- Also make sure you have a micro-USB cable capable of transferring data.
 - Once you have the parts, solder the breakaway headers to the microSD card board as shown in the picture above.
 
 Now follow the table below and the picture above to make all the connections:
@@ -63,7 +64,7 @@ cargo generate --vcs none --git https://github.com/esp-rs/esp-idf-template cargo
 - `cd tiny-esp32`
 - `cargo build`
 - Once the build is complete, run `ls /dev/tty.*` and note the files you see in that directory.
-- Plug in the ESP32-C3 dev board to your computer via Micro-USB, and again run `ls /dev/tty.*`. A new file should now appear, similar to this one `/dev/tty.usbserial-1420`
+- Plug in the ESP32-C3 dev board to your computer via data-enabled micro-USB, and again run `ls /dev/tty.*`. A new file should now appear, similar to this one `/dev/tty.usbserial-1420`
 - Run `export FLASHPORT=[full file path noted in the previous step]`. In my case: `export FLASHPORT=/dev/tty.usbserial-1420`
 - Now with the ESP32 dev board still plugged in, run:
 ```
@@ -114,7 +115,7 @@ Password: password of the wifi from the previous step
 ### How to launch the signer again
 
 - Run `ls /dev/tty.*` and note the files you see in that directory.
-- Plug in the ESP32-C3 dev board to your computer via Micro-USB, and again run `ls /dev/tty.*`. A new file should now appear, similar to this one `/dev/tty.usbserial-1420`
+- Plug in the ESP32-C3 dev board to your computer via data-enabled micro-USB, and again run `ls /dev/tty.*`. A new file should now appear, similar to this one `/dev/tty.usbserial-1420`
 - Run `export FLASHPORT=[full file path noted in the previous step]`. In my case: `export FLASHPORT=/dev/tty.usbserial-1420`
 - `cd ~/sphinx-key/sphinx-key`
 - `export CFLAGS=-fno-pic`
@@ -135,7 +136,7 @@ espmonitor $FLASHPORT
 ### How to completely reset the signer
 
 - Run `ls /dev/tty.*` and note the files you see in that directory.
-- Plug in the ESP32-C3 dev board to your computer via Micro-USB, and again run `ls /dev/tty.*`. A new file should now appear, similar to this one `/dev/tty.usbserial-1420`
+- Plug in the ESP32-C3 dev board to your computer via data-enabled micro-USB, and again run `ls /dev/tty.*`. A new file should now appear, similar to this one `/dev/tty.usbserial-1420`
 - Run `export FLASHPORT=[full file path noted in the previous step]`. In my case: `export FLASHPORT=/dev/tty.usbserial-1420`
 - `cd ~/sphinx-key/sphinx-key`
 - `export CFLAGS=-fno-pic`
