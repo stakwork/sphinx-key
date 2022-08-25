@@ -9,6 +9,7 @@ mod util;
 use crate::chain_tracker::MqttSignerPort;
 use crate::mqtt::start_broker;
 use crate::unix_fd::SignerLoop;
+use crate::util::read_broker_config;
 use bitcoin::Network;
 use clap::{App, AppSettings, Arg};
 use std::env;
@@ -38,6 +39,8 @@ pub struct ChannelRequest {
 pub struct ChannelReply {
     pub reply: Vec<u8>,
 }
+
+const BROKER_CONFIG_PATH: &str = "../broker.conf";
 
 fn main() -> anyhow::Result<()> {
     let parent_fd = open_parent_fd();
@@ -71,17 +74,13 @@ fn main() -> anyhow::Result<()> {
         return Ok(());
     }
 
-    let net_var = env::var("VLS_NETWORK").unwrap_or("regtest".to_string());
-    let net_var = match net_var.as_str() {
-        ret @ ("bitcoin" | "regtest") => ret,
-        _ => panic!("Please set VLS_NETWORK to either 'bitcoin' or 'regtest'"),
-    };
-    let network = Network::from_str(net_var).unwrap();
+    let settings = read_broker_config(BROKER_CONFIG_PATH);
+    let network = Network::from_str(settings["network"].as_str().unwrap()).unwrap();
 
     let (tx, rx) = mpsc::channel(1000);
     let (status_tx, mut status_rx) = mpsc::channel(1000);
     log::info!("=> start broker on network: {}", network);
-    let runtime = start_broker(rx, status_tx, "sphinx-1");
+    let runtime = start_broker(rx, status_tx, "sphinx-1", &settings);
     log::info!("=> wait for connected status");
     // wait for connection = true
     let status = status_rx.blocking_recv().expect("couldnt receive");

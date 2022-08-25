@@ -11,6 +11,7 @@ use std::thread;
 use std::time::Duration;
 use tokio::sync::mpsc;
 use tokio::time::timeout;
+use toml::Value;
 
 const SUB_TOPIC: &str = "sphinx-return";
 const PUB_TOPIC: &str = "sphinx";
@@ -31,8 +32,9 @@ pub fn start_broker(
     mut receiver: mpsc::Receiver<ChannelRequest>,
     status_sender: mpsc::Sender<bool>,
     expected_client_id: &str,
+    settings: &Value,
 ) -> tokio::runtime::Runtime {
-    let config = config();
+    let config = config(settings);
     let client_id = expected_client_id.to_string();
 
     let (mut router, servers, builder) = async_locallink::construct(config.clone());
@@ -146,7 +148,7 @@ fn metrics_to_status(metrics: ConnectionMetrics, client_connected: bool) -> Opti
     }
 }
 
-fn config() -> Config {
+fn config(settings: &Value) -> Config {
     use librumqttd::rumqttlog::Config as RouterConfig;
     use librumqttd::{
         ConnectionLoginCredentials, ConnectionSettings, ConsoleSettings, ServerSettings,
@@ -167,7 +169,11 @@ fn config() -> Config {
         id.to_string(),
         ServerSettings {
             cert: None,
-            listen: SocketAddrV4::new(Ipv4Addr::new(0, 0, 0, 0), 1883).into(),
+            listen: SocketAddrV4::new(
+                Ipv4Addr::new(0, 0, 0, 0),
+                settings["port"].as_integer().unwrap().try_into().unwrap(),
+            )
+            .into(),
             next_connection_delay_ms: 1,
             connections: ConnectionSettings {
                 connection_timeout_ms: 5000,
