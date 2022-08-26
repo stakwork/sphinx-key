@@ -10,10 +10,8 @@ use crate::chain_tracker::MqttSignerPort;
 use crate::mqtt::start_broker;
 use crate::unix_fd::SignerLoop;
 use crate::util::read_broker_config;
-use bitcoin::Network;
 use clap::{App, AppSettings, Arg};
 use std::env;
-use std::str::FromStr;
 use std::sync::Arc;
 use tokio::sync::{mpsc, oneshot};
 use url::Url;
@@ -75,11 +73,10 @@ fn main() -> anyhow::Result<()> {
     }
 
     let settings = read_broker_config(BROKER_CONFIG_PATH);
-    let network = Network::from_str(settings["network"].as_str().unwrap()).unwrap();
 
     let (tx, rx) = mpsc::channel(1000);
     let (status_tx, mut status_rx) = mpsc::channel(1000);
-    log::info!("=> start broker on network: {}", network);
+    log::info!("=> start broker on network: {}", settings.network);
     let runtime = start_broker(rx, status_tx, "sphinx-1", &settings);
     log::info!("=> wait for connected status");
     // wait for connection = true
@@ -93,7 +90,7 @@ fn main() -> anyhow::Result<()> {
         let frontend = Frontend::new(
             Arc::new(SignerPortFront {
                 signer_port: Box::new(signer_port),
-                network,
+                network: settings.network,
             }),
             Url::parse(&btc_url).expect("malformed btc rpc url"),
         );

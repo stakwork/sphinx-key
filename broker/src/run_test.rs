@@ -1,9 +1,8 @@
 use crate::mqtt::start_broker;
+use crate::util::Settings;
 use crate::ChannelRequest;
 use sphinx_key_parser as parser;
 use tokio::sync::{mpsc, oneshot};
-use toml::map::Map;
-use toml::Value;
 use vls_protocol::serde_bolt::WireString;
 use vls_protocol::{msgs, msgs::Message};
 
@@ -15,10 +14,7 @@ pub fn run_test() {
     let mut id = 0u16;
     let mut sequence = 1;
 
-    let mut map = Map::new();
-    map.insert("port".to_string(), Value::Integer(1883));
-    map.insert("network".to_string(), Value::String("regtest".to_string()));
-    let settings = Value::Table(map);
+    let settings = Settings::default();
 
     let (tx, rx) = mpsc::channel(1000);
     let (status_tx, mut status_rx) = mpsc::channel(1000);
