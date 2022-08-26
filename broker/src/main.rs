@@ -103,7 +103,7 @@ fn main() -> anyhow::Result<()> {
     let client = UnixClient::new(conn);
     // TODO pass status_rx into SignerLoop
     let mut signer_loop = SignerLoop::new(client, tx);
-    signer_loop.start();
+    signer_loop.start(Some(&settings));
     // })
 
     Ok(())
