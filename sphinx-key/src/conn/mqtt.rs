@@ -79,9 +79,15 @@ pub fn start_listening(
                         Event::Unsubscribed(_mes_id) => info!("RECEIVED Unsubscribed MESSAGE"),
                         Event::Published(_mes_id) => info!("RECEIVED Published MESSAGE"),
                         Event::Received(msg) => {
-                            let _topic = msg.topic();
-                            tx.send(CoreEvent::VlsMessage(msg.data().to_vec()))
-                                .expect("couldnt send Event::Message");
+                            let topic_opt = msg.topic();
+                            if let Some(topic) = topic_opt {
+                                match topic {
+                                    TOPIC => tx
+                                        .send(CoreEvent::VlsMessage(msg.data().to_vec()))
+                                        .expect("couldnt send Event::Message"),
+                                    _ => log::warn!("unrecognized topic {}", topic),
+                                };
+                            }
                         }
                         Event::Deleted(_mes_id) => info!("RECEIVED Deleted MESSAGE"),
                     },
