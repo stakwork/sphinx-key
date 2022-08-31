@@ -1,4 +1,6 @@
+use crate::util::Settings;
 use crate::{Channel, ChannelReply, ChannelRequest};
+use bitcoin::blockdata::constants::ChainHash;
 use log::*;
 use secp256k1::PublicKey;
 use sphinx_key_parser as parser;
@@ -58,16 +60,16 @@ impl<C: 'static + Client> SignerLoop<C> {
     }
 
     /// Start the read loop
-    pub fn start(&mut self) {
+    pub fn start(&mut self, settings: Option<&Settings>) {
         info!("loop {}: start", self.log_prefix);
-        match self.do_loop() {
+        match self.do_loop(settings) {
             Ok(()) => info!("loop {}: done", self.log_prefix),
             Err(Error::Eof) => info!("loop {}: ending", self.log_prefix),
             Err(e) => error!("loop {}: error {:?}", self.log_prefix, e),
         }
     }
 
-    fn do_loop(&mut self) -> Result<()> {
+    fn do_loop(&mut self, settings: Option<&Settings>) -> Result<()> {
         loop {
             let raw_msg = self.client.read_raw()?;
             debug!("loop {}: got raw", self.log_prefix);
@@ -85,13 +87,24 @@ impl<C: 'static + Client> SignerLoop<C> {
                     };
                     let mut new_loop =
                         SignerLoop::new_for_client(new_client, self.chan.sender.clone(), client_id);
-                    thread::spawn(move || new_loop.start());
+                    thread::spawn(move || new_loop.start(None));
                 }
                 Message::Memleak(_) => {
                     let reply = msgs::MemleakReply { result: false };
                     self.client.write(reply)?;
                 }
-                _ => {
+                msg => {
+                    if let Message::HsmdInit(m) = msg {
+                        if let Some(set) = settings {
+                            if ChainHash::using_genesis_block(set.network).as_bytes()
+                                != &m.chain_params.0
+                            {
+                                panic!("The network settings of CLN and broker don't match!");
+                            }
+                        } else {
+                            panic!("Got HsmdInit without settings - likely because HsmdInit was sent after startup");
+                        }
+                    }
                     let reply = self.handle_message(raw_msg)?;
                     // Write the reply to the node
                     self.client.write_vec(reply)?;

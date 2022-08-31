@@ -1,4 +1,5 @@
 use crate::mqtt::start_broker;
+use crate::util::Settings;
 use crate::ChannelRequest;
 use sphinx_key_parser as parser;
 use tokio::sync::{mpsc, oneshot};
@@ -13,9 +14,11 @@ pub fn run_test() {
     let mut id = 0u16;
     let mut sequence = 1;
 
+    let settings = Settings::default();
+
     let (tx, rx) = mpsc::channel(1000);
     let (status_tx, mut status_rx) = mpsc::channel(1000);
-    let runtime = start_broker(rx, status_tx, CLIENT_ID);
+    let runtime = start_broker(rx, status_tx, CLIENT_ID, &settings);
     runtime.block_on(async {
         let mut connected = false;
         loop {
