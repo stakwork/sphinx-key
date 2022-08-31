@@ -12,7 +12,9 @@ use log::*;
 use std::sync::mpsc;
 use std::thread;
 
-pub const TOPIC: &str = "sphinx";
+pub const VLS_TOPIC: &str = "sphinx";
+pub const CONTROL_TOPIC: &str = "sphinx-control";
+pub const OTA_TOPIC: &str = "sphinx-ota";
 pub const RETURN_TOPIC: &str = "sphinx-return";
 pub const USERNAME: &str = "sphinx-key";
 pub const PASSWORD: &str = "sphinx-key-pass";
@@ -82,11 +84,19 @@ pub fn start_listening(
                             let topic_opt = msg.topic();
                             if let Some(topic) = topic_opt {
                                 match topic {
-                                    TOPIC => tx
+                                    VLS_TOPIC => tx
                                         .send(CoreEvent::VlsMessage(msg.data().to_vec()))
-                                        .expect("couldnt send Event::Message"),
+                                        .expect("couldnt send Event::VlsMessage"),
+                                    CONTROL_TOPIC => tx
+                                        .send(CoreEvent::Control(msg.data().to_vec()))
+                                        .expect("couldnt send Event::Control"),
+                                    OTA_TOPIC => tx
+                                        .send(CoreEvent::Ota(msg.data().to_vec()))
+                                        .expect("couldnt send Event::Ota"),
                                     _ => log::warn!("unrecognized topic {}", topic),
                                 };
+                            } else {
+                                log::warn!("empty topic in msg!!!");
                             }
                         }
                         Event::Deleted(_mes_id) => info!("RECEIVED Deleted MESSAGE"),

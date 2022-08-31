@@ -1,4 +1,4 @@
-use crate::conn::mqtt::{QOS, RETURN_TOPIC, TOPIC};
+use crate::conn::mqtt::{CONTROL_TOPIC, OTA_TOPIC, QOS, RETURN_TOPIC, VLS_TOPIC};
 use crate::core::config::Config;
 use crate::core::init::make_init_msg;
 
@@ -51,8 +51,12 @@ pub fn make_event_loop(
         // wait for a Connection first.
         match event {
             Event::Connected => {
-                log::info!("SUBSCRIBE to {}", TOPIC);
-                mqtt.subscribe(TOPIC, QOS)
+                log::info!("SUBSCRIBE to {}", VLS_TOPIC);
+                mqtt.subscribe(VLS_TOPIC, QOS)
+                    .expect("could not MQTT subscribe");
+                mqtt.subscribe(CONTROL_TOPIC, QOS)
+                    .expect("could not MQTT subscribe");
+                mqtt.subscribe(OTA_TOPIC, QOS)
                     .expect("could not MQTT subscribe");
                 led_tx.send(Status::Connected).unwrap();
                 break;
@@ -72,8 +76,12 @@ pub fn make_event_loop(
     while let Ok(event) = rx.recv() {
         match event {
             Event::Connected => {
-                log::info!("SUBSCRIBE TO {}", TOPIC);
-                mqtt.subscribe(TOPIC, QOS)
+                log::info!("SUBSCRIBE TO {}", VLS_TOPIC);
+                mqtt.subscribe(VLS_TOPIC, QOS)
+                    .expect("could not MQTT subscribe");
+                mqtt.subscribe(CONTROL_TOPIC, QOS)
+                    .expect("could not MQTT subscribe");
+                mqtt.subscribe(OTA_TOPIC, QOS)
                     .expect("could not MQTT subscribe");
                 led_tx.send(Status::Connected).unwrap();
             }
