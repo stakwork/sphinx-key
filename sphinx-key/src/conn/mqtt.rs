@@ -79,7 +79,7 @@ pub fn start_listening(
                         Event::Unsubscribed(_mes_id) => info!("RECEIVED Unsubscribed MESSAGE"),
                         Event::Published(_mes_id) => info!("RECEIVED Published MESSAGE"),
                         Event::Received(msg) => tx
-                            .send(CoreEvent::Message(msg.data().to_vec()))
+                            .send(CoreEvent::VlsMessage(msg.data().to_vec()))
                             .expect("couldnt send Event::Message"),
                         Event::Deleted(_mes_id) => info!("RECEIVED Deleted MESSAGE"),
                     },

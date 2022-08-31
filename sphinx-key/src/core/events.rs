@@ -6,7 +6,6 @@ use sphinx_key_signer::lightning_signer::bitcoin::Network;
 use sphinx_key_signer::vls_protocol::model::PubKey;
 use sphinx_key_signer::{self, InitResponse};
 use std::sync::mpsc;
-use std::time::SystemTime;
 
 use embedded_svc::httpd::Result;
 use embedded_svc::mqtt::client::utils::ConnState;
@@ -19,7 +18,9 @@ use esp_idf_sys::EspError;
 pub enum Event {
     Connected,
     Disconnected,
-    Message(Vec<u8>),
+    VlsMessage(Vec<u8>),
+    Ota(Vec<u8>),
+    Control(Vec<u8>),
 }
 
 #[derive(Debug, Ord, PartialOrd, Eq, PartialEq)]
@@ -47,6 +48,7 @@ pub fn make_event_loop(
 ) -> Result<()> {
     while let Ok(event) = rx.recv() {
         log::info!("BROKER IP AND PORT: {}", config.broker);
+        // wait for a Connection first.
         match event {
             Event::Connected => {
                 log::info!("SUBSCRIBE to {}", TOPIC);
@@ -55,17 +57,7 @@ pub fn make_event_loop(
                 led_tx.send(Status::Connected).unwrap();
                 break;
             }
-            Event::Message(ref _msg_bytes) => {
-                panic!("should not be a message before connection");
-            }
-            Event::Disconnected => {
-                led_tx.send(Status::ConnectingToMqtt).unwrap();
-                log::info!("GOT an early Event::Disconnected msg!");
-                let now = SystemTime::now()
-                    .duration_since(SystemTime::UNIX_EPOCH)
-                    .unwrap();
-                log::info!("Tracking the time: {}", now.as_secs());
-            }
+            _ => (),
         }
     }
 
@@ -85,7 +77,11 @@ pub fn make_event_loop(
                     .expect("could not MQTT subscribe");
                 led_tx.send(Status::Connected).unwrap();
             }
-            Event::Message(ref msg_bytes) => {
+            Event::Disconnected => {
+                led_tx.send(Status::ConnectingToMqtt).unwrap();
+                log::info!("GOT A Event::Disconnected msg!");
+            }
+            Event::VlsMessage(ref msg_bytes) => {
                 led_tx.send(Status::Signing).unwrap();
                 let _ret = match sphinx_key_signer::handle(
                     &root_handler,
@@ -103,10 +99,8 @@ pub fn make_event_loop(
                     }
                 };
             }
-            Event::Disconnected => {
-                led_tx.send(Status::ConnectingToMqtt).unwrap();
-                log::info!("GOT A Event::Disconnected msg!");
-            }
+            Event::Control(_) => (),
+            Event::Ota(_) => (),
         }
     }
 
@@ -131,7 +125,7 @@ pub fn make_event_loop(
                 mqtt.subscribe(TOPIC, QOS)
                     .expect("could not MQTT subscribe");
             }
-            Event::Message(msg_bytes) => {
+            Event::VlsMessage(msg_bytes) => {
                 led_tx.send(Status::Signing).unwrap();
                 let b = sphinx_key_signer::parse_ping_and_form_response(msg_bytes);
                 if do_log {
@@ -144,6 +138,8 @@ pub fn make_event_loop(
                 led_tx.send(Status::ConnectingToMqtt).unwrap();
                 log::info!("GOT A Event::Disconnected msg!");
             }
+            Event::Control(_) => (),
+            Event::Ota(_) => (),
         }
     }
 
