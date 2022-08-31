@@ -78,9 +78,11 @@ pub fn start_listening(
                         Event::Subscribed(_mes_id) => info!("RECEIVED Subscribed MESSAGE"),
                         Event::Unsubscribed(_mes_id) => info!("RECEIVED Unsubscribed MESSAGE"),
                         Event::Published(_mes_id) => info!("RECEIVED Published MESSAGE"),
-                        Event::Received(msg) => tx
-                            .send(CoreEvent::VlsMessage(msg.data().to_vec()))
-                            .expect("couldnt send Event::Message"),
+                        Event::Received(msg) => {
+                            let _topic = msg.topic();
+                            tx.send(CoreEvent::VlsMessage(msg.data().to_vec()))
+                                .expect("couldnt send Event::Message");
+                        }
                         Event::Deleted(_mes_id) => info!("RECEIVED Deleted MESSAGE"),
                     },
                 },
