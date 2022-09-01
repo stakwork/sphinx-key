@@ -27,6 +27,23 @@ pub struct InitResponse {
 
 pub const ROOT_STORE: &str = "/sdcard/store";
 
+pub fn set_policies(
+    root_handler: &RootHandler,
+    network: Network,
+    sats_per_day: u64,
+) -> anyhow::Result<()> {
+    let mut policy = make_simple_policy(network);
+    policy.filter = PolicyFilter::new_permissive();
+    let velocity_spec = VelocityControlSpec {
+        limit: sats_per_day,
+        interval_type: VelocityControlIntervalType::Daily,
+    };
+    policy.global_velocity_control = velocity_spec;
+    let validator_factory = Arc::new(SimpleValidatorFactory::new_with_policy(policy));
+    root_handler.node.set_validator_factory(validator_factory);
+    Ok(())
+}
+
 pub fn init(bytes: Vec<u8>, network: Network) -> anyhow::Result<InitResponse> {
     // let persister: Arc<dyn Persist> = Arc::new(DummyPersister);
     let mut md = MsgDriver::new(bytes);
@@ -46,8 +63,8 @@ pub fn init(bytes: Vec<u8>, network: Network) -> anyhow::Result<InitResponse> {
     let mut policy = make_simple_policy(network);
     policy.filter = PolicyFilter::new_permissive();
     let velocity_spec = VelocityControlSpec {
-        limit: 10,
-        interval_type: VelocityControlIntervalType::Hourly,
+        limit: 1_000_000, // default a million sats per day
+        interval_type: VelocityControlIntervalType::Daily,
     };
     policy.global_velocity_control = velocity_spec;
     let validator_factory = Arc::new(SimpleValidatorFactory::new_with_policy(policy));
