@@ -1,4 +1,4 @@
-pub mod policy;
+pub mod control;
 
 use serde::ser;
 use std::cmp::min;

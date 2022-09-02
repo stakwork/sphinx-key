@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use sphinx_auther::nonce;
 use sphinx_auther::secp256k1::{PublicKey, SecretKey};
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum ControlMessage {
     Nonce,
     QueryPolicy,
@@ -10,7 +10,7 @@ pub enum ControlMessage {
     Ota(OtaParams),
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum ControlResponse {
     Nonce(u64),
     PolicyCurrent(Policy),
@@ -18,12 +18,12 @@ pub enum ControlResponse {
     OtaConfirm(OtaParams),
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Policy {
     pub sats_per_day: u64,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct OtaParams {
     pub version: u64,
     pub url: String,
@@ -38,15 +38,18 @@ impl Controller {
     }
     pub fn build_msg(&mut self, msg: ControlMessage) -> anyhow::Result<Vec<u8>> {
         let data = rmp_serde::to_vec(&msg)?;
+        let ret = nonce::build_msg(&data, &self.0, self.2)?;
         self.2 = self.2 + 1;
-        Ok(nonce::build_msg(data, &self.0, self.2)?)
+        Ok(ret)
     }
     pub fn build_response(&self, msg: ControlResponse) -> anyhow::Result<Vec<u8>> {
         Ok(rmp_serde::to_vec(&msg)?)
     }
-    pub fn parse_msg(&mut self, input: Vec<u8>) -> anyhow::Result<ControlMessage> {
+    pub fn parse_msg(&mut self, input: &[u8]) -> anyhow::Result<ControlMessage> {
         let msg = nonce::parse_msg(input, &self.1, self.2)?;
-        Ok(rmp_serde::from_slice(&msg)?)
+        let ret = rmp_serde::from_slice(&msg)?;
+        self.2 = self.2 + 1;
+        Ok(ret)
     }
     pub fn parse_response(&self, input: &[u8]) -> anyhow::Result<ControlResponse> {
         Ok(rmp_serde::from_slice(input)?)

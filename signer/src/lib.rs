@@ -18,7 +18,7 @@ use vls_protocol_signer::lightning_signer::bitcoin::Network;
 pub use vls_protocol_signer::vls_protocol;
 
 pub use derive::node_keys as derive_node_keys;
-pub use sphinx_key_parser::MsgDriver;
+pub use sphinx_key_parser::{control, MsgDriver};
 pub use sphinx_key_persister::FsPersister;
 pub struct InitResponse {
     pub root_handler: RootHandler,

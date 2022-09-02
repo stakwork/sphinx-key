@@ -1970,6 +1970,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "sphinx-auther"
+version = "0.1.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "07ba95c8bd0600a9853ed6320701423362bfeac8d69034ed9585cb289d849701"
+dependencies = [
+ "anyhow",
+ "base64",
+ "hex",
+ "log",
+ "secp256k1",
+]
+
+[[package]]
 name = "sphinx-crypter"
 version = "0.1.0"
 source = "git+https://github.com/stakwork/sphinx-rs.git#40ea52b22cab30eb2cae88a8f2f25b84d656da14"
@@ -2007,8 +2020,11 @@ dependencies = [
 name = "sphinx-key-parser"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
+ "rmp-serde",
  "serde",
  "serde_bolt",
+ "sphinx-auther",
  "vls-protocol",
 ]
 
