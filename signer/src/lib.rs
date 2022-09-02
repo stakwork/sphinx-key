@@ -1,3 +1,4 @@
+mod derive;
 mod randomstartingtime;
 
 use lightning_signer::node::NodeServices;
@@ -7,19 +8,18 @@ use lightning_signer::policy::simple_validator::{make_simple_policy, SimpleValid
 use lightning_signer::util::clock::StandardClock;
 use lightning_signer::util::velocity::{VelocityControlIntervalType, VelocityControlSpec};
 use randomstartingtime::RandomStartingTimeFactory;
-pub use vls_protocol_signer::lightning_signer;
-pub use vls_protocol_signer::vls_protocol;
-// use lightning_signer::persist::DummyPersister;
 use std::sync::Arc;
 use vls_protocol::model::PubKey;
 use vls_protocol::msgs::{self, read_serial_request_header, write_serial_response_header, Message};
 use vls_protocol::serde_bolt::WireString;
 use vls_protocol_signer::handler::{Handler, RootHandler};
+pub use vls_protocol_signer::lightning_signer;
 use vls_protocol_signer::lightning_signer::bitcoin::Network;
+pub use vls_protocol_signer::vls_protocol;
 
+pub use derive::node_keys as derive_node_keys;
 pub use sphinx_key_parser::MsgDriver;
 pub use sphinx_key_persister::FsPersister;
-
 pub struct InitResponse {
     pub root_handler: RootHandler,
     pub init_reply: Vec<u8>,
