@@ -36,7 +36,7 @@ pub enum Status {
     Signing,
 }
 
-// the controller validated Control messages
+// the controller validates Control messages
 pub fn controller_from_seed(network: &Network, seed: &[u8]) -> Controller {
     let (pk, sk) = sphinx_key_signer::derive_node_keys(network, seed);
     Controller::new(sk, pk, 0)
