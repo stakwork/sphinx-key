@@ -118,9 +118,9 @@ pub fn make_event_loop(
                     Ok(msg) => {
                         log::info!("CONTROL MSG {:?}", msg);
                         // create a response and mqtt pub here
-                    },
+                    }
                     Err(e) => log::warn!("error parsing ctrl msg {:?}", e),
-                },
+                };
             }
         }
     }

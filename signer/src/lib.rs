@@ -1,6 +1,7 @@
 mod derive;
 mod randomstartingtime;
 
+use lightning_signer::bitcoin::blockdata::constants::ChainHash;
 use lightning_signer::node::NodeServices;
 use lightning_signer::persist::Persist;
 use lightning_signer::policy::filter::PolicyFilter;
@@ -15,6 +16,7 @@ use vls_protocol::serde_bolt::WireString;
 use vls_protocol_signer::handler::{Handler, RootHandler};
 pub use vls_protocol_signer::lightning_signer;
 use vls_protocol_signer::lightning_signer::bitcoin::Network;
+use vls_protocol_signer::lightning_signer::wallet::Wallet;
 pub use vls_protocol_signer::vls_protocol;
 
 pub use derive::node_keys as derive_node_keys;
@@ -111,6 +113,15 @@ pub fn handle(
         Message::SignCommitmentTx(ref mut m) => m.peer_id = dummy_peer.clone(),
         _ => {}
     };
+
+    if let Message::HsmdInit(ref m) = message {
+        if ChainHash::using_genesis_block(root_handler.node.network()).as_bytes()
+            != &m.chain_params.0
+        {
+            log::error!("The network setting of CLN and VLS don't match!");
+            panic!("The network setting of CLN and VLS don't match!");
+        }
+    }
 
     if do_log {
         log::info!("VLS msg: {:?}", message);
