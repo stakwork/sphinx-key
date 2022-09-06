@@ -41,9 +41,12 @@ pub fn start_broker(
         router.start().expect("could not start router");
     });
 
-    let mut rt_builder = tokio::runtime::Builder::new_multi_thread();
+    let mut rt_builder = rocket::tokio::runtime::Builder::new_multi_thread();
+    // for graceful shutdown of rocket
+    rt_builder.worker_threads(rocket::Config::from(rocket::Config::figment()).workers);
+    rt_builder.thread_name("rocket-worker-thread");
     rt_builder.enable_all();
-    let rt = rt_builder.build().unwrap();
+    let rt = rt_builder.build().expect("failed to build runtime");
     rt.block_on(async {
         tokio::spawn(async move {
             let (msg_tx, mut msg_rx): (mpsc::Sender<Vec<u8>>, mpsc::Receiver<Vec<u8>>) =
@@ -107,7 +110,6 @@ pub fn start_broker(
                         }
                     }
                 }
-                println!("BOOM RECEIVER CLOSED!");
             });
 
             servers.await;

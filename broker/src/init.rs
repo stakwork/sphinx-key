@@ -7,8 +7,8 @@ use vls_protocol::model::Secret;
 use vls_protocol::{msgs, serde_bolt::WireString};
 use vls_proxy::util::{read_allowlist, read_integration_test_seed};
 
-pub fn blocking_connect(tx: mpsc::Sender<ChannelRequest>, network: Network) {
-    let init_msg_2 = crate::init::make_init_msg(network).expect("couldnt make init msg");
+pub fn _blocking_connect(tx: mpsc::Sender<ChannelRequest>, network: Network) {
+    let init_msg_2 = crate::init::_make_init_msg(network).expect("couldnt make init msg");
     let (reply_tx, reply_rx) = oneshot::channel();
     // Send a request to the MQTT handler to send to signer
     let request = ChannelRequest {
@@ -22,7 +22,7 @@ pub fn blocking_connect(tx: mpsc::Sender<ChannelRequest>, network: Network) {
 }
 
 pub async fn _connect(tx: mpsc::Sender<ChannelRequest>, network: Network) {
-    let init_msg_2 = crate::init::make_init_msg(network).expect("could make init msg");
+    let init_msg_2 = crate::init::_make_init_msg(network).expect("could make init msg");
     let (reply_tx, reply_rx) = oneshot::channel();
     // Send a request to the MQTT handler to send to signer
     let request = ChannelRequest {
@@ -35,7 +35,7 @@ pub async fn _connect(tx: mpsc::Sender<ChannelRequest>, network: Network) {
     println!("REPLY {:?}", reply);
 }
 
-pub fn make_init_msg(network: Network) -> anyhow::Result<Vec<u8>> {
+pub fn _make_init_msg(network: Network) -> anyhow::Result<Vec<u8>> {
     let allowlist = read_allowlist()
         .into_iter()
         .map(|s| WireString(s.as_bytes().to_vec()))

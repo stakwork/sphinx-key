@@ -1,4 +1,5 @@
 use crate::mqtt::start_broker;
+use crate::server::launch_rocket;
 use crate::ChannelRequest;
 use sphinx_key_parser as parser;
 use tokio::sync::{mpsc, oneshot};
@@ -17,6 +18,10 @@ pub fn run_test() {
     let (status_tx, mut status_rx) = mpsc::channel(1000);
     let runtime = start_broker(rx, status_tx, CLIENT_ID);
     runtime.block_on(async {
+        let _r = launch_rocket(tx.clone())
+            .await
+            .expect("couldnt launch rocket");
+        println!("ROCKET!!!");
         let mut connected = false;
         loop {
             tokio::select! {

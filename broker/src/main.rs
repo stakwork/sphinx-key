@@ -3,6 +3,7 @@ mod chain_tracker;
 mod init;
 mod mqtt;
 mod run_test;
+mod server;
 mod unix_fd;
 mod util;
 
