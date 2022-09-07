@@ -14,7 +14,6 @@ use std::thread;
 
 pub const VLS_TOPIC: &str = "sphinx";
 pub const CONTROL_TOPIC: &str = "sphinx-control";
-pub const OTA_TOPIC: &str = "sphinx-ota";
 pub const RETURN_TOPIC: &str = "sphinx-return";
 pub const USERNAME: &str = "sphinx-key";
 pub const PASSWORD: &str = "sphinx-key-pass";
@@ -90,9 +89,6 @@ pub fn start_listening(
                                     CONTROL_TOPIC => tx
                                         .send(CoreEvent::Control(msg.data().to_vec()))
                                         .expect("couldnt send Event::Control"),
-                                    OTA_TOPIC => tx
-                                        .send(CoreEvent::Ota(msg.data().to_vec()))
-                                        .expect("couldnt send Event::Ota"),
                                     _ => log::warn!("unrecognized topic {}", topic),
                                 };
                             } else {

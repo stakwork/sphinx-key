@@ -6,7 +6,10 @@ edition = "2021"
 [dependencies]
 vls-protocol = { git = "https://gitlab.com/lightning-signer/validating-lightning-signer.git" }
 serde = { version = "1.0", default-features = false }
+rmp-serde = "1.1.0"
 serde_bolt = { version = "0.2", default-features = false }
+sphinx-auther = "0.1.9"
+anyhow = "1"
 
 [features]
 default = ["std"]

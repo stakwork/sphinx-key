@@ -1,7 +1,8 @@
-use crate::conn::mqtt::{CONTROL_TOPIC, OTA_TOPIC, QOS, RETURN_TOPIC, VLS_TOPIC};
+use crate::conn::mqtt::{CONTROL_TOPIC, QOS, RETURN_TOPIC, VLS_TOPIC};
 use crate::core::config::Config;
 use crate::core::init::make_init_msg;
 
+use sphinx_key_signer::control::Controller;
 use sphinx_key_signer::lightning_signer::bitcoin::Network;
 use sphinx_key_signer::vls_protocol::model::PubKey;
 use sphinx_key_signer::{self, InitResponse};
@@ -19,7 +20,6 @@ pub enum Event {
     Connected,
     Disconnected,
     VlsMessage(Vec<u8>),
-    Ota(Vec<u8>),
     Control(Vec<u8>),
 }
 
@@ -34,6 +34,12 @@ pub enum Status {
     ConnectingToMqtt,
     Connected,
     Signing,
+}
+
+// the controller validates Control messages
+pub fn controller_from_seed(network: &Network, seed: &[u8]) -> Controller {
+    let (pk, sk) = sphinx_key_signer::derive_node_keys(network, seed);
+    Controller::new(sk, pk, 0)
 }
 
 // the main event loop
@@ -56,8 +62,6 @@ pub fn make_event_loop(
                     .expect("could not MQTT subscribe");
                 mqtt.subscribe(CONTROL_TOPIC, QOS)
                     .expect("could not MQTT subscribe");
-                mqtt.subscribe(OTA_TOPIC, QOS)
-                    .expect("could not MQTT subscribe");
                 led_tx.send(Status::Connected).unwrap();
                 break;
             }
@@ -71,6 +75,10 @@ pub fn make_event_loop(
         root_handler,
         init_reply: _,
     } = sphinx_key_signer::init(init_msg, network).expect("failed to init signer");
+
+    // make the controller to validate Control messages
+    let mut ctrlr = controller_from_seed(&network, &config.seed[..]);
+
     // signing loop
     let dummy_peer = PubKey([0; 33]);
     while let Ok(event) = rx.recv() {
@@ -80,8 +88,6 @@ pub fn make_event_loop(
                 mqtt.subscribe(VLS_TOPIC, QOS)
                     .expect("could not MQTT subscribe");
                 mqtt.subscribe(CONTROL_TOPIC, QOS)
-                    .expect("could not MQTT subscribe");
-                mqtt.subscribe(OTA_TOPIC, QOS)
                     .expect("could not MQTT subscribe");
                 led_tx.send(Status::Connected).unwrap();
             }
@@ -107,8 +113,15 @@ pub fn make_event_loop(
                     }
                 };
             }
-            Event::Control(_) => (),
-            Event::Ota(_) => (),
+            Event::Control(ref msg_bytes) => {
+                match ctrlr.parse_msg(msg_bytes) {
+                    Ok(msg) => {
+                        log::info!("CONTROL MSG {:?}", msg);
+                        // create a response and mqtt pub here
+                    }
+                    Err(e) => log::warn!("error parsing ctrl msg {:?}", e),
+                };
+            }
         }
     }
 
@@ -147,7 +160,6 @@ pub fn make_event_loop(
                 log::info!("GOT A Event::Disconnected msg!");
             }
             Event::Control(_) => (),
-            Event::Ota(_) => (),
         }
     }
 

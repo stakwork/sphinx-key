@@ -3,6 +3,7 @@ use sphinx_key_signer::lightning_signer::bitcoin::Network;
 
 use clap::{App, AppSettings, Arg};
 use rumqttc::{self, AsyncClient, Event, MqttOptions, Packet, QoS};
+use sphinx_key_signer::control::Controller;
 use sphinx_key_signer::vls_protocol::{model::PubKey, msgs};
 use sphinx_key_signer::{self, InitResponse};
 use std::env;
@@ -11,9 +12,11 @@ use std::str::FromStr;
 use std::time::Duration;
 
 const SUB_TOPIC: &str = "sphinx";
+const CONTROL_TOPIC: &str = "sphinx-control";
 const PUB_TOPIC: &str = "sphinx-return";
 const USERNAME: &str = "sphinx-key";
 const PASSWORD: &str = "sphinx-key-pass";
+const DEV_SEED: [u8; 32] = [0; 32];
 
 #[tokio::main(worker_threads = 1)]
 async fn main() -> Result<(), Box<dyn Error>> {
@@ -57,6 +60,13 @@ async fn main() -> Result<(), Box<dyn Error>> {
             .subscribe(SUB_TOPIC, QoS::AtMostOnce)
             .await
             .expect("could not mqtt subscribe");
+        client
+            .subscribe(CONTROL_TOPIC, QoS::AtMostOnce)
+            .await
+            .expect("could not mqtt subscribe");
+
+        // make the controller to validate Control messages
+        let mut ctrlr = controller_from_seed(&Network::Regtest, &DEV_SEED[..]);
 
         if is_test {
             // test handler loop
@@ -64,24 +74,39 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 match eventloop.poll().await {
                     Ok(event) => {
                         // println!("{:?}", event);
-                        if let Some(ping_bytes) = incoming_bytes(event) {
-                            let (ping, sequence, dbid): (msgs::Ping, u16, u64) =
-                                parser::request_from_bytes(ping_bytes).expect("read ping header");
-                            if is_log {
-                                println!("sequence {}", sequence);
-                                println!("dbid {}", dbid);
-                                println!("INCOMING: {:?}", ping);
+                        if let Some((topic, msg_bytes)) = incoming_bytes(event) {
+                            match topic.as_str() {
+                                SUB_TOPIC => {
+                                    let (ping, sequence, dbid): (msgs::Ping, u16, u64) =
+                                        parser::request_from_bytes(msg_bytes)
+                                            .expect("read ping header");
+                                    if is_log {
+                                        println!("sequence {}", sequence);
+                                        println!("dbid {}", dbid);
+                                        println!("INCOMING: {:?}", ping);
+                                    }
+                                    let pong = msgs::Pong {
+                                        id: ping.id,
+                                        message: ping.message,
+                                    };
+                                    let bytes = parser::raw_response_from_msg(pong, sequence)
+                                        .expect("couldnt parse raw response");
+                                    client
+                                        .publish(PUB_TOPIC, QoS::AtMostOnce, false, bytes)
+                                        .await
+                                        .expect("could not mqtt publish");
+                                }
+                                CONTROL_TOPIC => {
+                                    match ctrlr.parse_msg(&msg_bytes) {
+                                        Ok(msg) => {
+                                            log::info!("CONTROL MSG {:?}", msg);
+                                            // create a response and mqtt pub here
+                                        }
+                                        Err(e) => log::warn!("error parsing ctrl msg {:?}", e),
+                                    };
+                                }
+                                _ => log::info!("invalid topic"),
                             }
-                            let pong = msgs::Pong {
-                                id: ping.id,
-                                message: ping.message,
-                            };
-                            let bytes = parser::raw_response_from_msg(pong, sequence)
-                                .expect("couldnt parse raw response");
-                            client
-                                .publish(PUB_TOPIC, QoS::AtMostOnce, false, bytes)
-                                .await
-                                .expect("could not mqtt publish");
                         }
                     }
                     Err(e) => {
@@ -97,7 +122,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 if let Ok(init_event) = eventloop.poll().await {
                     // this may be another kind of message like MQTT ConnAck
                     // loop around again and wait for the init
-                    if let Some(init_msg_bytes) = incoming_bytes(init_event) {
+                    if let Some((_topic, init_msg_bytes)) = incoming_bytes(init_event) {
                         let InitResponse {
                             root_handler,
                             init_reply,
@@ -122,7 +147,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
                     match eventloop.poll().await {
                         Ok(event) => {
                             let dummy_peer = PubKey([0; 33]);
-                            if let Some(msg_bytes) = incoming_bytes(event) {
+                            if let Some((_topic, msg_bytes)) = incoming_bytes(event) {
                                 match sphinx_key_signer::handle(
                                     rh,
                                     msg_bytes,
@@ -151,10 +176,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
     }
 }
 
-fn incoming_bytes(event: Event) -> Option<Vec<u8>> {
+fn incoming_bytes(event: Event) -> Option<(String, Vec<u8>)> {
     if let Event::Incoming(packet) = event {
         if let Packet::Publish(p) = packet {
-            return Some(p.payload.to_vec());
+            return Some((p.topic, p.payload.to_vec()));
         }
     }
     None
@@ -199,4 +224,9 @@ pub fn setup_logging(who: &str, level_arg: &str) {
         // .chain(fern::log_file("/tmp/output.log")?)
         .apply()
         .expect("log config");
+}
+
+pub fn controller_from_seed(network: &Network, seed: &[u8]) -> Controller {
+    let (pk, sk) = sphinx_key_signer::derive_node_keys(network, seed);
+    Controller::new(sk, pk, 0)
 }

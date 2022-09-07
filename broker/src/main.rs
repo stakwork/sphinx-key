@@ -1,6 +1,5 @@
 #![feature(once_cell)]
 mod chain_tracker;
-mod init;
 mod mqtt;
 mod run_test;
 mod unix_fd;
