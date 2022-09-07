@@ -1,6 +1,7 @@
 #![feature(once_cell)]
 mod chain_tracker;
 mod mqtt;
+mod routes;
 mod run_test;
 mod unix_fd;
 mod util;
@@ -12,7 +13,7 @@ use crate::util::read_broker_config;
 use clap::{App, AppSettings, Arg};
 use std::env;
 use std::sync::Arc;
-use tokio::sync::{mpsc, oneshot};
+use rocket::tokio::{self, sync::{mpsc, oneshot}};
 use url::Url;
 use vls_frontend::Frontend;
 use vls_proxy::client::UnixClient;
@@ -39,7 +40,8 @@ pub struct ChannelReply {
 
 const BROKER_CONFIG_PATH: &str = "../broker.conf";
 
-fn main() -> anyhow::Result<()> {
+#[rocket::launch]
+async fn rocket() -> _ {
     let parent_fd = open_parent_fd();
 
     util::setup_logging("hsmd  ", "info");
@@ -63,26 +65,28 @@ fn main() -> anyhow::Result<()> {
         let version =
             env::var("GREENLIGHT_VERSION").expect("set GREENLIGHT_VERSION to match c-lightning");
         println!("{}", version);
-        return Ok(());
+        panic!("end")
+    } else {
+        if matches.is_present("test") {
+            run_test::run_test().await
+        } else {
+            run_main(parent_fd).await
+        }
     }
+}
 
-    if matches.is_present("test") {
-        run_test::run_test();
-        return Ok(());
-    }
-
+async fn run_main(parent_fd: i32) -> rocket::Rocket<rocket::Build> {
     let settings = read_broker_config(BROKER_CONFIG_PATH);
 
     let (tx, rx) = mpsc::channel(1000);
     let (status_tx, mut status_rx) = mpsc::channel(1000);
     log::info!("=> start broker on network: {}", settings.network);
-    let runtime = start_broker(rx, status_tx, "sphinx-1", &settings);
+    start_broker(rx, status_tx, "sphinx-1", &settings).await;
     log::info!("=> wait for connected status");
     // wait for connection = true
-    let status = status_rx.blocking_recv().expect("couldnt receive");
+    let status = status_rx.recv().await.expect("couldnt receive");
     log::info!("=> connection status: {}", status);
     assert_eq!(status, true, "expected connected = true");
-    // runtime.block_on(async {
 
     if let Ok(btc_url) = env::var("BITCOIND_RPC_URL") {
         let signer_port = MqttSignerPort::new(tx.clone());
@@ -93,7 +97,7 @@ fn main() -> anyhow::Result<()> {
             }),
             Url::parse(&btc_url).expect("malformed btc rpc url"),
         );
-        runtime.block_on(async {
+        tokio::spawn(async move {
             frontend.start();
         });
     }
@@ -101,9 +105,10 @@ fn main() -> anyhow::Result<()> {
     let conn = UnixConnection::new(parent_fd);
     let client = UnixClient::new(conn);
     // TODO pass status_rx into SignerLoop
-    let mut signer_loop = SignerLoop::new(client, tx);
-    signer_loop.start(Some(&settings));
-    // })
+    let mut signer_loop = SignerLoop::new(client, tx.clone());
+    std::thread::spawn(move || {
+        signer_loop.start(Some(&settings));
+    });
 
-    Ok(())
+    routes::launch_rocket(tx)
 }

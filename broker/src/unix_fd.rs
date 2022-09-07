@@ -2,10 +2,10 @@ use crate::util::Settings;
 use crate::{Channel, ChannelReply, ChannelRequest};
 use bitcoin::blockdata::constants::ChainHash;
 use log::*;
+use rocket::tokio::sync::{mpsc, oneshot};
 use secp256k1::PublicKey;
 use sphinx_key_parser as parser;
 use std::thread;
-use tokio::sync::{mpsc, oneshot};
 use vls_protocol::{msgs, msgs::Message, Error, Result};
 use vls_proxy::client::Client;
 

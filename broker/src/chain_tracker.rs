@@ -1,6 +1,6 @@
 use crate::{ChannelReply, ChannelRequest};
 use async_trait::async_trait;
-use tokio::sync::{mpsc, oneshot};
+use rocket::tokio::sync::{mpsc, oneshot};
 use vls_protocol::{Error, Result};
 use vls_protocol_client::SignerPort;
 

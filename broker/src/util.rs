@@ -99,7 +99,8 @@ fn read_port_setting(table: &Value) -> Option<u16> {
         if temp <= 1023 {
             panic!("The port number is not an integer greater than 1023")
         }
-        if temp > u16::MAX.into() {
+        let max: i64 = u16::MAX.into();
+        if temp > max {
             panic!("The port number is way too big!")
         }
         log::info!("Read broker port setting: {}", temp);

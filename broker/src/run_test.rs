@@ -1,14 +1,18 @@
 use crate::mqtt::start_broker;
+use crate::routes::launch_rocket;
 use crate::util::Settings;
 use crate::ChannelRequest;
+use rocket::tokio::{
+    self,
+    sync::{mpsc, oneshot},
+};
 use sphinx_key_parser as parser;
-use tokio::sync::{mpsc, oneshot};
 use vls_protocol::serde_bolt::WireString;
 use vls_protocol::{msgs, msgs::Message};
 
 const CLIENT_ID: &str = "test-1";
 
-pub fn run_test() {
+pub async fn run_test() -> rocket::Rocket<rocket::Build> {
     log::info!("TEST...");
 
     let mut id = 0u16;
@@ -18,9 +22,10 @@ pub fn run_test() {
 
     let (tx, rx) = mpsc::channel(1000);
     let (status_tx, mut status_rx) = mpsc::channel(1000);
-    let runtime = start_broker(rx, status_tx, CLIENT_ID, &settings);
-    runtime.block_on(async {
-        let mut connected = false;
+    start_broker(rx, status_tx, CLIENT_ID, &settings).await;
+    let mut connected = false;
+    let tx_ = tx.clone();
+    tokio::spawn(async move {
         loop {
             tokio::select! {
                 status = status_rx.recv() => {
@@ -31,7 +36,7 @@ pub fn run_test() {
                         log::info!("========> CONNECTED! {}", connection_status);
                     }
                 }
-                res = iteration(id, sequence, tx.clone(), connected) => {
+                res = iteration(id, sequence, tx_.clone(), connected) => {
                     if let Err(e) = res {
                         log::warn!("===> iteration failed {:?}", e);
                         // connected = false;
@@ -46,6 +51,7 @@ pub fn run_test() {
             };
         }
     });
+    launch_rocket(tx)
 }
 
 pub async fn iteration(
