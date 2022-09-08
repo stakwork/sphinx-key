@@ -1,12 +1,12 @@
-use crate::conn::mqtt::{CONTROL_TOPIC, QOS, RETURN_TOPIC, VLS_TOPIC};
+use crate::conn::mqtt::{CONTROL_RETURN_TOPIC, CONTROL_TOPIC, QOS, RETURN_TOPIC, VLS_TOPIC};
 use crate::core::config::Config;
+use crate::core::control::{controller_from_seed, FlashPersister};
 use crate::core::init::make_init_msg;
 
-use sphinx_key_signer::control::Controller;
 use sphinx_key_signer::lightning_signer::bitcoin::Network;
 use sphinx_key_signer::vls_protocol::model::PubKey;
 use sphinx_key_signer::{self, InitResponse};
-use std::sync::mpsc;
+use std::sync::{mpsc, Arc, Mutex};
 
 use embedded_svc::httpd::Result;
 use embedded_svc::mqtt::client::utils::ConnState;
@@ -36,12 +36,6 @@ pub enum Status {
     Signing,
 }
 
-// the controller validates Control messages
-pub fn controller_from_seed(network: &Network, seed: &[u8]) -> Controller {
-    let (pk, sk) = sphinx_key_signer::derive_node_keys(network, seed);
-    Controller::new(sk, pk, 0)
-}
-
 // the main event loop
 #[cfg(not(feature = "pingpong"))]
 pub fn make_event_loop(
@@ -51,6 +45,7 @@ pub fn make_event_loop(
     do_log: bool,
     led_tx: mpsc::Sender<Status>,
     config: Config,
+    flash: Arc<Mutex<FlashPersister>>,
 ) -> Result<()> {
     while let Ok(event) = rx.recv() {
         log::info!("BROKER IP AND PORT: {}", config.broker);
@@ -77,7 +72,7 @@ pub fn make_event_loop(
     } = sphinx_key_signer::init(init_msg, network).expect("failed to init signer");
 
     // make the controller to validate Control messages
-    let mut ctrlr = controller_from_seed(&network, &config.seed[..]);
+    let mut ctrlr = controller_from_seed(&network, &config.seed[..], flash);
 
     // signing loop
     let dummy_peer = PubKey([0; 33]);
@@ -105,7 +100,7 @@ pub fn make_event_loop(
                 ) {
                     Ok(b) => {
                         mqtt.publish(RETURN_TOPIC, QOS, false, &b)
-                            .expect("could not publish init response");
+                            .expect("could not publish VLS response");
                     }
                     Err(e) => {
                         log::error!("HANDLE FAILED {:?}", e);
@@ -114,10 +109,12 @@ pub fn make_event_loop(
                 };
             }
             Event::Control(ref msg_bytes) => {
-                match ctrlr.parse_msg(msg_bytes) {
-                    Ok(msg) => {
-                        log::info!("CONTROL MSG {:?}", msg);
-                        // create a response and mqtt pub here
+                log::info!("GOT A CONTROL MSG");
+                match ctrlr.handle(msg_bytes) {
+                    Ok(response) => {
+                        // log::info!("CONTROL MSG {:?}", response);
+                        mqtt.publish(CONTROL_RETURN_TOPIC, QOS, false, &response)
+                            .expect("could not publish control response");
                     }
                     Err(e) => log::warn!("error parsing ctrl msg {:?}", e),
                 };

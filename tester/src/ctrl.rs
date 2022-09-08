@@ -1,6 +1,6 @@
 use dotenv::dotenv;
 use serde::{Deserialize, Serialize};
-use sphinx_key_parser::control::{ControlMessage, ControlResponse, Controller};
+use sphinx_key_parser::control::{ControlMessage, Controller};
 use sphinx_key_signer::lightning_signer::bitcoin::Network;
 use std::env;
 use std::time::Duration;

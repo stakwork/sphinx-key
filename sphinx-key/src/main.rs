@@ -3,6 +3,7 @@ mod conn;
 mod core;
 mod periph;
 
+use crate::core::control::FlashPersister;
 use crate::core::{config::*, events::*};
 use crate::periph::led::led_control_loop;
 #[allow(unused_imports)]
@@ -10,7 +11,7 @@ use crate::periph::sd::{mount_sd_card, simple_fs_test};
 
 use anyhow::Result;
 use esp_idf_sys as _; // If using the `binstart` feature of `esp-idf-sys`, always keep this module imported
-use std::sync::{mpsc, Arc};
+use std::sync::{mpsc, Arc, Mutex};
 use std::thread;
 use std::time::Duration;
 use std::time::SystemTime;
@@ -88,8 +89,9 @@ fn main() -> Result<()> {
 
         led_tx.send(Status::ConnectingToMqtt).unwrap();
         // _conn needs to stay in scope or its dropped
+        let flash = Arc::new(Mutex::new(FlashPersister(store)));
         loop {
-            if let Ok(()) = make_and_launch_client(exist.clone(), led_tx.clone()) {
+            if let Ok(()) = make_and_launch_client(exist.clone(), led_tx.clone(), flash.clone()) {
                 println!("Exited out of the event loop, trying again in 5 seconds...");
                 thread::sleep(Duration::from_secs(5));
             } else {
@@ -113,7 +115,11 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-fn make_and_launch_client(config: Config, led_tx: mpsc::Sender<Status>) -> anyhow::Result<()> {
+fn make_and_launch_client(
+    config: Config,
+    led_tx: mpsc::Sender<Status>,
+    flash: Arc<Mutex<FlashPersister>>,
+) -> anyhow::Result<()> {
     let (tx, rx) = mpsc::channel();
     let (mqtt, connection) = conn::mqtt::make_client(&config.broker, CLIENT_ID)?;
     let mqtt_client = conn::mqtt::start_listening(mqtt, connection, tx)?;
@@ -131,6 +137,6 @@ fn make_and_launch_client(config: Config, led_tx: mpsc::Sender<Status>) -> anyho
     log::info!("Network set to {:?}", network);
     log::info!(">>>>>>>>>>> blocking forever...");
     log::info!("{:?}", config);
-    make_event_loop(mqtt_client, rx, network, do_log, led_tx, config)?;
+    make_event_loop(mqtt_client, rx, network, do_log, led_tx, config, flash)?;
     Ok(())
 }
