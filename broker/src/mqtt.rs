@@ -12,8 +12,10 @@ use std::sync::Arc;
 use std::sync::{LazyLock, Mutex};
 use std::time::Duration;
 
+pub const PUB_TOPIC: &str = "sphinx";
+pub const CONTROL_TOPIC: &str = "sphinx-control";
 const SUB_TOPIC: &str = "sphinx-return";
-const PUB_TOPIC: &str = "sphinx";
+const CONTROL_SUB_TOPIC: &str = "sphinx-control-return";
 const USERNAME: &str = "sphinx-key";
 const PASSWORD: &str = "sphinx-key-pass";
 // must get a reply within this time, or disconnects
@@ -49,7 +51,10 @@ pub async fn start_broker(
         let (msg_tx, mut msg_rx): (mpsc::Sender<Vec<u8>>, mpsc::Receiver<Vec<u8>>) =
             mpsc::channel(1000);
         let (mut link_tx, mut link_rx) = builder.clone().connect("localclient", 200).await.unwrap();
-        link_tx.subscribe([SUB_TOPIC]).await.unwrap();
+        link_tx
+            .subscribe([SUB_TOPIC, CONTROL_SUB_TOPIC])
+            .await
+            .unwrap();
 
         let router_tx = builder.router_tx();
         let status_sender_ = status_sender.clone();
@@ -84,7 +89,7 @@ pub async fn start_broker(
         let relay_task = tokio::spawn(async move {
             while let Some(msg) = receiver.recv().await {
                 link_tx
-                    .publish(PUB_TOPIC, false, msg.message)
+                    .publish(&msg.topic, false, msg.message)
                     .await
                     .expect("could not mqtt pub");
                 match timeout(Duration::from_millis(REPLY_TIMEOUT_MS), msg_rx.recv()).await {

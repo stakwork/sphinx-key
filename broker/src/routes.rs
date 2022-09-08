@@ -1,7 +1,7 @@
-use crate::ChannelRequest;
+use crate::{mqtt::CONTROL_TOPIC, ChannelRequest};
 use rocket::fairing::{Fairing, Info, Kind};
 use rocket::http::Header;
-use rocket::tokio::sync::{mpsc::Sender, oneshot};
+use rocket::tokio::sync::mpsc::Sender;
 use rocket::*;
 use rocket::{Request, Response};
 
@@ -14,8 +14,7 @@ pub async fn yo(sender: &State<Sender<ChannelRequest>>, msg: &str) -> Result<Str
     if message.len() < 65 {
         return Err(Error::Fail);
     }
-    let (reply_tx, reply_rx) = oneshot::channel();
-    let request = ChannelRequest { message, reply_tx };
+    let (request, reply_rx) = ChannelRequest::new(CONTROL_TOPIC, message);
     // send to ESP
     let _ = sender.send(request).await.map_err(|_| Error::Fail)?;
     // wait for reply

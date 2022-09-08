@@ -2,7 +2,7 @@
 
 #### test control messages
 
-cargo run --bin sphinx-key-tester -- --test
+cargo run --bin sphinx-key-tester -- --test --log
 
 cd broker 
 cargo run -- --test

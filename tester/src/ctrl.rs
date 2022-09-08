@@ -1,6 +1,6 @@
 use dotenv::dotenv;
 use serde::{Deserialize, Serialize};
-use sphinx_key_parser::control::{ControlMessage, Controller};
+use sphinx_key_parser::control::{ControlMessage, ControlResponse, Controller};
 use sphinx_key_signer::lightning_signer::bitcoin::Network;
 use std::env;
 use std::time::Duration;
@@ -35,7 +35,10 @@ async fn main() -> anyhow::Result<()> {
         .await?;
 
     let response: String = res.text().await?;
-    println!("res {:?}", response);
+    let res_bytes = hex::decode(response).expect("couldnt decode response");
+
+    let resp = ctrl.parse_response(&res_bytes).expect("nope");
+    println!("RESponse from the ESP!!! {:?}", resp);
 
     Ok(())
 }

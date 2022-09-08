@@ -38,8 +38,8 @@ impl Controller {
     }
     pub fn build_msg(&mut self, msg: ControlMessage) -> anyhow::Result<Vec<u8>> {
         let data = rmp_serde::to_vec(&msg)?;
-        let ret = nonce::build_msg(&data, &self.0, self.2)?;
         self.2 = self.2 + 1;
+        let ret = nonce::build_msg(&data, &self.0, self.2)?;
         Ok(ret)
     }
     pub fn build_response(&self, msg: ControlResponse) -> anyhow::Result<Vec<u8>> {
@@ -53,5 +53,13 @@ impl Controller {
     }
     pub fn parse_response(&self, input: &[u8]) -> anyhow::Result<ControlResponse> {
         Ok(rmp_serde::from_slice(input)?)
+    }
+    pub fn handle(&mut self, input: &[u8]) -> anyhow::Result<Vec<u8>> {
+        let msg = self.parse_msg(input)?;
+        let res = match msg {
+            ControlMessage::Nonce => ControlResponse::Nonce(self.2),
+            _ => ControlResponse::Nonce(self.2),
+        };
+        Ok(self.build_response(res)?)
     }
 }

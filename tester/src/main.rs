@@ -2,6 +2,7 @@ use sphinx_key_parser as parser;
 use sphinx_key_signer::lightning_signer::bitcoin::Network;
 
 use clap::{App, AppSettings, Arg};
+use dotenv::dotenv;
 use rumqttc::{self, AsyncClient, Event, MqttOptions, Packet, QoS};
 use sphinx_key_signer::control::Controller;
 use sphinx_key_signer::vls_protocol::{model::PubKey, msgs};
@@ -13,14 +14,16 @@ use std::time::Duration;
 
 const SUB_TOPIC: &str = "sphinx";
 const CONTROL_TOPIC: &str = "sphinx-control";
+const CONTROL_PUB_TOPIC: &str = "sphinx-control-return";
 const PUB_TOPIC: &str = "sphinx-return";
 const USERNAME: &str = "sphinx-key";
 const PASSWORD: &str = "sphinx-key-pass";
-const DEV_SEED: [u8; 32] = [0; 32];
 
 #[tokio::main(worker_threads = 1)]
 async fn main() -> Result<(), Box<dyn Error>> {
     setup_logging("sphinx-key-tester  ", "info");
+
+    dotenv().ok();
 
     let app = App::new("tester")
         .setting(AppSettings::NoAutoVersion)
@@ -65,8 +68,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
             .await
             .expect("could not mqtt subscribe");
 
+        let seed_string: String = env::var("SEED").expect("no seed");
+        let seed = hex::decode(seed_string).expect("couldnt decode seed");
         // make the controller to validate Control messages
-        let mut ctrlr = controller_from_seed(&Network::Regtest, &DEV_SEED[..]);
+        let mut ctrlr = controller_from_seed(&Network::Regtest, &seed);
 
         if is_test {
             // test handler loop
@@ -97,10 +102,17 @@ async fn main() -> Result<(), Box<dyn Error>> {
                                         .expect("could not mqtt publish");
                                 }
                                 CONTROL_TOPIC => {
-                                    match ctrlr.parse_msg(&msg_bytes) {
-                                        Ok(msg) => {
-                                            log::info!("CONTROL MSG {:?}", msg);
-                                            // create a response and mqtt pub here
+                                    match ctrlr.handle(&msg_bytes) {
+                                        Ok(response) => {
+                                            client
+                                                .publish(
+                                                    CONTROL_PUB_TOPIC,
+                                                    QoS::AtMostOnce,
+                                                    false,
+                                                    response,
+                                                )
+                                                .await
+                                                .expect("could not mqtt publish");
                                         }
                                         Err(e) => log::warn!("error parsing ctrl msg {:?}", e),
                                     };

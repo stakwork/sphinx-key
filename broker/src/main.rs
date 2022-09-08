@@ -31,8 +31,20 @@ pub struct Channel {
 /// Responses are received on the oneshot sender
 #[derive(Debug)]
 pub struct ChannelRequest {
+    pub topic: String,
     pub message: Vec<u8>,
     pub reply_tx: oneshot::Sender<ChannelReply>,
+}
+impl ChannelRequest {
+    pub fn new(topic: &str, message: Vec<u8>) -> (Self, oneshot::Receiver<ChannelReply>) {
+        let (reply_tx, reply_rx) = oneshot::channel();
+        let cr = ChannelRequest {
+            topic: topic.to_string(),
+            message,
+            reply_tx,
+        };
+        (cr, reply_rx)
+    }
 }
 
 // mpsc reply

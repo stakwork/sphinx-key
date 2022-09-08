@@ -1,4 +1,4 @@
-use crate::{ChannelReply, ChannelRequest};
+use crate::{mqtt::PUB_TOPIC, ChannelReply, ChannelRequest};
 use async_trait::async_trait;
 use rocket::tokio::sync::{mpsc, oneshot};
 use vls_protocol::{Error, Result};
@@ -28,8 +28,7 @@ impl MqttSignerPort {
     }
 
     async fn send_request(&self, message: Vec<u8>) -> Result<oneshot::Receiver<ChannelReply>> {
-        let (reply_tx, reply_rx) = oneshot::channel();
-        let request = ChannelRequest { message, reply_tx };
+        let (request, reply_rx) = ChannelRequest::new(PUB_TOPIC, message);
         self.sender.send(request).await.map_err(|_| Error::Eof)?;
         Ok(reply_rx)
     }
