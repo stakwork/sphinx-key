@@ -11,9 +11,12 @@ use crate::mqtt::start_broker;
 use crate::unix_fd::SignerLoop;
 use crate::util::read_broker_config;
 use clap::{App, AppSettings, Arg};
+use rocket::tokio::{
+    self,
+    sync::{mpsc, oneshot},
+};
 use std::env;
 use std::sync::Arc;
-use rocket::tokio::{self, sync::{mpsc, oneshot}};
 use url::Url;
 use vls_frontend::Frontend;
 use vls_proxy::client::UnixClient;
@@ -101,11 +104,11 @@ async fn run_main(parent_fd: i32) -> rocket::Rocket<rocket::Build> {
             frontend.start();
         });
     }
-    // listen to reqs from CLN
     let conn = UnixConnection::new(parent_fd);
     let client = UnixClient::new(conn);
     // TODO pass status_rx into SignerLoop
     let mut signer_loop = SignerLoop::new(client, tx.clone());
+    // spawn CLN listener on a std thread
     std::thread::spawn(move || {
         signer_loop.start(Some(&settings));
     });

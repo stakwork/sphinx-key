@@ -29,6 +29,7 @@ url = { version = "2.2" }
 toml = "0.5.9"
 rocket = {version = "0.5.0-rc.2", features = ["json"]}
 thiserror = "1.0.31"
+hex = "0.4.3"
 
 [features]
 default = ["std"]

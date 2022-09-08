@@ -38,11 +38,14 @@ pub async fn start_broker(
 
     let (mut router, servers, builder) = async_locallink::construct(config.clone());
 
-    tokio::spawn(async move {
+    // std thread for the router
+    std::thread::spawn(move || {
+        log::info!("start mqtt router");
         router.start().expect("could not start router");
     });
 
     tokio::spawn(async move {
+        log::info!("start mqtt relayer and localclient");
         let (msg_tx, mut msg_rx): (mpsc::Sender<Vec<u8>>, mpsc::Receiver<Vec<u8>>) =
             mpsc::channel(1000);
         let (mut link_tx, mut link_rx) = builder.clone().connect("localclient", 200).await.unwrap();
@@ -76,7 +79,6 @@ pub async fn start_broker(
                     }
                 }
             }
-            println!("BOOM LINK_TX CLOSED!");
         });
 
         let relay_task = tokio::spawn(async move {
@@ -103,7 +105,6 @@ pub async fn start_broker(
                     }
                 }
             }
-            println!("BOOM RECEIVER CLOSED!");
         });
 
         servers.await;
@@ -112,7 +113,7 @@ pub async fn start_broker(
     });
 
     // give one second for router to spawn listeners
-    tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+    tokio::time::sleep(std::time::Duration::from_secs(10)).await;
 }
 
 fn metrics_to_status(metrics: ConnectionMetrics, client_connected: bool) -> Option<bool> {

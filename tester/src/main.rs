@@ -48,9 +48,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
                         break (client, eventloop);
                     }
                 }
-                Err(_) => {
+                Err(e) => {
                     try_i = try_i + 1;
-                    println!("reconnect.... {}", try_i);
+                    println!("reconnect.... {} {:?}", try_i, e);
                     tokio::time::sleep(Duration::from_secs(1)).await;
                 }
             }
