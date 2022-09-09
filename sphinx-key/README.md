@@ -98,6 +98,8 @@ espmonitor $FLASHPORT
 
 - Wait for the message `Waiting for data from the phone!`. The LED should blink green.
 - On your phone connect to the Wifi `sphinxkey`. This is served from the ESP32, and has no password.
+> **Note**
+> The sphinxkey network does not grant access to the internet, so ignore any warnings of that fact :)
 - Launch the signer setup flow on the sphinx app, and input the following settings:
 
 ESP IP address: `192.168.71.1`\
@@ -118,6 +120,7 @@ Password: password of the wifi from the previous step
 - Plug in the ESP32-C3 dev board to your computer via data-enabled micro-USB, and again run `ls /dev/tty.*`. A new file should now appear, similar to this one `/dev/tty.usbserial-1420`
 - Run `export FLASHPORT=[full file path noted in the previous step]`. In my case: `export FLASHPORT=/dev/tty.usbserial-1420`
 - `cd ~/sphinx-key/sphinx-key`
+- `git pull`
 - `export CFLAGS=-fno-pic`
 - `export CC=$HOME/tiny-esp32/.embuild/espressif/tools/riscv32-esp-elf/esp-2021r2-patch3-8.4.0/riscv32-esp-elf/bin/riscv32-esp-elf-gcc`
 - `cargo build`. You are now building the sphinx-key signer!
