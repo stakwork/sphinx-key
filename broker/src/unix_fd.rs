@@ -1,11 +1,12 @@
+use crate::mqtt::PUB_TOPIC;
 use crate::util::Settings;
 use crate::{Channel, ChannelReply, ChannelRequest};
 use bitcoin::blockdata::constants::ChainHash;
 use log::*;
+use rocket::tokio::sync::{mpsc, oneshot};
 use secp256k1::PublicKey;
 use sphinx_key_parser as parser;
 use std::thread;
-use tokio::sync::{mpsc, oneshot};
 use vls_protocol::{msgs, msgs::Message, Error, Result};
 use vls_proxy::client::Client;
 
@@ -125,10 +126,8 @@ impl<C: 'static + Client> SignerLoop<C> {
     }
 
     fn send_request(&mut self, message: Vec<u8>) -> Result<oneshot::Receiver<ChannelReply>> {
-        // Create a one-shot channel to receive the reply
-        let (reply_tx, reply_rx) = oneshot::channel();
         // Send a request to the MQTT handler to send to signer
-        let request = ChannelRequest { message, reply_tx };
+        let (request, reply_rx) = ChannelRequest::new(PUB_TOPIC, message);
         // This can fail if MQTT shuts down
         self.chan
             .sender

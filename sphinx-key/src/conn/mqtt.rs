@@ -15,6 +15,7 @@ use std::thread;
 pub const VLS_TOPIC: &str = "sphinx";
 pub const CONTROL_TOPIC: &str = "sphinx-control";
 pub const RETURN_TOPIC: &str = "sphinx-return";
+pub const CONTROL_RETURN_TOPIC: &str = "sphinx-control-return";
 pub const USERNAME: &str = "sphinx-key";
 pub const PASSWORD: &str = "sphinx-key-pass";
 pub const QOS: QoS = QoS::AtMostOnce;

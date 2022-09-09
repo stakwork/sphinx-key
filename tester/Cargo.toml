@@ -33,3 +33,7 @@ path = "src/config.rs"
 [[bin]]
 name = "config-server"
 path = "src/server.rs"
+
+[[bin]]
+name = "ctrl"
+path = "src/ctrl.rs"

@@ -79,7 +79,7 @@ espflash --monitor $FLASHPORT target/riscv32imc-esp-espidf/debug/tiny-esp32
 - `git clone https://github.com/stakwork/sphinx-key.git`
 - `cd sphinx-key/sphinx-key`
 - `export CFLAGS=-fno-pic`
-- `export CC=$HOME/tiny-esp32/.embuild/espressif/tools/riscv32-esp-elf/*/riscv32-esp-elf/bin/riscv32-esp-elf-gcc`
+- `export CC=$HOME/tiny-esp32/.embuild/espressif/tools/riscv32-esp-elf/esp-2021r2-patch3-8.4.0/riscv32-esp-elf/bin/riscv32-esp-elf-gcc`
 - `cargo build`. You are now building the sphinx-key signer!
 - `virtualenv venv`
 - `source venv/bin/activate`
@@ -119,7 +119,7 @@ Password: password of the wifi from the previous step
 - Run `export FLASHPORT=[full file path noted in the previous step]`. In my case: `export FLASHPORT=/dev/tty.usbserial-1420`
 - `cd ~/sphinx-key/sphinx-key`
 - `export CFLAGS=-fno-pic`
-- `export CC=$HOME/tiny-esp32/.embuild/espressif/tools/riscv32-esp-elf/*/riscv32-esp-elf/bin/riscv32-esp-elf-gcc`
+- `export CC=$HOME/tiny-esp32/.embuild/espressif/tools/riscv32-esp-elf/esp-2021r2-patch3-8.4.0/riscv32-esp-elf/bin/riscv32-esp-elf-gcc`
 - `cargo build`. You are now building the sphinx-key signer!
 - `source venv/bin/activate`
 - `esptool.py --chip esp32-c3 elf2image target/riscv32imc-esp-espidf/debug/sphinx-key`
@@ -140,7 +140,7 @@ espmonitor $FLASHPORT
 - Run `export FLASHPORT=[full file path noted in the previous step]`. In my case: `export FLASHPORT=/dev/tty.usbserial-1420`
 - `cd ~/sphinx-key/sphinx-key`
 - `export CFLAGS=-fno-pic`
-- `export CC=$HOME/tiny-esp32/.embuild/espressif/tools/riscv32-esp-elf/*/riscv32-esp-elf/bin/riscv32-esp-elf-gcc`
+- `export CC=$HOME/tiny-esp32/.embuild/espressif/tools/riscv32-esp-elf/esp-2021r2-patch3-8.4.0/riscv32-esp-elf/bin/riscv32-esp-elf-gcc`
 - `cargo build`.
 - `espflash --monitor $FLASHPORT target/riscv32imc-esp-espidf/debug/clear`.
 - In the logs, wait until you see the message `NVS cleared!`. Congratulations, you have now cleared all the persistent data on the ESP32.

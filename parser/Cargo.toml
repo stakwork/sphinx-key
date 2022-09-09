@@ -8,7 +8,7 @@ vls-protocol = { git = "https://gitlab.com/lightning-signer/validating-lightning
 serde = { version = "1.0", default-features = false }
 rmp-serde = "1.1.0"
 serde_bolt = { version = "0.2", default-features = false }
-sphinx-auther = "0.1.9"
+sphinx-auther = "0.1.10"
 anyhow = "1"
 
 [features]
