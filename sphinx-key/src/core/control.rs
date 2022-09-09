@@ -18,7 +18,9 @@ pub struct FlashPersister(pub EspNvsStorage);
 
 impl ControlPersist for FlashPersister {
     fn reset(&mut self) {
-        // let mut store = self.0.lock();
         self.0.remove("config").expect("couldnt remove config 1");
+    }
+    fn set_nonce(&mut self, nonce: u64) {
+        // self.0.remove("config").expect("couldnt remove config 1");
     }
 }

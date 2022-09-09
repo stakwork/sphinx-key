@@ -79,13 +79,14 @@ impl Controller {
     pub fn handle(&mut self, input: &[u8]) -> anyhow::Result<(Vec<u8>, Option<Policy>)> {
         let msg = self.parse_msg_no_nonce(input)?;
         // increment the nonce EXCEPT for Nonce requests
+        let mut store = self.3.lock().unwrap();
         match msg {
             ControlMessage::Nonce => (),
             _ => {
                 self.2 = self.2 + 1;
+                store.set_nonce(self.2);
             }
         }
-        let mut store = self.3.lock().unwrap();
         let mut new_policy = None;
         let res = match msg {
             ControlMessage::Nonce => ControlResponse::Nonce(self.2),
@@ -106,12 +107,12 @@ impl Controller {
 
 pub trait ControlPersist: Sync + Send {
     fn reset(&mut self);
+    fn set_nonce(&mut self, nonce: u64);
 }
 
 pub struct DummyPersister;
 
 impl ControlPersist for DummyPersister {
-    fn reset(&mut self) {
-        // nothing
-    }
+    fn reset(&mut self) {}
+    fn set_nonce(&mut self, _nonce: u64) {}
 }
