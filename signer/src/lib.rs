@@ -10,7 +10,7 @@ use lightning_signer::util::clock::StandardClock;
 use lightning_signer::util::velocity::{VelocityControlIntervalType, VelocityControlSpec};
 use randomstartingtime::RandomStartingTimeFactory;
 use std::sync::Arc;
-use vls_protocol::model::PubKey;
+use vls_protocol::model::{PubKey, Secret};
 use vls_protocol::msgs::{self, read_serial_request_header, write_serial_response_header, Message};
 use vls_protocol::serde_bolt::WireString;
 use vls_protocol_signer::handler::{Handler, RootHandler};
@@ -139,6 +139,22 @@ pub fn handle(
     write_serial_response_header(&mut out_md, sequence).expect("write reply header");
     msgs::write_vec(&mut out_md, reply.as_vec()).expect("write reply");
     Ok(out_md.bytes())
+}
+
+pub fn make_init_msg(network: Network, seed: [u8; 32]) -> anyhow::Result<Vec<u8>> {
+    let allowlist = Vec::new();
+    log::info!("allowlist {:?} seed {:?}", allowlist, seed);
+    let init = msgs::HsmdInit2 {
+        derivation_style: 0,
+        network_name: WireString(network.to_string().as_bytes().to_vec()),
+        dev_seed: Some(Secret(seed)),
+        dev_allowlist: allowlist,
+    };
+    let sequence = 0;
+    let mut md = MsgDriver::new_empty();
+    msgs::write_serial_request_header(&mut md, sequence, 0)?;
+    msgs::write(&mut md, init)?;
+    Ok(md.bytes())
 }
 
 pub fn parse_ping_and_form_response(msg_bytes: Vec<u8>) -> Vec<u8> {

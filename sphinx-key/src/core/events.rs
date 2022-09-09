@@ -1,9 +1,9 @@
 use crate::conn::mqtt::{CONTROL_RETURN_TOPIC, CONTROL_TOPIC, QOS, RETURN_TOPIC, VLS_TOPIC};
 use crate::core::config::Config;
 use crate::core::control::{controller_from_seed, FlashPersister};
-use crate::core::init::make_init_msg;
 
 use sphinx_key_signer::lightning_signer::bitcoin::Network;
+use sphinx_key_signer::make_init_msg;
 use sphinx_key_signer::vls_protocol::model::PubKey;
 use sphinx_key_signer::{self, InitResponse};
 use std::sync::{mpsc, Arc, Mutex};
@@ -111,7 +111,7 @@ pub fn make_event_loop(
             Event::Control(ref msg_bytes) => {
                 log::info!("GOT A CONTROL MSG");
                 match ctrlr.handle(msg_bytes) {
-                    Ok(response) => {
+                    Ok((response, _new_policy)) => {
                         // log::info!("CONTROL MSG {:?}", response);
                         mqtt.publish(CONTROL_RETURN_TOPIC, QOS, false, &response)
                             .expect("could not publish control response");

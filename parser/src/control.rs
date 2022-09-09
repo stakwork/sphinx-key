@@ -68,21 +68,39 @@ impl Controller {
         self.2 = self.2 + 1;
         Ok(ret)
     }
+    pub fn parse_msg_no_nonce(&mut self, input: &[u8]) -> anyhow::Result<ControlMessage> {
+        let (msg, _nonce) = nonce::parse_msg_no_nonce(input, &self.1)?;
+        let ret = rmp_serde::from_slice(&msg)?;
+        Ok(ret)
+    }
     pub fn parse_response(&self, input: &[u8]) -> anyhow::Result<ControlResponse> {
         Ok(rmp_serde::from_slice(input)?)
     }
-    pub fn handle(&mut self, input: &[u8]) -> anyhow::Result<Vec<u8>> {
-        let msg = self.parse_msg(input)?;
+    pub fn handle(&mut self, input: &[u8]) -> anyhow::Result<(Vec<u8>, Option<Policy>)> {
+        let msg = self.parse_msg_no_nonce(input)?;
+        // increment the nonce EXCEPT for Nonce requests
+        match msg {
+            ControlMessage::Nonce => (),
+            _ => {
+                self.2 = self.2 + 1;
+            }
+        }
         let mut store = self.3.lock().unwrap();
+        let mut new_policy = None;
         let res = match msg {
             ControlMessage::Nonce => ControlResponse::Nonce(self.2),
             ControlMessage::ResetWifi => {
                 store.reset();
                 ControlResponse::ResetWifi
             }
+            ControlMessage::UpdatePolicy(np) => {
+                new_policy = Some(np.clone());
+                ControlResponse::PolicyUpdated(np)
+            }
             _ => ControlResponse::Nonce(self.2),
         };
-        Ok(self.build_response(res)?)
+        let response = self.build_response(res)?;
+        Ok((response, new_policy))
     }
 }
 

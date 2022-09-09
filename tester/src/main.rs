@@ -7,6 +7,7 @@ use rumqttc::{self, AsyncClient, Event, MqttOptions, Packet, QoS};
 use sphinx_key_signer::control::Controller;
 use sphinx_key_signer::vls_protocol::{model::PubKey, msgs};
 use sphinx_key_signer::{self, InitResponse};
+use std::convert::TryInto;
 use std::env;
 use std::error::Error;
 use std::str::FromStr;
@@ -68,10 +69,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
             .await
             .expect("could not mqtt subscribe");
 
+        let network = Network::Regtest;
         let seed_string: String = env::var("SEED").expect("no seed");
         let seed = hex::decode(seed_string).expect("couldnt decode seed");
         // make the controller to validate Control messages
-        let mut ctrlr = controller_from_seed(&Network::Regtest, &seed);
+        let mut ctrlr = controller_from_seed(&network, &seed);
 
         if is_test {
             // test handler loop
@@ -103,7 +105,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
                                 }
                                 CONTROL_TOPIC => {
                                     match ctrlr.handle(&msg_bytes) {
-                                        Ok(response) => {
+                                        Ok((response, _new_policy)) => {
                                             client
                                                 .publish(
                                                     CONTROL_PUB_TOPIC,
@@ -129,59 +131,59 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 }
             }
         } else {
-            // once the init loop is done, the root_handler is returned
-            let root_handler = loop {
-                if let Ok(init_event) = eventloop.poll().await {
-                    // this may be another kind of message like MQTT ConnAck
-                    // loop around again and wait for the init
-                    if let Some((_topic, init_msg_bytes)) = incoming_bytes(init_event) {
-                        let InitResponse {
-                            root_handler,
-                            init_reply,
-                        } = sphinx_key_signer::init(init_msg_bytes, Network::Regtest)
-                            .expect("failed to init signer");
-                        client
-                            .publish(PUB_TOPIC, QoS::AtMostOnce, false, init_reply)
-                            .await
-                            .expect("could not publish init response");
-                        // return the root_handler and finish the init loop
-                        break Some(root_handler);
-                    }
-                } else {
-                    tokio::time::sleep(Duration::from_secs(1)).await;
-                    log::warn!("failed to initialize! Lost connection");
-                    break None;
-                }
-            };
+            let seed32: [u8; 32] = seed.try_into().expect("wrong seed");
+            let init_msg =
+                sphinx_key_signer::make_init_msg(network, seed32).expect("failed to make init msg");
+            let InitResponse {
+                root_handler,
+                init_reply: _,
+            } = sphinx_key_signer::init(init_msg, network).expect("failed to init signer");
             // the actual handler loop
             loop {
-                if let Some(rh) = &root_handler {
-                    match eventloop.poll().await {
-                        Ok(event) => {
-                            let dummy_peer = PubKey([0; 33]);
-                            if let Some((_topic, msg_bytes)) = incoming_bytes(event) {
-                                match sphinx_key_signer::handle(
-                                    rh,
-                                    msg_bytes,
-                                    dummy_peer.clone(),
-                                    is_log,
-                                ) {
-                                    Ok(b) => client
-                                        .publish(PUB_TOPIC, QoS::AtMostOnce, false, b)
-                                        .await
-                                        .expect("could not publish init response"),
-                                    Err(e) => panic!("HANDLE FAILED {:?}", e),
-                                };
+                match eventloop.poll().await {
+                    Ok(event) => {
+                        let dummy_peer = PubKey([0; 33]);
+                        if let Some((topic, msg_bytes)) = incoming_bytes(event) {
+                            match topic.as_str() {
+                                SUB_TOPIC => {
+                                    match sphinx_key_signer::handle(
+                                        &root_handler,
+                                        msg_bytes,
+                                        dummy_peer.clone(),
+                                        is_log,
+                                    ) {
+                                        Ok(b) => client
+                                            .publish(PUB_TOPIC, QoS::AtMostOnce, false, b)
+                                            .await
+                                            .expect("could not publish init response"),
+                                        Err(e) => panic!("HANDLE FAILED {:?}", e),
+                                    };
+                                }
+                                CONTROL_TOPIC => {
+                                    match ctrlr.handle(&msg_bytes) {
+                                        Ok((response, _new_policy)) => {
+                                            client
+                                                .publish(
+                                                    CONTROL_PUB_TOPIC,
+                                                    QoS::AtMostOnce,
+                                                    false,
+                                                    response,
+                                                )
+                                                .await
+                                                .expect("could not mqtt publish");
+                                        }
+                                        Err(e) => log::warn!("error parsing ctrl msg {:?}", e),
+                                    };
+                                }
+                                _ => log::info!("invalid topic"),
                             }
                         }
-                        Err(e) => {
-                            log::warn!("diconnected {:?}", e);
-                            tokio::time::sleep(Duration::from_secs(1)).await;
-                            break; // break out of this loop to reconnect
-                        }
                     }
-                } else {
-                    break;
+                    Err(e) => {
+                        log::warn!("diconnected {:?}", e);
+                        tokio::time::sleep(Duration::from_secs(1)).await;
+                        break; // break out of this loop to reconnect
+                    }
                 }
             }
         }
