@@ -1,11 +1,10 @@
 use crate::conn::mqtt::{CONTROL_RETURN_TOPIC, CONTROL_TOPIC, QOS, RETURN_TOPIC, VLS_TOPIC};
-use crate::core::config::Config;
 use crate::core::control::{controller_from_seed, FlashPersister};
 
+use sphinx_key_signer::control::Config;
 use sphinx_key_signer::lightning_signer::bitcoin::Network;
-use sphinx_key_signer::make_init_msg;
 use sphinx_key_signer::vls_protocol::model::PubKey;
-use sphinx_key_signer::{self, InitResponse};
+use sphinx_key_signer::{self, make_init_msg, InitResponse};
 use std::sync::{mpsc, Arc, Mutex};
 
 use embedded_svc::httpd::Result;
@@ -45,6 +44,7 @@ pub fn make_event_loop(
     do_log: bool,
     led_tx: mpsc::Sender<Status>,
     config: Config,
+    seed: [u8; 32],
     flash: Arc<Mutex<FlashPersister>>,
 ) -> Result<()> {
     while let Ok(event) = rx.recv() {
@@ -65,14 +65,14 @@ pub fn make_event_loop(
     }
 
     // initialize the RootHandler
-    let init_msg = make_init_msg(network, config.seed).expect("failed to make init msg");
+    let init_msg = make_init_msg(network, seed).expect("failed to make init msg");
     let InitResponse {
         root_handler,
         init_reply: _,
     } = sphinx_key_signer::init(init_msg, network).expect("failed to init signer");
 
     // make the controller to validate Control messages
-    let mut ctrlr = controller_from_seed(&network, &config.seed[..], flash);
+    let mut ctrlr = controller_from_seed(&network, &seed[..], flash);
 
     // signing loop
     let dummy_peer = PubKey([0; 33]);

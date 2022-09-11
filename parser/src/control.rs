@@ -1,7 +1,17 @@
+use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use sphinx_auther::nonce;
 use sphinx_auther::secp256k1::{PublicKey, SecretKey};
 use std::sync::{Arc, Mutex};
+
+#[derive(Clone, Debug, Deserialize, Serialize, Default)]
+pub struct Config {
+    pub broker: String,
+    pub ssid: String,
+    pub pass: String,
+    pub network: String,
+    // pub seed: [u8; 32],
+}
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum ControlMessage {
@@ -105,9 +115,29 @@ impl Controller {
     }
 }
 
+#[derive(Debug)]
+pub enum FlashKey {
+    Config,
+    Seed,
+    Nonce,
+}
+impl FlashKey {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            FlashKey::Config => "config",
+            FlashKey::Seed => "seed",
+            FlashKey::Nonce => "nonce",
+        }
+    }
+}
+
 pub trait ControlPersist: Sync + Send {
     fn reset(&mut self);
     fn set_nonce(&mut self, nonce: u64);
+    fn read_config(&self) -> Result<Config>;
+    fn write_config(&mut self, c: Config) -> Result<()>;
+    fn read_seed(&self) -> Result<[u8; 32]>;
+    fn write_seed(&mut self, s: [u8; 32]) -> Result<()>;
 }
 
 pub struct DummyPersister;
@@ -115,4 +145,16 @@ pub struct DummyPersister;
 impl ControlPersist for DummyPersister {
     fn reset(&mut self) {}
     fn set_nonce(&mut self, _nonce: u64) {}
+    fn read_config(&self) -> Result<Config> {
+        Ok(Default::default())
+    }
+    fn write_config(&mut self, _conf: Config) -> Result<()> {
+        Ok(())
+    }
+    fn read_seed(&self) -> Result<[u8; 32]> {
+        Ok([0; 32])
+    }
+    fn write_seed(&mut self, _s: [u8; 32]) -> Result<()> {
+        Ok(())
+    }
 }
