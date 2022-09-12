@@ -58,9 +58,11 @@ impl Controller {
     pub fn new_with_persister(
         sk: SecretKey,
         pk: PublicKey,
-        nonce: u64,
         per: Arc<Mutex<dyn ControlPersist>>,
     ) -> Self {
+        let store1 = per.clone();
+        let store = store1.lock().unwrap();
+        let nonce = store.read_nonce().unwrap_or(0);
         Self(sk, pk, nonce, per)
     }
     pub fn build_msg(&mut self, msg: ControlMessage) -> anyhow::Result<Vec<u8>> {
@@ -86,7 +88,8 @@ impl Controller {
     pub fn parse_response(&self, input: &[u8]) -> anyhow::Result<ControlResponse> {
         Ok(rmp_serde::from_slice(input)?)
     }
-    pub fn handle(&mut self, input: &[u8]) -> anyhow::Result<(Vec<u8>, Option<Policy>)> {
+    // return the OG message for further processing
+    pub fn handle(&mut self, input: &[u8]) -> anyhow::Result<(Vec<u8>, ControlMessage)> {
         let msg = self.parse_msg_no_nonce(input)?;
         // increment the nonce EXCEPT for Nonce requests
         let mut store = self.3.lock().unwrap();
@@ -94,24 +97,20 @@ impl Controller {
             ControlMessage::Nonce => (),
             _ => {
                 self.2 = self.2 + 1;
-                store.set_nonce(self.2);
+                store.set_nonce(self.2)?;
             }
         }
-        let mut new_policy = None;
-        let res = match msg {
+        let res = match msg.clone() {
             ControlMessage::Nonce => ControlResponse::Nonce(self.2),
             ControlMessage::ResetWifi => {
                 store.reset();
                 ControlResponse::ResetWifi
             }
-            ControlMessage::UpdatePolicy(np) => {
-                new_policy = Some(np.clone());
-                ControlResponse::PolicyUpdated(np)
-            }
+            ControlMessage::UpdatePolicy(np) => ControlResponse::PolicyUpdated(np),
             _ => ControlResponse::Nonce(self.2),
         };
         let response = self.build_response(res)?;
-        Ok((response, new_policy))
+        Ok((response, msg))
     }
 }
 
@@ -133,7 +132,8 @@ impl FlashKey {
 
 pub trait ControlPersist: Sync + Send {
     fn reset(&mut self);
-    fn set_nonce(&mut self, nonce: u64);
+    fn read_nonce(&self) -> Result<u64>;
+    fn set_nonce(&mut self, nonce: u64) -> Result<()>;
     fn read_config(&self) -> Result<Config>;
     fn write_config(&mut self, c: Config) -> Result<()>;
     fn read_seed(&self) -> Result<[u8; 32]>;
@@ -144,7 +144,12 @@ pub struct DummyPersister;
 
 impl ControlPersist for DummyPersister {
     fn reset(&mut self) {}
-    fn set_nonce(&mut self, _nonce: u64) {}
+    fn read_nonce(&self) -> Result<u64> {
+        Ok(0u64)
+    }
+    fn set_nonce(&mut self, _nonce: u64) -> Result<()> {
+        Ok(())
+    }
     fn read_config(&self) -> Result<Config> {
         Ok(Default::default())
     }

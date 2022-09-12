@@ -7,6 +7,7 @@ use sphinx_key_signer::control::{Config, ControlPersist, Controller, FlashKey};
 use sphinx_key_signer::lightning_signer::bitcoin::Network;
 use std::convert::TryInto;
 use std::sync::{Arc, Mutex};
+
 // the controller validates Control messages
 pub fn controller_from_seed(
     network: &Network,
@@ -14,7 +15,7 @@ pub fn controller_from_seed(
     flash: Arc<Mutex<FlashPersister>>,
 ) -> Controller {
     let (pk, sk) = sphinx_key_signer::derive_node_keys(network, seed);
-    Controller::new_with_persister(sk, pk, 0, flash)
+    Controller::new_with_persister(sk, pk, flash)
 }
 
 pub struct FlashPersister(pub EspNvsStorage);
@@ -32,9 +33,19 @@ impl ControlPersist for FlashPersister {
             .remove(FlashKey::Config.as_str())
             .expect("couldnt remove config 1");
     }
-    fn set_nonce(&mut self, nonce: u64) {
-        // self.0.set
-        //
+    fn read_nonce(&self) -> Result<u64> {
+        let mut buf = [0u8; 8];
+        let existing = self.0.get_raw(FlashKey::Nonce.as_str(), &mut buf)?;
+        if let None = existing {
+            return Err(anyhow!("no existing nonce"));
+        }
+        let r: [u8; 8] = existing.unwrap().0.try_into()?;
+        Ok(u64::from_be_bytes(r))
+    }
+    fn set_nonce(&mut self, nonce: u64) -> Result<()> {
+        let n = nonce.to_be_bytes();
+        self.0.put_raw(FlashKey::Nonce.as_str(), &n[..])?;
+        Ok(())
     }
     fn read_config(&self) -> Result<Config> {
         let mut buf = [0u8; 250];
