@@ -1,3 +1,4 @@
+use parser::topics;
 use sphinx_key_parser as parser;
 use sphinx_key_signer::lightning_signer::bitcoin::Network;
 
@@ -13,10 +14,6 @@ use std::error::Error;
 use std::str::FromStr;
 use std::time::Duration;
 
-const SUB_TOPIC: &str = "sphinx";
-const CONTROL_TOPIC: &str = "sphinx-control";
-const CONTROL_PUB_TOPIC: &str = "sphinx-control-return";
-const PUB_TOPIC: &str = "sphinx-return";
 const USERNAME: &str = "sphinx-key";
 const PASSWORD: &str = "sphinx-key-pass";
 
@@ -61,11 +58,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
         };
 
         client
-            .subscribe(SUB_TOPIC, QoS::AtMostOnce)
+            .subscribe(topics::VLS, QoS::AtMostOnce)
             .await
             .expect("could not mqtt subscribe");
         client
-            .subscribe(CONTROL_TOPIC, QoS::AtMostOnce)
+            .subscribe(topics::CONTROL, QoS::AtMostOnce)
             .await
             .expect("could not mqtt subscribe");
 
@@ -83,7 +80,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
                         // println!("{:?}", event);
                         if let Some((topic, msg_bytes)) = incoming_bytes(event) {
                             match topic.as_str() {
-                                SUB_TOPIC => {
+                                topics::VLS => {
                                     let (ping, sequence, dbid): (msgs::Ping, u16, u64) =
                                         parser::request_from_bytes(msg_bytes)
                                             .expect("read ping header");
@@ -99,16 +96,16 @@ async fn main() -> Result<(), Box<dyn Error>> {
                                     let bytes = parser::raw_response_from_msg(pong, sequence)
                                         .expect("couldnt parse raw response");
                                     client
-                                        .publish(PUB_TOPIC, QoS::AtMostOnce, false, bytes)
+                                        .publish(topics::VLS_RETURN, QoS::AtMostOnce, false, bytes)
                                         .await
                                         .expect("could not mqtt publish");
                                 }
-                                CONTROL_TOPIC => {
+                                topics::CONTROL => {
                                     match ctrlr.handle(&msg_bytes) {
                                         Ok((response, _new_policy)) => {
                                             client
                                                 .publish(
-                                                    CONTROL_PUB_TOPIC,
+                                                    topics::CONTROL_RETURN,
                                                     QoS::AtMostOnce,
                                                     false,
                                                     response,
@@ -145,7 +142,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
                         let dummy_peer = PubKey([0; 33]);
                         if let Some((topic, msg_bytes)) = incoming_bytes(event) {
                             match topic.as_str() {
-                                SUB_TOPIC => {
+                                topics::VLS => {
                                     match sphinx_key_signer::handle(
                                         &root_handler,
                                         msg_bytes,
@@ -153,18 +150,18 @@ async fn main() -> Result<(), Box<dyn Error>> {
                                         is_log,
                                     ) {
                                         Ok(b) => client
-                                            .publish(PUB_TOPIC, QoS::AtMostOnce, false, b)
+                                            .publish(topics::VLS_RETURN, QoS::AtMostOnce, false, b)
                                             .await
                                             .expect("could not publish init response"),
                                         Err(e) => panic!("HANDLE FAILED {:?}", e),
                                     };
                                 }
-                                CONTROL_TOPIC => {
+                                topics::CONTROL => {
                                     match ctrlr.handle(&msg_bytes) {
                                         Ok((response, _new_policy)) => {
                                             client
                                                 .publish(
-                                                    CONTROL_PUB_TOPIC,
+                                                    topics::CONTROL_RETURN,
                                                     QoS::AtMostOnce,
                                                     false,
                                                     response,

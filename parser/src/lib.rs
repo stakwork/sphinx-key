@@ -1,4 +1,5 @@
 pub mod control;
+pub mod topics;
 
 use serde::ser;
 use std::cmp::min;

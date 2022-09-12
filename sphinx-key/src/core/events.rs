@@ -1,8 +1,9 @@
-use crate::conn::mqtt::{CONTROL_RETURN_TOPIC, CONTROL_TOPIC, QOS, RETURN_TOPIC, VLS_TOPIC};
+use crate::conn::mqtt::QOS;
 use crate::core::control::{controller_from_seed, FlashPersister};
 
 use sphinx_key_signer::control::Config;
 use sphinx_key_signer::lightning_signer::bitcoin::Network;
+use sphinx_key_signer::topics;
 use sphinx_key_signer::vls_protocol::model::PubKey;
 use sphinx_key_signer::{self, make_init_msg, InitResponse};
 use std::sync::{mpsc, Arc, Mutex};
@@ -52,10 +53,10 @@ pub fn make_event_loop(
         // wait for a Connection first.
         match event {
             Event::Connected => {
-                log::info!("SUBSCRIBE to {}", VLS_TOPIC);
-                mqtt.subscribe(VLS_TOPIC, QOS)
+                log::info!("SUBSCRIBE to {}", topics::VLS);
+                mqtt.subscribe(topics::VLS, QOS)
                     .expect("could not MQTT subscribe");
-                mqtt.subscribe(CONTROL_TOPIC, QOS)
+                mqtt.subscribe(topics::CONTROL, QOS)
                     .expect("could not MQTT subscribe");
                 led_tx.send(Status::Connected).unwrap();
                 break;
@@ -79,10 +80,10 @@ pub fn make_event_loop(
     while let Ok(event) = rx.recv() {
         match event {
             Event::Connected => {
-                log::info!("SUBSCRIBE TO {}", VLS_TOPIC);
-                mqtt.subscribe(VLS_TOPIC, QOS)
+                log::info!("SUBSCRIBE TO {}", topics::VLS);
+                mqtt.subscribe(topics::VLS, QOS)
                     .expect("could not MQTT subscribe");
-                mqtt.subscribe(CONTROL_TOPIC, QOS)
+                mqtt.subscribe(topics::CONTROL, QOS)
                     .expect("could not MQTT subscribe");
                 led_tx.send(Status::Connected).unwrap();
             }
@@ -99,7 +100,7 @@ pub fn make_event_loop(
                     do_log,
                 ) {
                     Ok(b) => {
-                        mqtt.publish(RETURN_TOPIC, QOS, false, &b)
+                        mqtt.publish(topics::VLS_RETURN, QOS, false, &b)
                             .expect("could not publish VLS response");
                     }
                     Err(e) => {
@@ -113,7 +114,7 @@ pub fn make_event_loop(
                 match ctrlr.handle(msg_bytes) {
                     Ok((response, _new_policy)) => {
                         // log::info!("CONTROL MSG {:?}", response);
-                        mqtt.publish(CONTROL_RETURN_TOPIC, QOS, false, &response)
+                        mqtt.publish(topics::CONTROL_RETURN, QOS, false, &response)
                             .expect("could not publish control response");
                     }
                     Err(e) => log::warn!("error parsing ctrl msg {:?}", e),
@@ -139,8 +140,8 @@ pub fn make_event_loop(
         match event {
             Event::Connected => {
                 led_tx.send(Status::ConnectedToMqtt).unwrap();
-                log::info!("SUBSCRIBE TO {}", TOPIC);
-                mqtt.subscribe(TOPIC, QOS)
+                log::info!("SUBSCRIBE TO {}", topics::VLS);
+                mqtt.subscribe(topics::VLS, QOS)
                     .expect("could not MQTT subscribe");
             }
             Event::VlsMessage(msg_bytes) => {
@@ -149,7 +150,7 @@ pub fn make_event_loop(
                 if do_log {
                     log::info!("GOT A PING MESSAGE! returning pong now...");
                 }
-                mqtt.publish(RETURN_TOPIC, QOS, false, b)
+                mqtt.publish(topics::VLS_RETURN, QOS, false, b)
                     .expect("could not publish ping response");
             }
             Event::Disconnected => {

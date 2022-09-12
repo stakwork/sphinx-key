@@ -1,9 +1,10 @@
-use crate::{mqtt::CONTROL_TOPIC, ChannelRequest};
+use crate::ChannelRequest;
 use rocket::fairing::{Fairing, Info, Kind};
 use rocket::http::Header;
 use rocket::tokio::sync::mpsc::Sender;
 use rocket::*;
 use rocket::{Request, Response};
+use sphinx_key_parser::topics;
 
 pub type Result<T> = std::result::Result<T, Error>;
 
@@ -14,7 +15,7 @@ pub async fn yo(sender: &State<Sender<ChannelRequest>>, msg: &str) -> Result<Str
     if message.len() < 65 {
         return Err(Error::Fail);
     }
-    let (request, reply_rx) = ChannelRequest::new(CONTROL_TOPIC, message);
+    let (request, reply_rx) = ChannelRequest::new(topics::CONTROL, message);
     // send to ESP
     let _ = sender.send(request).await.map_err(|_| Error::Fail)?;
     // wait for reply
