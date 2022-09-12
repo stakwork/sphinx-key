@@ -19,7 +19,7 @@ use std::time::SystemTime;
 use esp_idf_hal::peripherals::Peripherals;
 use esp_idf_svc::nvs::*;
 
-use sphinx_key_signer::control::{Config, ControlPersist};
+use sphinx_key_signer::control::{Config, ControlPersist, Policy};
 use sphinx_key_signer::lightning_signer::bitcoin::Network;
 
 #[cfg(not(feature = "pingpong"))]
@@ -56,6 +56,7 @@ fn main() -> Result<()> {
     let mut flash = FlashPersister::new(default_nvs.clone());
     if let Ok(exist) = flash.read_config() {
         let seed = flash.read_seed().expect("no seed...");
+        let policy = flash.read_policy().unwrap_or_default();
         println!(
             "=============> START CLIENT NOW <============== {:?}",
             exist
@@ -85,9 +86,13 @@ fn main() -> Result<()> {
 
         let flash_arc = Arc::new(Mutex::new(flash));
         loop {
-            if let Ok(()) =
-                make_and_launch_client(exist.clone(), seed, led_tx.clone(), flash_arc.clone())
-            {
+            if let Ok(()) = make_and_launch_client(
+                exist.clone(),
+                seed,
+                &policy,
+                led_tx.clone(),
+                flash_arc.clone(),
+            ) {
                 println!("Exited out of the event loop, trying again in 5 seconds...");
                 thread::sleep(Duration::from_secs(5));
             } else {
@@ -112,6 +117,7 @@ fn main() -> Result<()> {
 fn make_and_launch_client(
     config: Config,
     seed: [u8; 32],
+    policy: &Policy,
     led_tx: mpsc::Sender<Status>,
     flash: Arc<Mutex<FlashPersister>>,
 ) -> anyhow::Result<()> {
@@ -140,6 +146,7 @@ fn make_and_launch_client(
         led_tx,
         config,
         seed,
+        policy,
         flash,
     )?;
     Ok(())

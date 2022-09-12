@@ -134,7 +134,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
             let InitResponse {
                 root_handler,
                 init_reply: _,
-            } = sphinx_key_signer::init(init_msg, network).expect("failed to init signer");
+            } = sphinx_key_signer::init(init_msg, network, &Default::default())
+                .expect("failed to init signer");
             // the actual handler loop
             loop {
                 match eventloop.poll().await {

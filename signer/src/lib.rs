@@ -1,25 +1,25 @@
 mod derive;
+mod policy;
 mod randomstartingtime;
 
 use lightning_signer::bitcoin::blockdata::constants::ChainHash;
 use lightning_signer::node::NodeServices;
 use lightning_signer::persist::Persist;
-use lightning_signer::policy::filter::PolicyFilter;
-use lightning_signer::policy::simple_validator::{make_simple_policy, SimpleValidatorFactory};
+use lightning_signer::policy::simple_validator::SimpleValidatorFactory;
 use lightning_signer::util::clock::StandardClock;
-use lightning_signer::util::velocity::{VelocityControlIntervalType, VelocityControlSpec};
 use randomstartingtime::RandomStartingTimeFactory;
 use std::sync::Arc;
 use vls_protocol::model::{PubKey, Secret};
 use vls_protocol::msgs::{self, read_serial_request_header, write_serial_response_header, Message};
 use vls_protocol::serde_bolt::WireString;
-use vls_protocol_signer::handler::{Handler, RootHandler};
+pub use vls_protocol_signer::handler::{Handler, RootHandler};
 pub use vls_protocol_signer::lightning_signer;
 use vls_protocol_signer::lightning_signer::bitcoin::Network;
 use vls_protocol_signer::lightning_signer::wallet::Wallet;
 pub use vls_protocol_signer::vls_protocol;
 
 pub use derive::node_keys as derive_node_keys;
+pub use policy::{get_allowlist, make_policy, set_allowlist, set_policy};
 pub use sphinx_key_parser::{control, topics, MsgDriver};
 pub use sphinx_key_persister::FsPersister;
 pub struct InitResponse {
@@ -29,24 +29,11 @@ pub struct InitResponse {
 
 pub const ROOT_STORE: &str = "/sdcard/store";
 
-pub fn set_policies(
-    root_handler: &RootHandler,
+pub fn init(
+    bytes: Vec<u8>,
     network: Network,
-    sats_per_day: u64,
-) -> anyhow::Result<()> {
-    let mut policy = make_simple_policy(network);
-    policy.filter = PolicyFilter::new_permissive();
-    let velocity_spec = VelocityControlSpec {
-        limit: sats_per_day,
-        interval_type: VelocityControlIntervalType::Daily,
-    };
-    policy.global_velocity_control = velocity_spec;
-    let validator_factory = Arc::new(SimpleValidatorFactory::new_with_policy(policy));
-    root_handler.node.set_validator_factory(validator_factory);
-    Ok(())
-}
-
-pub fn init(bytes: Vec<u8>, network: Network) -> anyhow::Result<InitResponse> {
+    po: &control::Policy,
+) -> anyhow::Result<InitResponse> {
     // let persister: Arc<dyn Persist> = Arc::new(DummyPersister);
     let mut md = MsgDriver::new(bytes);
     let (sequence, dbid) = read_serial_request_header(&mut md).expect("read init header");
@@ -62,13 +49,7 @@ pub fn init(bytes: Vec<u8>, network: Network) -> anyhow::Result<InitResponse> {
         .map(|s| from_wire_string(s))
         .collect::<Vec<_>>();
     log::info!("allowlist {:?}", allowlist);
-    let mut policy = make_simple_policy(network);
-    policy.filter = PolicyFilter::new_permissive();
-    let velocity_spec = VelocityControlSpec {
-        limit: 1_000_000, // default a million sats per day
-        interval_type: VelocityControlIntervalType::Daily,
-    };
-    policy.global_velocity_control = velocity_spec;
+    let policy = make_policy(network, po);
     let validator_factory = Arc::new(SimpleValidatorFactory::new_with_policy(policy));
     let random_time_factory = RandomStartingTimeFactory::new();
     let persister: Arc<dyn Persist> = Arc::new(FsPersister::new(ROOT_STORE));
@@ -79,7 +60,6 @@ pub fn init(bytes: Vec<u8>, network: Network) -> anyhow::Result<InitResponse> {
         persister,
         clock,
     };
-
     log::info!("create root handler now");
     let root_handler = RootHandler::new(network, 0, Some(seed), allowlist, services);
     log::info!("root_handler created");

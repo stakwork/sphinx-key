@@ -1,11 +1,10 @@
 use crate::conn::mqtt::QOS;
 use crate::core::control::{controller_from_seed, FlashPersister};
 
-use sphinx_key_signer::control::{Config, ControlMessage};
+use sphinx_key_signer::control::{Config, ControlMessage, ControlResponse, Policy};
 use sphinx_key_signer::lightning_signer::bitcoin::Network;
-use sphinx_key_signer::topics;
 use sphinx_key_signer::vls_protocol::model::PubKey;
-use sphinx_key_signer::{self, make_init_msg, InitResponse};
+use sphinx_key_signer::{self, make_init_msg, topics, InitResponse, RootHandler};
 use std::sync::{mpsc, Arc, Mutex};
 
 use embedded_svc::httpd::Result;
@@ -46,6 +45,7 @@ pub fn make_event_loop(
     led_tx: mpsc::Sender<Status>,
     config: Config,
     seed: [u8; 32],
+    policy: &Policy,
     flash: Arc<Mutex<FlashPersister>>,
 ) -> Result<()> {
     while let Ok(event) = rx.recv() {
@@ -70,7 +70,7 @@ pub fn make_event_loop(
     let InitResponse {
         root_handler,
         init_reply: _,
-    } = sphinx_key_signer::init(init_msg, network).expect("failed to init signer");
+    } = sphinx_key_signer::init(init_msg, network, policy).expect("failed to init signer");
 
     // make the controller to validate Control messages
     let mut ctrlr = controller_from_seed(&network, &seed[..], flash);
@@ -111,25 +111,59 @@ pub fn make_event_loop(
             }
             Event::Control(ref msg_bytes) => {
                 log::info!("GOT A CONTROL MSG");
-                match ctrlr.handle(msg_bytes) {
-                    Ok((response, parsed_msg)) => {
-                        // log::info!("CONTROL MSG {:?}", response);
-                        match parsed_msg {
-                            ControlMessage::UpdatePolicy(new_policy) => {
-                                // update here
-                            }
-                            _ => (),
-                        };
-                        mqtt.publish(topics::CONTROL_RETURN, QOS, false, &response)
-                            .expect("could not publish control response");
-                    }
-                    Err(e) => log::warn!("error parsing ctrl msg {:?}", e),
-                };
+                let cres = ctrlr.handle(msg_bytes);
+                if let Some(res_data) = handle_control_response(&root_handler, cres, network) {
+                    mqtt.publish(topics::CONTROL_RETURN, QOS, false, &res_data)
+                        .expect("could not publish control response");
+                }
             }
         }
     }
 
     Ok(())
+}
+
+fn handle_control_response(
+    root_handler: &RootHandler,
+    cres: anyhow::Result<(Vec<u8>, ControlMessage)>,
+    network: Network,
+) -> Option<Vec<u8>> {
+    match cres {
+        Ok((mut response, parsed_msg)) => {
+            // the following msg types require other actions besides Flash persistence
+            match parsed_msg {
+                ControlMessage::UpdatePolicy(new_policy) => {
+                    if let Err(e) =
+                        sphinx_key_signer::set_policy(&root_handler, network, new_policy)
+                    {
+                        log::error!("set policy failed {:?}", e);
+                    }
+                }
+                ControlMessage::UpdateAllowlist(al) => {
+                    if let Err(e) = sphinx_key_signer::set_allowlist(&root_handler, &al) {
+                        log::error!("set allowlist failed {:?}", e);
+                    }
+                }
+                // overwrite the real Allowlist response, loaded from Node
+                ControlMessage::QueryAllowlist => {
+                    if let Ok(al) = sphinx_key_signer::get_allowlist(&root_handler) {
+                        response = rmp_serde::to_vec(&ControlResponse::AllowlistCurrent(al))
+                            .expect("couldnt build ControlResponse::AllowlistCurrent");
+                    } else {
+                        log::error!("read allowlist failed");
+                    }
+                }
+                _ => (),
+            };
+            Some(response)
+        }
+        Err(e) => {
+            let response = rmp_serde::to_vec(&ControlResponse::Error(e.to_string()))
+                .expect("couldnt build ControlResponse::Error");
+            log::warn!("error parsing ctrl msg {:?}", e);
+            Some(response)
+        }
+    }
 }
 
 #[cfg(feature = "pingpong")]
@@ -139,7 +173,10 @@ pub fn make_event_loop(
     _network: Network,
     do_log: bool,
     led_tx: mpsc::Sender<Status>,
+    _config: Config,
     _seed: [u8; 32],
+    _policy: &Policy,
+    _flash: Arc<Mutex<FlashPersister>>,
 ) -> Result<()> {
     log::info!("About to subscribe to the mpsc channel");
     while let Ok(event) = rx.recv() {

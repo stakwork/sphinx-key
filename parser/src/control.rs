@@ -4,6 +4,33 @@ use sphinx_auther::nonce;
 use sphinx_auther::secp256k1::{PublicKey, SecretKey};
 use std::sync::{Arc, Mutex};
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub enum ControlMessage {
+    Nonce,
+    ResetWifi,
+    ResetKeys,
+    ResetAll,
+    QueryPolicy,
+    UpdatePolicy(Policy),
+    QueryAllowlist,
+    UpdateAllowlist(Vec<String>),
+    Ota(OtaParams),
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub enum ControlResponse {
+    Nonce(u64),
+    ResetWifi,
+    ResetKeys,
+    ResetAll,
+    PolicyCurrent(Policy),
+    PolicyUpdated(Policy),
+    AllowlistCurrent(Vec<String>),
+    AllowlistUpdated(Vec<String>),
+    OtaConfirm(OtaParams),
+    Error(String),
+}
+
 #[derive(Clone, Debug, Deserialize, Serialize, Default)]
 pub struct Config {
     pub broker: String,
@@ -14,26 +41,26 @@ pub struct Config {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub enum ControlMessage {
-    Nonce,
-    ResetWifi,
-    QueryPolicy,
-    UpdatePolicy(Policy),
-    Ota(OtaParams),
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub enum ControlResponse {
-    Nonce(u64),
-    ResetWifi,
-    PolicyCurrent(Policy),
-    PolicyUpdated(Policy),
-    OtaConfirm(OtaParams),
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Policy {
-    pub sats_per_day: u64,
+    pub sat_limit: u64,
+    pub interval: Interval,
+    pub htlc_limit: u64,
+}
+
+impl Default for Policy {
+    fn default() -> Self {
+        Self {
+            sat_limit: 1_000_000,
+            interval: Interval::Daily,
+            htlc_limit: 1_000_000,
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
+pub enum Interval {
+    Hourly,
+    Daily,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -103,11 +130,40 @@ impl Controller {
         let res = match msg.clone() {
             ControlMessage::Nonce => ControlResponse::Nonce(self.2),
             ControlMessage::ResetWifi => {
-                store.reset();
+                store.remove_config()?;
                 ControlResponse::ResetWifi
             }
-            ControlMessage::UpdatePolicy(np) => ControlResponse::PolicyUpdated(np),
-            _ => ControlResponse::Nonce(self.2),
+            ControlMessage::ResetKeys => {
+                store.remove_seed()?;
+                ControlResponse::ResetKeys
+            }
+            ControlMessage::ResetAll => {
+                store.remove_config()?;
+                store.remove_seed()?;
+                store.remove_policy()?;
+                store.set_nonce(0)?;
+                ControlResponse::ResetAll
+            }
+            ControlMessage::QueryPolicy => {
+                let p = store.read_policy().unwrap_or_default();
+                ControlResponse::PolicyCurrent(p)
+            }
+            ControlMessage::UpdatePolicy(np) => {
+                store.write_policy(np.clone())?;
+                ControlResponse::PolicyUpdated(np)
+            }
+            ControlMessage::QueryAllowlist => {
+                // this response is overwritten in the event handler
+                ControlResponse::AllowlistCurrent(vec![])
+            }
+            ControlMessage::UpdateAllowlist(na) => {
+                // the actual writing happens in the event handler
+                ControlResponse::AllowlistUpdated(na)
+            }
+            ControlMessage::Ota(params) => {
+                // ...
+                ControlResponse::OtaConfirm(params)
+            }
         };
         let response = self.build_response(res)?;
         Ok((response, msg))
@@ -119,6 +175,7 @@ pub enum FlashKey {
     Config,
     Seed,
     Nonce,
+    Policy,
 }
 impl FlashKey {
     pub fn as_str(&self) -> &'static str {
@@ -126,24 +183,28 @@ impl FlashKey {
             FlashKey::Config => "config",
             FlashKey::Seed => "seed",
             FlashKey::Nonce => "nonce",
+            FlashKey::Policy => "policy",
         }
     }
 }
 
 pub trait ControlPersist: Sync + Send {
-    fn reset(&mut self);
     fn read_nonce(&self) -> Result<u64>;
     fn set_nonce(&mut self, nonce: u64) -> Result<()>;
     fn read_config(&self) -> Result<Config>;
     fn write_config(&mut self, c: Config) -> Result<()>;
+    fn remove_config(&mut self) -> Result<()>;
     fn read_seed(&self) -> Result<[u8; 32]>;
     fn write_seed(&mut self, s: [u8; 32]) -> Result<()>;
+    fn remove_seed(&mut self) -> Result<()>;
+    fn read_policy(&self) -> Result<Policy>;
+    fn write_policy(&mut self, s: Policy) -> Result<()>;
+    fn remove_policy(&mut self) -> Result<()>;
 }
 
 pub struct DummyPersister;
 
 impl ControlPersist for DummyPersister {
-    fn reset(&mut self) {}
     fn read_nonce(&self) -> Result<u64> {
         Ok(0u64)
     }
@@ -156,10 +217,25 @@ impl ControlPersist for DummyPersister {
     fn write_config(&mut self, _conf: Config) -> Result<()> {
         Ok(())
     }
+    fn remove_config(&mut self) -> Result<()> {
+        Ok(())
+    }
     fn read_seed(&self) -> Result<[u8; 32]> {
         Ok([0; 32])
     }
     fn write_seed(&mut self, _s: [u8; 32]) -> Result<()> {
+        Ok(())
+    }
+    fn remove_seed(&mut self) -> Result<()> {
+        Ok(())
+    }
+    fn read_policy(&self) -> Result<Policy> {
+        Ok(Default::default())
+    }
+    fn write_policy(&mut self, _s: Policy) -> Result<()> {
+        Ok(())
+    }
+    fn remove_policy(&mut self) -> Result<()> {
         Ok(())
     }
 }
