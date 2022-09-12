@@ -107,17 +107,22 @@ impl Controller {
         self.2 = self.2 + 1;
         Ok(ret)
     }
-    pub fn parse_msg_no_nonce(&mut self, input: &[u8]) -> anyhow::Result<ControlMessage> {
-        let (msg, _nonce) = nonce::parse_msg_no_nonce(input, &self.1)?;
+    pub fn parse_msg_no_nonce(&mut self, input: &[u8]) -> anyhow::Result<(ControlMessage, u64)> {
+        let (msg, nonce) = nonce::parse_msg_no_nonce(input, &self.1)?;
         let ret = rmp_serde::from_slice(&msg)?;
-        Ok(ret)
+        Ok((ret, nonce))
     }
     pub fn parse_response(&self, input: &[u8]) -> anyhow::Result<ControlResponse> {
         Ok(rmp_serde::from_slice(input)?)
     }
     // return the OG message for further processing
     pub fn handle(&mut self, input: &[u8]) -> anyhow::Result<(Vec<u8>, ControlMessage)> {
-        let msg = self.parse_msg_no_nonce(input)?;
+        let msg_nonce = self.parse_msg_no_nonce(input)?;
+        let msg = msg_nonce.0;
+        // nonce must be higher each time
+        if msg_nonce.1 <= self.2 {
+            return Err(anyhow::anyhow!("invalid nonce"));
+        }
         // increment the nonce EXCEPT for Nonce requests
         let mut store = self.3.lock().unwrap();
         match msg {
