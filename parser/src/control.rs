@@ -1,79 +1,8 @@
 use anyhow::Result;
-use serde::{Deserialize, Serialize};
 use sphinx_auther::nonce;
 use sphinx_auther::secp256k1::{PublicKey, SecretKey};
+use sphinx_glyph::types::{Config, ControlMessage, ControlResponse, Policy};
 use std::sync::{Arc, Mutex};
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub enum ControlMessage {
-    Nonce,
-    ResetWifi,
-    ResetKeys,
-    ResetAll,
-    QueryPolicy,
-    UpdatePolicy(Policy),
-    QueryAllowlist,
-    UpdateAllowlist(Vec<String>),
-    Ota(OtaParams),
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub enum ControlResponse {
-    Nonce(u64),
-    ResetWifi,
-    ResetKeys,
-    ResetAll,
-    PolicyCurrent(Policy),
-    PolicyUpdated(Policy),
-    AllowlistCurrent(Vec<String>),
-    AllowlistUpdated(Vec<String>),
-    OtaConfirm(OtaParams),
-    Error(String),
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize, Default)]
-pub struct Config {
-    pub broker: String,
-    pub ssid: String,
-    pub pass: String,
-    pub network: String,
-    // pub seed: [u8; 32],
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct Policy {
-    pub sat_limit: u64,
-    pub interval: Interval,
-    pub htlc_limit: u64,
-}
-
-impl Default for Policy {
-    fn default() -> Self {
-        Self {
-            sat_limit: 1_000_000,
-            interval: Interval::Daily,
-            htlc_limit: 1_000_000,
-        }
-    }
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
-pub enum Interval {
-    Hourly,
-    Daily,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct OtaParams {
-    pub version: u64,
-    pub url: String,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct WifiParams {
-    pub ssid: String,
-    pub password: String,
-}
 
 // u64 is the nonce. Each signature must have a higher nonce
 pub struct Controller(SecretKey, PublicKey, u64, Arc<Mutex<dyn ControlPersist>>);

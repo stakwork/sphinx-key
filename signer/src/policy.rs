@@ -9,20 +9,6 @@ use vls_protocol_signer::handler::RootHandler;
 use vls_protocol_signer::lightning_signer;
 use vls_protocol_signer::lightning_signer::bitcoin::Network;
 
-fn policy_interval(int: Interval) -> VelocityControlIntervalType {
-    match int {
-        Interval::Hourly => VelocityControlIntervalType::Hourly,
-        Interval::Daily => VelocityControlIntervalType::Daily,
-    }
-}
-
-pub fn set_policy(root_handler: &RootHandler, network: Network, po: Policy) -> anyhow::Result<()> {
-    let policy = make_policy(network, &po);
-    let validator_factory = Arc::new(SimpleValidatorFactory::new_with_policy(policy));
-    root_handler.node.set_validator_factory(validator_factory);
-    Ok(())
-}
-
 pub fn set_allowlist(root_handler: &RootHandler, allowlist: &Vec<String>) -> anyhow::Result<()> {
     if let Err(e) = root_handler.node.set_allowlist(allowlist) {
         return Err(anyhow::anyhow!("error setting allowlist {:?}", e));
@@ -37,6 +23,13 @@ pub fn get_allowlist(root_handler: &RootHandler) -> anyhow::Result<Vec<String>> 
     }
 }
 
+pub fn set_policy(root_handler: &RootHandler, network: Network, po: Policy) -> anyhow::Result<()> {
+    let policy = make_policy(network, &po);
+    let validator_factory = Arc::new(SimpleValidatorFactory::new_with_policy(policy));
+    root_handler.node.set_validator_factory(validator_factory);
+    Ok(())
+}
+
 pub fn make_policy(network: Network, po: &Policy) -> SimplePolicy {
     let mut p = make_simple_policy(network);
     p.max_htlc_value_sat = po.htlc_limit;
@@ -47,4 +40,11 @@ pub fn make_policy(network: Network, po: &Policy) -> SimplePolicy {
     };
     p.global_velocity_control = velocity_spec;
     p
+}
+
+fn policy_interval(int: Interval) -> VelocityControlIntervalType {
+    match int {
+        Interval::Hourly => VelocityControlIntervalType::Hourly,
+        Interval::Daily => VelocityControlIntervalType::Daily,
+    }
 }
