@@ -15,14 +15,15 @@ use sphinx_crypter::ecdh::{derive_shared_secret_from_slice, PUBLIC_KEY_LEN};
 use sphinx_crypter::secp256k1::rand::thread_rng;
 use sphinx_crypter::secp256k1::{PublicKey, Secp256k1, SecretKey};
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct Config {
-    pub broker: String,
-    pub ssid: String,
-    pub pass: String,
-    pub seed: [u8; 32],
-    pub network: String,
-}
+use sphinx_key_signer::control::Config;
+// #[derive(Clone, Debug, Deserialize, Serialize)]
+// pub struct Config {
+//     pub broker: String,
+//     pub ssid: String,
+//     pub pass: String,
+//     pub seed: [u8; 32],
+//     pub network: String,
+// }
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ConfigDTO {
     pub broker: String,
@@ -49,7 +50,7 @@ pub fn ecdh_keypair() -> (SecretKey, PublicKey) {
     s.generate_keypair(&mut thread_rng())
 }
 
-pub fn decrypt_seed(dto: ConfigDTO, sk1: SecretKey) -> Result<Config> {
+pub fn decrypt_seed(dto: ConfigDTO, sk1: SecretKey) -> Result<(Config, [u8; 32])> {
     let their_pk = hex::decode(dto.pubkey)?;
     let their_pk_bytes: [u8; PUBLIC_KEY_LEN] = their_pk[..PUBLIC_KEY_LEN].try_into()?;
     let shared_secret = derive_shared_secret_from_slice(their_pk_bytes, sk1.secret_bytes())?;
@@ -58,18 +59,20 @@ pub fn decrypt_seed(dto: ConfigDTO, sk1: SecretKey) -> Result<Config> {
     let cipher: [u8; PAYLOAD_LEN] = cipher_seed[..PAYLOAD_LEN].try_into()?;
     let seed = decrypt(cipher, shared_secret)?;
 
-    Ok(Config {
-        broker: dto.broker,
-        ssid: dto.ssid,
-        pass: dto.pass,
-        network: dto.network,
-        seed: seed,
-    })
+    Ok((
+        Config {
+            broker: dto.broker,
+            ssid: dto.ssid,
+            pass: dto.pass,
+            network: dto.network,
+        },
+        seed,
+    ))
 }
 
 pub fn start_config_server_and_wait(
     default_nvs: Arc<EspDefaultNvs>,
-) -> Result<(Box<EspWifi>, Config)> {
+) -> Result<(Box<EspWifi>, Config, [u8; 32])> {
     let mutex = Arc::new((Mutex::new(None), Condvar::new()));
 
     #[allow(clippy::redundant_clone)]
@@ -80,7 +83,7 @@ pub fn start_config_server_and_wait(
     let mut wait = mutex.0.lock().unwrap();
     log::info!("Waiting for data from the phone!");
 
-    let config: &Config = loop {
+    let config_seed_tuple: &(Config, [u8; 32]) = loop {
         if let Some(conf) = &*wait {
             break conf;
         } else {
@@ -95,6 +98,10 @@ pub fn start_config_server_and_wait(
     drop(httpd);
     // drop(wifi);
     // thread::sleep(Duration::from_secs(1));
-    println!("===> config! {:?}", config);
-    Ok((wifi, config.clone()))
+    println!("===> config! {:?}", config_seed_tuple.0);
+    Ok((
+        wifi,
+        config_seed_tuple.0.clone(),
+        config_seed_tuple.1.clone(),
+    ))
 }

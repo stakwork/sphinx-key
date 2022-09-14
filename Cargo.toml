@@ -2,7 +2,6 @@
 
 members = [
     "signer",
-    "broker",
     "parser",
     "tester",
 ]
@@ -10,4 +9,5 @@ members = [
 exclude = [
     "sphinx-key",
     "persister",
+    "broker",
 ]

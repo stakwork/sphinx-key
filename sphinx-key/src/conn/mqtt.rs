@@ -1,4 +1,5 @@
 use crate::core::events::Event as CoreEvent;
+use sphinx_key_signer::topics;
 
 use anyhow::Result;
 use embedded_svc::mqtt::client::utils::ConnState;
@@ -12,10 +13,6 @@ use log::*;
 use std::sync::mpsc;
 use std::thread;
 
-pub const VLS_TOPIC: &str = "sphinx";
-pub const CONTROL_TOPIC: &str = "sphinx-control";
-pub const RETURN_TOPIC: &str = "sphinx-return";
-pub const CONTROL_RETURN_TOPIC: &str = "sphinx-control-return";
 pub const USERNAME: &str = "sphinx-key";
 pub const PASSWORD: &str = "sphinx-key-pass";
 pub const QOS: QoS = QoS::AtMostOnce;
@@ -84,10 +81,10 @@ pub fn start_listening(
                             let topic_opt = msg.topic();
                             if let Some(topic) = topic_opt {
                                 match topic {
-                                    VLS_TOPIC => tx
+                                    topics::VLS => tx
                                         .send(CoreEvent::VlsMessage(msg.data().to_vec()))
                                         .expect("couldnt send Event::VlsMessage"),
-                                    CONTROL_TOPIC => tx
+                                    topics::CONTROL => tx
                                         .send(CoreEvent::Control(msg.data().to_vec()))
                                         .expect("couldnt send Event::Control"),
                                     _ => log::warn!("unrecognized topic {}", topic),
@@ -104,9 +101,6 @@ pub fn start_listening(
         }
         //info!("MQTT connection loop exit");
     });
-
-    // log::info!("SUBSCRIBE TO {}", TOPIC);
-    // client.subscribe(TOPIC, QoS::AtMostOnce)?;
 
     Ok(client)
 }

@@ -16,11 +16,10 @@ use std::thread;
 use std::time::Duration;
 use std::time::SystemTime;
 
-use embedded_svc::storage::RawStorage;
 use esp_idf_hal::peripherals::Peripherals;
 use esp_idf_svc::nvs::*;
-use esp_idf_svc::nvs_storage::EspNvsStorage;
 
+use sphinx_key_signer::control::{Config, ControlPersist, Policy};
 use sphinx_key_signer::lightning_signer::bitcoin::Network;
 
 #[cfg(not(feature = "pingpong"))]
@@ -54,18 +53,14 @@ fn main() -> Result<()> {
     println!("SD card mounted!");
 
     let default_nvs = Arc::new(EspDefaultNvs::new()?);
-    let mut store =
-        EspNvsStorage::new_default(default_nvs.clone(), "sphinx", true).expect("no storage");
-    let mut buf = [0u8; 250];
-    // let existing: Option<Config> = store.get_raw("config", buf).expect("failed");
-    let existing = store.get_raw("config", &mut buf).expect("failed");
-    if let Some((exist_bytes, _)) = existing {
-        let exist: Config = rmp_serde::from_slice(exist_bytes).expect("failed to parse Config");
+    let mut flash = FlashPersister::new(default_nvs.clone());
+    if let Ok(exist) = flash.read_config() {
+        let seed = flash.read_seed().expect("no seed...");
+        let policy = flash.read_policy().unwrap_or_default();
         println!(
             "=============> START CLIENT NOW <============== {:?}",
             exist
         );
-        // store.remove("config").expect("couldnt remove config");
         led_tx.send(Status::ConnectingToWifi).unwrap();
         let _wifi = loop {
             if let Ok(wifi) = start_wifi_client(default_nvs.clone(), &exist) {
@@ -88,10 +83,16 @@ fn main() -> Result<()> {
         );
 
         led_tx.send(Status::ConnectingToMqtt).unwrap();
-        // _conn needs to stay in scope or its dropped
-        let flash = Arc::new(Mutex::new(FlashPersister(store)));
+
+        let flash_arc = Arc::new(Mutex::new(flash));
         loop {
-            if let Ok(()) = make_and_launch_client(exist.clone(), led_tx.clone(), flash.clone()) {
+            if let Ok(()) = make_and_launch_client(
+                exist.clone(),
+                seed,
+                &policy,
+                led_tx.clone(),
+                flash_arc.clone(),
+            ) {
                 println!("Exited out of the event loop, trying again in 5 seconds...");
                 thread::sleep(Duration::from_secs(5));
             } else {
@@ -102,11 +103,9 @@ fn main() -> Result<()> {
     } else {
         led_tx.send(Status::WifiAccessPoint).unwrap();
         println!("=============> START SERVER NOW AND WAIT <==============");
-        if let Ok((_wifi, config)) = start_config_server_and_wait(default_nvs.clone()) {
-            let conf = rmp_serde::to_vec(&config).expect("couldnt rmp Config");
-            store
-                .put_raw("config", &conf[..])
-                .expect("could not store config");
+        if let Ok((_wifi, config, seed)) = start_config_server_and_wait(default_nvs.clone()) {
+            flash.write_config(config).expect("could not store config");
+            flash.write_seed(seed).expect("could not store seed");
             println!("CONFIG SAVED");
             loop {}
         }
@@ -117,6 +116,8 @@ fn main() -> Result<()> {
 
 fn make_and_launch_client(
     config: Config,
+    seed: [u8; 32],
+    policy: &Policy,
     led_tx: mpsc::Sender<Status>,
     flash: Arc<Mutex<FlashPersister>>,
 ) -> anyhow::Result<()> {
@@ -137,6 +138,16 @@ fn make_and_launch_client(
     log::info!("Network set to {:?}", network);
     log::info!(">>>>>>>>>>> blocking forever...");
     log::info!("{:?}", config);
-    make_event_loop(mqtt_client, rx, network, do_log, led_tx, config, flash)?;
+    make_event_loop(
+        mqtt_client,
+        rx,
+        network,
+        do_log,
+        led_tx,
+        config,
+        seed,
+        policy,
+        flash,
+    )?;
     Ok(())
 }

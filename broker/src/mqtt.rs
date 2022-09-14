@@ -8,14 +8,11 @@ use librumqttd::{
 };
 use rocket::tokio::time::timeout;
 use rocket::tokio::{self, sync::mpsc};
+use sphinx_key_parser::topics;
 use std::sync::Arc;
 use std::sync::{LazyLock, Mutex};
 use std::time::Duration;
 
-pub const PUB_TOPIC: &str = "sphinx";
-pub const CONTROL_TOPIC: &str = "sphinx-control";
-const SUB_TOPIC: &str = "sphinx-return";
-const CONTROL_SUB_TOPIC: &str = "sphinx-control-return";
 const USERNAME: &str = "sphinx-key";
 const PASSWORD: &str = "sphinx-key-pass";
 // must get a reply within this time, or disconnects
@@ -52,7 +49,7 @@ pub async fn start_broker(
             mpsc::channel(1000);
         let (mut link_tx, mut link_rx) = builder.clone().connect("localclient", 200).await.unwrap();
         link_tx
-            .subscribe([SUB_TOPIC, CONTROL_SUB_TOPIC])
+            .subscribe([topics::VLS_RETURN, topics::CONTROL_RETURN])
             .await
             .unwrap();
 

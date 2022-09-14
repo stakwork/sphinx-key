@@ -1,9 +1,10 @@
-use crate::mqtt::{start_broker, PUB_TOPIC};
+use crate::mqtt::start_broker;
 use crate::routes::launch_rocket;
 use crate::util::Settings;
 use crate::ChannelRequest;
 use rocket::tokio::{self, sync::mpsc};
 use sphinx_key_parser as parser;
+use sphinx_key_parser::topics;
 use vls_protocol::serde_bolt::WireString;
 use vls_protocol::{msgs, msgs::Message};
 
@@ -51,6 +52,7 @@ pub async fn run_test() -> rocket::Rocket<rocket::Build> {
     launch_rocket(tx)
 }
 
+#[allow(dead_code)]
 pub async fn iteration(
     id: u16,
     sequence: u16,
@@ -68,7 +70,7 @@ pub async fn iteration(
     };
     let ping_bytes = parser::request_from_msg(ping, sequence, 0)?;
     // Send a request to the MQTT handler to send to signer
-    let (request, reply_rx) = ChannelRequest::new(PUB_TOPIC, ping_bytes);
+    let (request, reply_rx) = ChannelRequest::new(topics::VLS, ping_bytes);
     tx.send(request).await?;
     println!("tx.send(request)");
     let res = reply_rx.await?;

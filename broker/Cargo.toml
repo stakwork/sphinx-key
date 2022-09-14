@@ -6,6 +6,7 @@ default-run = "sphinx-key-broker"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+sphinx-key-parser = { path = "../parser" }
 vls-protocol = { git = "https://gitlab.com/lightning-signer/validating-lightning-signer.git" }
 vls-proxy = { git = "https://gitlab.com/lightning-signer/validating-lightning-signer.git" }
 vls-frontend = { git = "https://gitlab.com/lightning-signer/validating-lightning-signer.git" }
@@ -13,7 +14,6 @@ vls-protocol-client = { git = "https://gitlab.com/lightning-signer/validating-li
 rumqttd = { git = "https://github.com/Evanfeenstra/rumqtt", branch = "metrics" } 
 pretty_env_logger = "0.4.0"
 confy = "0.4.0"
-sphinx-key-parser = { path = "../parser" }
 secp256k1 = { version = "0.24.0", features = ["rand-std", "bitcoin_hashes"] }
 anyhow = {version = "1", features = ["backtrace"]}
 log = "0.4"

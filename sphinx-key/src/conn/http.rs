@@ -1,5 +1,6 @@
 use crate::conn::html;
-use crate::core::config::{decrypt_seed, ecdh_keypair, Config, ConfigDTO};
+use crate::core::config::{decrypt_seed, ecdh_keypair, ConfigDTO};
+use sphinx_key_signer::control::Config;
 
 use serde::Deserialize;
 use std::sync::{Arc, Condvar, Mutex};
@@ -18,7 +19,9 @@ pub struct Params {
 }
 
 #[allow(unused_variables)]
-pub fn config_server(mutex: Arc<(Mutex<Option<Config>>, Condvar)>) -> Result<idf::Server> {
+pub fn config_server(
+    mutex: Arc<(Mutex<Option<(Config, [u8; 32])>>, Condvar)>,
+) -> Result<idf::Server> {
     let (sk1, pk1) = ecdh_keypair();
 
     let server = idf::ServerRegistry::new()
@@ -42,10 +45,10 @@ pub fn config_server(mutex: Arc<(Mutex<Option<Config>>, Condvar)>) -> Result<idf
 
             let dto = serde_json::from_str::<ConfigDTO>(&params.config)?;
 
-            let conf = decrypt_seed(dto, sk1)?;
+            let conf_seed_tuple = decrypt_seed(dto, sk1)?;
 
             let mut wait = mutex.0.lock().unwrap();
-            *wait = Some(conf);
+            *wait = Some(conf_seed_tuple);
             mutex.1.notify_one();
             Ok("{\"success\":true}".to_owned().into())
         })?;

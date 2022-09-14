@@ -1,4 +1,4 @@
-use crate::core::config::Config;
+use sphinx_key_signer::control::Config;
 
 use esp_idf_svc::netif::*;
 use esp_idf_svc::nvs::EspDefaultNvs;
