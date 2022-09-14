@@ -52,6 +52,7 @@ pub async fn run_test() -> rocket::Rocket<rocket::Build> {
     launch_rocket(tx)
 }
 
+#[allow(dead_code)]
 pub async fn iteration(
     id: u16,
     sequence: u16,
