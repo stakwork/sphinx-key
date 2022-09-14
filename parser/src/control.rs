@@ -1,7 +1,7 @@
 use anyhow::Result;
 use sphinx_auther::nonce;
 use sphinx_auther::secp256k1::{PublicKey, SecretKey};
-use sphinx_glyph::types::{Config, ControlMessage, ControlResponse, Policy};
+pub use sphinx_glyph::types::{Config, ControlMessage, ControlResponse, Interval, Policy};
 use std::sync::{Arc, Mutex};
 
 // u64 is the nonce. Each signature must have a higher nonce
