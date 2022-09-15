@@ -20,7 +20,7 @@ pub use vls_protocol_signer::vls_protocol;
 
 pub use derive::node_keys as derive_node_keys;
 pub use policy::{get_allowlist, make_policy, set_allowlist, set_policy};
-pub use sphinx_key_parser::{control, topics, MsgDriver};
+pub use sphinx_key_parser::{control, error::Error as ParserError, topics, MsgDriver};
 pub use sphinx_key_persister::FsPersister;
 pub struct InitResponse {
     pub root_handler: RootHandler,

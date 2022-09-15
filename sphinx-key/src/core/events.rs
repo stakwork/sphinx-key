@@ -4,7 +4,7 @@ use crate::core::control::{controller_from_seed, FlashPersister};
 use sphinx_key_signer::control::{Config, ControlMessage, ControlResponse, Policy};
 use sphinx_key_signer::lightning_signer::bitcoin::Network;
 use sphinx_key_signer::vls_protocol::model::PubKey;
-use sphinx_key_signer::{self, make_init_msg, topics, InitResponse, RootHandler};
+use sphinx_key_signer::{self, make_init_msg, topics, InitResponse, ParserError, RootHandler};
 use std::sync::{mpsc, Arc, Mutex};
 
 use embedded_svc::httpd::Result;
@@ -104,7 +104,10 @@ pub fn make_event_loop(
                             .expect("could not publish VLS response");
                     }
                     Err(e) => {
+                        let err_msg = ParserError::new(1, &e.to_string());
                         log::error!("HANDLE FAILED {:?}", e);
+                        mqtt.publish(topics::ERROR, QOS, false, &err_msg.to_vec()[..])
+                            .expect("could not publish VLS error");
                         // panic!("HANDLE FAILED {:?}", e);
                     }
                 };

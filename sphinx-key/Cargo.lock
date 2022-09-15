@@ -1994,6 +1994,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "sphinx-glyph"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cf0527b300544e9fe193611f1be1f76e3b25f5ceab4217347429c2912b60093e"
+dependencies = [
+ "anyhow",
+ "rmp-serde",
+ "serde",
+ "sphinx-auther",
+]
+
+[[package]]
 name = "sphinx-key"
 version = "0.1.0"
 dependencies = [
@@ -2025,6 +2037,7 @@ dependencies = [
  "serde",
  "serde_bolt",
  "sphinx-auther",
+ "sphinx-glyph",
  "vls-protocol",
 ]
 
