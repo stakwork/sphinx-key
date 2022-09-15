@@ -1,4 +1,5 @@
 pub mod control;
+pub mod error;
 pub mod topics;
 
 use serde::ser;
