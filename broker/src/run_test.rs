@@ -2,7 +2,7 @@ use crate::mqtt::start_broker;
 use crate::routes::launch_rocket;
 use crate::util::Settings;
 use crate::ChannelRequest;
-use rocket::tokio::{self, sync::mpsc};
+use rocket::tokio::{self, sync::mpsc, sync::broadcast};
 use sphinx_key_parser as parser;
 use sphinx_key_parser::topics;
 use vls_protocol::serde_bolt::WireString;
@@ -20,7 +20,8 @@ pub async fn run_test() -> rocket::Rocket<rocket::Build> {
 
     let (tx, rx) = mpsc::channel(1000);
     let (status_tx, mut status_rx) = mpsc::channel(1000);
-    start_broker(rx, status_tx, CLIENT_ID, &settings).await;
+    let (error_tx, _) = broadcast::channel(1000);
+    start_broker(rx, status_tx, error_tx.clone(), CLIENT_ID, &settings).await;
     let mut connected = false;
     let tx_ = tx.clone();
     tokio::spawn(async move {
@@ -49,10 +50,11 @@ pub async fn run_test() -> rocket::Rocket<rocket::Build> {
             };
         }
     });
-    launch_rocket(tx)
+    launch_rocket(tx, error_tx)
 }
 
 #[allow(dead_code)]
+#[allow(unused)]
 pub async fn iteration(
     id: u16,
     sequence: u16,

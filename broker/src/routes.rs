@@ -1,15 +1,16 @@
 use crate::ChannelRequest;
 use rocket::fairing::{Fairing, Info, Kind};
 use rocket::http::Header;
-use rocket::tokio::sync::mpsc::Sender;
+use rocket::tokio::sync::{mpsc::Sender, broadcast::{self, error::RecvError}};
+use rocket::response::stream::{EventStream, Event};
+use rocket::tokio::select;
 use rocket::*;
-use rocket::{Request, Response};
-use sphinx_key_parser::topics;
+use sphinx_key_parser::{topics, error::Error as ParserError};
 
 pub type Result<T> = std::result::Result<T, Error>;
 
 #[post("/control?<msg>")]
-pub async fn yo(sender: &State<Sender<ChannelRequest>>, msg: &str) -> Result<String> {
+pub async fn control(sender: &State<Sender<ChannelRequest>>, msg: &str) -> Result<String> {
     let message = hex::decode(msg)?;
     // FIXME validate?
     if message.len() < 65 {
@@ -23,11 +24,31 @@ pub async fn yo(sender: &State<Sender<ChannelRequest>>, msg: &str) -> Result<Str
     Ok(hex::encode(reply.reply).to_string())
 }
 
-pub fn launch_rocket(tx: Sender<ChannelRequest>) -> Rocket<Build> {
+#[get("/errors")]
+async fn errors(error_tx: &State<broadcast::Sender<Vec<u8>>>, mut end: Shutdown) -> EventStream![] {
+    let mut rx = error_tx.subscribe();
+    EventStream! {
+        loop {
+            let msg = select! {
+                msg = rx.recv() => match msg {
+                    Ok(msg) => ParserError::from_slice(&msg[..]),
+                    Err(RecvError::Closed) => break,
+                    Err(RecvError::Lagged(_)) => continue,
+                },
+                _ = &mut end => break,
+            };
+
+            yield Event::json(&msg);
+        }
+    }
+}
+
+pub fn launch_rocket(tx: Sender<ChannelRequest>, error_tx: broadcast::Sender<Vec<u8>>) -> Rocket<Build> {
     rocket::build()
-        .mount("/api/", routes![yo])
+        .mount("/api/", routes![control, errors])
         .attach(CORS)
         .manage(tx)
+        .manage(error_tx)
 }
 
 #[derive(Debug, thiserror::Error)]

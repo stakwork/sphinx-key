@@ -13,7 +13,7 @@ use crate::util::read_broker_config;
 use clap::{App, AppSettings, Arg};
 use rocket::tokio::{
     self,
-    sync::{mpsc, oneshot},
+    sync::{mpsc, oneshot, broadcast},
 };
 use std::env;
 use std::sync::Arc;
@@ -95,13 +95,14 @@ async fn run_main(parent_fd: i32) -> rocket::Rocket<rocket::Build> {
 
     let (tx, rx) = mpsc::channel(1000);
     let (status_tx, mut status_rx) = mpsc::channel(1000);
+    let (error_tx, _) = broadcast::channel(1000);
     log::info!("=> start broker on network: {}", settings.network);
-    start_broker(rx, status_tx, "sphinx-1", &settings).await;
+    start_broker(rx, status_tx, error_tx.clone(), "sphinx-1", &settings).await;
     log::info!("=> wait for connected status");
     // wait for connection = true
     let status = status_rx.recv().await.expect("couldnt receive");
     log::info!("=> connection status: {}", status);
-    assert_eq!(status, true, "expected connected = true");
+    // assert_eq!(status, true, "expected connected = true");
 
     if let Ok(btc_url) = env::var("BITCOIND_RPC_URL") {
         let signer_port = MqttSignerPort::new(tx.clone());
@@ -125,5 +126,5 @@ async fn run_main(parent_fd: i32) -> rocket::Rocket<rocket::Build> {
         signer_loop.start(Some(&settings));
     });
 
-    routes::launch_rocket(tx)
+    routes::launch_rocket(tx, error_tx)
 }

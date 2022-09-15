@@ -7,7 +7,7 @@ use librumqttd::{
     Config,
 };
 use rocket::tokio::time::timeout;
-use rocket::tokio::{self, sync::mpsc};
+use rocket::tokio::{self, sync::mpsc, sync::broadcast};
 use sphinx_key_parser::topics;
 use std::sync::Arc;
 use std::sync::{LazyLock, Mutex};
@@ -29,6 +29,7 @@ fn get_connected() -> bool {
 pub async fn start_broker(
     mut receiver: mpsc::Receiver<ChannelRequest>,
     status_sender: mpsc::Sender<bool>,
+    error_sender: broadcast::Sender<Vec<u8>>,
     expected_client_id: &str,
     settings: &Settings,
 ) {
@@ -49,7 +50,7 @@ pub async fn start_broker(
             mpsc::channel(1000);
         let (mut link_tx, mut link_rx) = builder.clone().connect("localclient", 200).await.unwrap();
         link_tx
-            .subscribe([topics::VLS_RETURN, topics::CONTROL_RETURN])
+            .subscribe([topics::VLS_RETURN, topics::CONTROL_RETURN, topics::ERROR])
             .await
             .unwrap();
 
@@ -76,6 +77,9 @@ pub async fn start_broker(
         let sub_task = tokio::spawn(async move {
             while let Ok(message) = link_rx.recv().await {
                 for payload in message.payload {
+                    if message.topic == topics::ERROR {
+                        let _ = error_sender.send(payload.to_vec());
+                    }
                     if let Err(e) = msg_tx.send(payload.to_vec()).await {
                         log::warn!("pub err {:?}", e);
                     }
