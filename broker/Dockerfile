@@ -40,3 +40,6 @@ COPY --from=build /sphinx-key-broker/target/release/sphinx-key-broker /usr/src/s
 # rocket
 ENV ROCKET_ADDRESS=0.0.0.0
 EXPOSE 8000
+
+# Run the binary
+# CMD ["/usr/src/sphinx-key-broker"]
