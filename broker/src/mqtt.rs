@@ -13,8 +13,6 @@ use std::sync::Arc;
 use std::sync::{LazyLock, Mutex};
 use std::time::Duration;
 
-const USERNAME: &str = "sphinx-key";
-const PASSWORD: &str = "sphinx-key-pass";
 // must get a reply within this time, or disconnects
 const REPLY_TIMEOUT_MS: u64 = 10000;
 
@@ -148,9 +146,7 @@ fn metrics_to_status(metrics: ConnectionMetrics, client_connected: bool) -> Opti
 
 fn config(settings: &Settings) -> Config {
     use librumqttd::rumqttlog::Config as RouterConfig;
-    use librumqttd::{
-        ConnectionLoginCredentials, ConnectionSettings, ConsoleSettings, ServerSettings,
-    };
+    use librumqttd::{ConnectionSettings, ConsoleSettings, ServerSettings};
     use std::collections::HashMap;
     use std::net::{Ipv4Addr, SocketAddrV4};
     use std::path::PathBuf;
@@ -176,10 +172,8 @@ fn config(settings: &Settings) -> Config {
                 max_payload_size: 5120,
                 max_inflight_count: 200,
                 max_inflight_size: 1024,
-                login_credentials: Some(vec![ConnectionLoginCredentials {
-                    username: USERNAME.to_string(),
-                    password: PASSWORD.to_string(),
-                }]),
+                login_credentials: None,
+                sphinx_auth: true,
             },
         },
     );

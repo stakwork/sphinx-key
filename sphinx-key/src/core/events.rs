@@ -1,11 +1,10 @@
 use crate::conn::mqtt::QOS;
-use crate::core::control::{controller_from_seed, FlashPersister};
 
-use sphinx_key_signer::control::{Config, ControlMessage, ControlResponse, Policy};
+use sphinx_key_signer::control::{Config, ControlMessage, ControlResponse, Controller, Policy};
 use sphinx_key_signer::lightning_signer::bitcoin::Network;
 use sphinx_key_signer::vls_protocol::model::PubKey;
 use sphinx_key_signer::{self, make_init_msg, topics, InitResponse, ParserError, RootHandler};
-use std::sync::{mpsc, Arc, Mutex};
+use std::sync::mpsc;
 
 use embedded_svc::httpd::Result;
 use embedded_svc::mqtt::client::utils::ConnState;
@@ -46,7 +45,7 @@ pub fn make_event_loop(
     config: Config,
     seed: [u8; 32],
     policy: &Policy,
-    flash: Arc<Mutex<FlashPersister>>,
+    mut ctrlr: Controller,
 ) -> Result<()> {
     while let Ok(event) = rx.recv() {
         log::info!("BROKER IP AND PORT: {}", config.broker);
@@ -71,9 +70,6 @@ pub fn make_event_loop(
         root_handler,
         init_reply: _,
     } = sphinx_key_signer::init(init_msg, network, policy).expect("failed to init signer");
-
-    // make the controller to validate Control messages
-    let mut ctrlr = controller_from_seed(&network, &seed[..], flash);
 
     // signing loop
     let dummy_peer = PubKey([0; 33]);
@@ -179,7 +175,7 @@ pub fn make_event_loop(
     _config: Config,
     _seed: [u8; 32],
     _policy: &Policy,
-    _flash: Arc<Mutex<FlashPersister>>,
+    mut _ctrlr: Controller,
 ) -> Result<()> {
     log::info!("About to subscribe to the mpsc channel");
     while let Ok(event) = rx.recv() {

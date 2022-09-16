@@ -3,7 +3,7 @@ mod conn;
 mod core;
 mod periph;
 
-use crate::core::control::FlashPersister;
+use crate::core::control::{controller_from_seed, FlashPersister};
 use crate::core::{config::*, events::*};
 use crate::periph::led::led_control_loop;
 #[allow(unused_imports)]
@@ -122,11 +122,7 @@ fn make_and_launch_client(
     flash: Arc<Mutex<FlashPersister>>,
 ) -> anyhow::Result<()> {
     let (tx, rx) = mpsc::channel();
-    let (mqtt, connection) = conn::mqtt::make_client(&config.broker, CLIENT_ID)?;
-    let mqtt_client = conn::mqtt::start_listening(mqtt, connection, tx)?;
 
-    // this blocks forever... the "main thread"
-    let do_log = true;
     let network = match config.network.as_str() {
         "bitcoin" => Network::Bitcoin,
         "mainnet" => Network::Bitcoin,
@@ -135,9 +131,21 @@ fn make_and_launch_client(
         "regtest" => Network::Regtest,
         _ => Network::Regtest,
     };
+
+    // make the controller to validate Control messages
+    let ctrlr = controller_from_seed(&network, &seed[..], flash);
+    let pubkey = hex::encode(ctrlr.pubkey().serialize());
+    let token = ctrlr.make_auth_token().expect("couldnt make auth token");
+
+    let (mqtt, connection) = conn::mqtt::make_client(&config.broker, CLIENT_ID, &pubkey, &token)?;
+    let mqtt_client = conn::mqtt::start_listening(mqtt, connection, tx)?;
+
+    // this blocks forever... the "main thread"
+    let do_log = true;
     log::info!("Network set to {:?}", network);
     log::info!(">>>>>>>>>>> blocking forever...");
     log::info!("{:?}", config);
+
     make_event_loop(
         mqtt_client,
         rx,
@@ -147,7 +155,7 @@ fn make_and_launch_client(
         config,
         seed,
         policy,
-        flash,
+        ctrlr,
     )?;
     Ok(())
 }
