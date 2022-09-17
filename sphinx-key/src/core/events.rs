@@ -1,4 +1,5 @@
 use crate::conn::mqtt::QOS;
+use crate::ota::update_sphinx_key;
 
 use sphinx_key_signer::control::{Config, ControlMessage, ControlResponse, Controller, Policy};
 use sphinx_key_signer::lightning_signer::bitcoin::Network;
@@ -116,6 +117,9 @@ pub fn make_event_loop(
                         rmp_serde::to_vec(&res).expect("could not publish control response");
                     mqtt.publish(topics::CONTROL_RETURN, QOS, false, &res_data)
                         .expect("could not publish control response");
+                    if let ControlResponse::OtaConfirm(_) = res {
+                        unsafe { esp_idf_sys::esp_restart() };
+                    }
                 }
             }
         }
@@ -157,6 +161,15 @@ fn handle_control_response(
                             control_res =
                                 ControlResponse::Error(format!("read allowlist failed {:?}", e))
                         }
+                    }
+                }
+                ControlMessage::Ota(params) => {
+                    if let Err(e) = update_sphinx_key(params.version, params.url.clone()) {
+                        log::error!("OTA update failed {:?}", e.to_string());
+                        control_res =
+                            ControlResponse::Error(format!("OTA update failed {:?}", e))
+                    } else {
+                        log::info!("OTA update completed, about to restart the glyph...");
                     }
                 }
                 _ => (),

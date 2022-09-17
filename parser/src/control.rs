@@ -106,7 +106,7 @@ impl Controller {
                 ControlResponse::AllowlistUpdated(na)
             }
             ControlMessage::Ota(params) => {
-                // ...
+                // same as above comments, actually done in core/events.rs
                 ControlResponse::OtaConfirm(params)
             }
         };

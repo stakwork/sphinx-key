@@ -1,6 +1,7 @@
 #![feature(once_cell)]
 mod conn;
 mod core;
+mod ota;
 mod periph;
 
 use crate::core::control::{controller_from_seed, FlashPersister};
