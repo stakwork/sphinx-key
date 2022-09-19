@@ -8,6 +8,7 @@ members = [
 
 exclude = [
     "broker",
+    "factory",
     "persister",
     "sphinx-key",
 ]
