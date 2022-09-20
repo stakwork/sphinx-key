@@ -136,6 +136,7 @@ fn make_and_launch_client(
     let ctrlr = controller_from_seed(&network, &seed[..], flash);
     let pubkey = hex::encode(ctrlr.pubkey().serialize());
     let token = ctrlr.make_auth_token().expect("couldnt make auth token");
+    log::info!("PUBKEY {} TOKEN {}", &pubkey, &token);
 
     let (mqtt, connection) = conn::mqtt::make_client(&config.broker, CLIENT_ID, &pubkey, &token)?;
     let mqtt_client = conn::mqtt::start_listening(mqtt, connection, tx)?;
