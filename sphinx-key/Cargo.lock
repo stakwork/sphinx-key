@@ -1971,9 +1971,9 @@ dependencies = [
 
 [[package]]
 name = "sphinx-auther"
-version = "0.1.10"
+version = "0.1.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "452ac3986f03e8d403a21f81883d0f5058152af4ae006a26ee00e3a31af20302"
+checksum = "33bd24149ede6f4ec091326eacf550cfa3fc00492d4e627a045c1bd690255362"
 dependencies = [
  "anyhow",
  "base64",

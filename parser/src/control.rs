@@ -1,6 +1,7 @@
 use anyhow::Result;
 use sphinx_auther::nonce;
 use sphinx_auther::secp256k1::{PublicKey, SecretKey};
+use sphinx_auther::token::Token;
 pub use sphinx_glyph::types::{Config, ControlMessage, ControlResponse, Interval, Policy};
 use std::sync::{Arc, Mutex};
 
@@ -20,6 +21,16 @@ impl Controller {
         let store = store1.lock().unwrap();
         let nonce = store.read_nonce().unwrap_or(0);
         Self(sk, pk, nonce, per)
+    }
+    pub fn make_auth_token(&self) -> Result<String> {
+        let t = Token::new();
+        Ok(t.sign_to_base64(&self.0)?)
+    }
+    pub fn pubkey(&self) -> PublicKey {
+        self.1
+    }
+    pub fn nonce(&self) -> u64 {
+        self.2
     }
     pub fn build_msg(&mut self, msg: ControlMessage) -> anyhow::Result<Vec<u8>> {
         let data = rmp_serde::to_vec(&msg)?;

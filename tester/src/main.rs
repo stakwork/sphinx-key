@@ -14,9 +14,6 @@ use std::error::Error;
 use std::str::FromStr;
 use std::time::Duration;
 
-const USERNAME: &str = "sphinx-key";
-const PASSWORD: &str = "sphinx-key-pass";
-
 #[tokio::main(worker_threads = 1)]
 async fn main() -> Result<(), Box<dyn Error>> {
     setup_logging("sphinx-key-tester  ", "info");
@@ -37,9 +34,17 @@ async fn main() -> Result<(), Box<dyn Error>> {
     // main loop - alternate between "reconnection" and "handler"
     loop {
         let mut try_i = 0;
+        let network = Network::Regtest;
+        let seed_string: String = env::var("SEED").expect("no seed");
+        let seed = hex::decode(seed_string).expect("couldnt decode seed");
+        // make the controller to validate Control messages
+        let mut ctrlr = controller_from_seed(&network, &seed);
+        let pubkey = hex::encode(&ctrlr.pubkey().serialize());
+        let token = ctrlr.make_auth_token()?;
+
         let (client, mut eventloop) = loop {
             let mut mqttoptions = MqttOptions::new("test-1", "localhost", 1883);
-            mqttoptions.set_credentials(USERNAME, PASSWORD);
+            mqttoptions.set_credentials(pubkey.clone(), token.clone());
             mqttoptions.set_keep_alive(Duration::from_secs(5));
             let (client, mut eventloop) = AsyncClient::new(mqttoptions, 10);
             match eventloop.poll().await {
@@ -65,12 +70,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
             .subscribe(topics::CONTROL, QoS::AtMostOnce)
             .await
             .expect("could not mqtt subscribe");
-
-        let network = Network::Regtest;
-        let seed_string: String = env::var("SEED").expect("no seed");
-        let seed = hex::decode(seed_string).expect("couldnt decode seed");
-        // make the controller to validate Control messages
-        let mut ctrlr = controller_from_seed(&network, &seed);
 
         if is_test {
             // test handler loop

@@ -1,9 +1,26 @@
 # Rust as the base image
-FROM rust:latest as build
+# FROM rust:slim-bullseye as build
+FROM debian:bullseye-slim as build
 
-RUN rustup toolchain install nightly
+RUN apt-get update -qq && \
+    apt-get install -qq -y --no-install-recommends \
+    build-essential \
+    ca-certificates \
+    curl \
+    dirmngr \
+    gettext \
+    wget
 
-RUN rustup component add rustfmt --toolchain nightly-x86_64-unknown-linux-gnu
+ENV RUST_PROFILE=release
+ENV PATH=$PATH:/root/.cargo/bin/
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+RUN rustup toolchain install nightly --component rustfmt --allow-downgrade
+RUN rustup default nightly
+
+# RUN rustup toolchain install nightly
+
+# RUN rustup component add rustfmt --toolchain nightly-x86_64-unknown-linux-gnu
+# RUN rustup component add rustfmt --toolchain nightly
 
 # Create a new empty shell project
 RUN USER=root cargo new --bin sphinx-key-broker

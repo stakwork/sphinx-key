@@ -13,13 +13,13 @@ use log::*;
 use std::sync::mpsc;
 use std::thread;
 
-pub const USERNAME: &str = "sphinx-key";
-pub const PASSWORD: &str = "sphinx-key-pass";
 pub const QOS: QoS = QoS::AtMostOnce;
 
 pub fn make_client(
     broker: &str,
     client_id: &str,
+    username: &str,
+    password: &str,
 ) -> Result<(
     EspMqttClient<ConnState<MessageImpl, EspError>>,
     MqttConnection<Condvar, MessageImpl, EspError>,
@@ -29,8 +29,8 @@ pub fn make_client(
         client_id: Some(client_id),
         buffer_size: 4096,
         task_stack: 12288,
-        username: Some(USERNAME),
-        password: Some(PASSWORD),
+        username: Some(username),
+        password: Some(password),
         // FIXME - mqtts
         // crt_bundle_attach: Some(esp_idf_sys::esp_crt_bundle_attach),
         ..Default::default()
