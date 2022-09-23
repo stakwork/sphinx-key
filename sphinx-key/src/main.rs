@@ -107,7 +107,7 @@ fn main() -> Result<()> {
             flash.write_config(config).expect("could not store config");
             flash.write_seed(seed).expect("could not store seed");
             println!("CONFIG SAVED");
-            loop {}
+            unsafe { esp_idf_sys::esp_restart() };
         }
     }
 
