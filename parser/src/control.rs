@@ -56,7 +56,7 @@ impl Controller {
         Ok(rmp_serde::from_slice(input)?)
     }
     // return the OG message for further processing
-    pub fn handle(&mut self, input: &[u8]) -> anyhow::Result<(Vec<u8>, ControlMessage)> {
+    pub fn handle(&mut self, input: &[u8]) -> anyhow::Result<(ControlMessage, ControlResponse)> {
         let msg_nonce = self.parse_msg_no_nonce(input)?;
         let msg = msg_nonce.0;
         // nonce must be higher each time
@@ -110,8 +110,7 @@ impl Controller {
                 ControlResponse::OtaConfirm(params)
             }
         };
-        let response = self.build_response(res)?;
-        Ok((response, msg))
+        Ok((msg, res))
     }
 }
 

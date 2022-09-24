@@ -111,7 +111,9 @@ pub fn make_event_loop(
             Event::Control(ref msg_bytes) => {
                 log::info!("GOT A CONTROL MSG");
                 let cres = ctrlr.handle(msg_bytes);
-                if let Some(res_data) = handle_control_response(&root_handler, cres, network) {
+                if let Some(res) = handle_control_response(&root_handler, cres, network) {
+                    let res_data =
+                        rmp_serde::to_vec(&res).expect("could not publish control response");
                     mqtt.publish(topics::CONTROL_RETURN, QOS, false, &res_data)
                         .expect("could not publish control response");
                 }
@@ -124,43 +126,47 @@ pub fn make_event_loop(
 
 fn handle_control_response(
     root_handler: &RootHandler,
-    cres: anyhow::Result<(Vec<u8>, ControlMessage)>,
+    cres: anyhow::Result<(ControlMessage, ControlResponse)>,
     network: Network,
-) -> Option<Vec<u8>> {
+) -> Option<ControlResponse> {
     match cres {
-        Ok((mut response, parsed_msg)) => {
+        Ok((control_msg, mut control_res)) => {
             // the following msg types require other actions besides Flash persistence
-            match parsed_msg {
+            match control_msg {
                 ControlMessage::UpdatePolicy(new_policy) => {
                     if let Err(e) =
                         sphinx_key_signer::set_policy(&root_handler, network, new_policy)
                     {
                         log::error!("set policy failed {:?}", e);
+                        control_res = ControlResponse::Error(format!("set policy failed {:?}", e))
                     }
                 }
                 ControlMessage::UpdateAllowlist(al) => {
                     if let Err(e) = sphinx_key_signer::set_allowlist(&root_handler, &al) {
                         log::error!("set allowlist failed {:?}", e);
+                        control_res =
+                            ControlResponse::Error(format!("set allowlist failed {:?}", e))
                     }
                 }
                 // overwrite the real Allowlist response, loaded from Node
                 ControlMessage::QueryAllowlist => {
-                    if let Ok(al) = sphinx_key_signer::get_allowlist(&root_handler) {
-                        response = rmp_serde::to_vec(&ControlResponse::AllowlistCurrent(al))
-                            .expect("couldnt build ControlResponse::AllowlistCurrent");
-                    } else {
-                        log::error!("read allowlist failed");
+                    match sphinx_key_signer::get_allowlist(&root_handler) {
+                        Ok(al) => control_res = ControlResponse::AllowlistCurrent(al),
+                        Err(e) => {
+                            log::error!("read allowlist failed {:?}", e);
+                            control_res =
+                                ControlResponse::Error(format!("read allowlist failed {:?}", e))
+                        }
                     }
                 }
                 _ => (),
             };
-            Some(response)
+            Some(control_res)
         }
         Err(e) => {
-            let response = rmp_serde::to_vec(&ControlResponse::Error(e.to_string()))
-                .expect("couldnt build ControlResponse::Error");
+            let control_res = ControlResponse::Error(e.to_string());
             log::warn!("error parsing ctrl msg {:?}", e);
-            Some(response)
+            Some(control_res)
         }
     }
 }
