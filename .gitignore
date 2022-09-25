@@ -3,6 +3,7 @@
 target
 Cargo.lock
 !sphinx-key/Cargo.lock
+!factory/Cargo.lock
 .DS_Store
 notes.md
 test-flash
