@@ -53,6 +53,7 @@ pub struct ChannelReply {
     pub reply: Vec<u8>,
 }
 
+const CLIENT_ID: &str = "sphinx-1";
 const BROKER_CONFIG_PATH: &str = "../broker.conf";
 
 #[rocket::launch]
@@ -97,7 +98,7 @@ async fn run_main(parent_fd: i32) -> rocket::Rocket<rocket::Build> {
     let (status_tx, mut status_rx) = mpsc::channel(1000);
     let (error_tx, _) = broadcast::channel(1000);
     log::info!("=> start broker on network: {}", settings.network);
-    start_broker(rx, status_tx, error_tx.clone(), "sphinx-1", &settings).await;
+    start_broker(rx, status_tx, error_tx.clone(),CLIENT_ID, &settings).await;
     log::info!("=> wait for connected status");
     // wait for connection = true
     let status = status_rx.recv().await.expect("couldnt receive");

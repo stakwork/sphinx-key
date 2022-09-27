@@ -4,7 +4,7 @@ use sphinx_key_signer::lightning_signer::bitcoin::Network;
 
 use clap::{App, AppSettings, Arg};
 use dotenv::dotenv;
-use rumqttc::{self, AsyncClient, Event, MqttOptions, Packet, QoS};
+use rumqttc::{self, AsyncClient, Event, EventLoop, MqttOptions, Packet, QoS};
 use sphinx_key_signer::control::Controller;
 use sphinx_key_signer::vls_protocol::{model::PubKey, msgs};
 use sphinx_key_signer::{self, InitResponse};
@@ -13,6 +13,8 @@ use std::env;
 use std::error::Error;
 use std::str::FromStr;
 use std::time::Duration;
+
+pub const ROOT_STORE: &str = "teststore";
 
 #[tokio::main(worker_threads = 1)]
 async fn main() -> Result<(), Box<dyn Error>> {
@@ -38,12 +40,17 @@ async fn main() -> Result<(), Box<dyn Error>> {
         let seed_string: String = env::var("SEED").expect("no seed");
         let seed = hex::decode(seed_string).expect("couldnt decode seed");
         // make the controller to validate Control messages
-        let mut ctrlr = controller_from_seed(&network, &seed);
+        let ctrlr = controller_from_seed(&network, &seed);
         let pubkey = hex::encode(&ctrlr.pubkey().serialize());
         let token = ctrlr.make_auth_token()?;
 
-        let (client, mut eventloop) = loop {
-            let mut mqttoptions = MqttOptions::new("test-1", "localhost", 1883);
+        let client_id = if is_test {
+            "test-1" 
+        } else {
+            "sphinx-1"
+        };
+        let (client, eventloop) = loop {
+            let mut mqttoptions = MqttOptions::new(client_id, "localhost", 1883);
             mqttoptions.set_credentials(pubkey.clone(), token.clone());
             mqttoptions.set_keep_alive(Duration::from_secs(5));
             let (client, mut eventloop) = AsyncClient::new(mqttoptions, 10);
@@ -72,118 +79,126 @@ async fn main() -> Result<(), Box<dyn Error>> {
             .expect("could not mqtt subscribe");
 
         if is_test {
-            // test handler loop
-            loop {
-                match eventloop.poll().await {
-                    Ok(event) => {
-                        // println!("{:?}", event);
-                        if let Some((topic, msg_bytes)) = incoming_bytes(event) {
-                            match topic.as_str() {
-                                topics::VLS => {
-                                    let (ping, sequence, dbid): (msgs::Ping, u16, u64) =
-                                        parser::request_from_bytes(msg_bytes)
-                                            .expect("read ping header");
-                                    if is_log {
-                                        println!("sequence {}", sequence);
-                                        println!("dbid {}", dbid);
-                                        println!("INCOMING: {:?}", ping);
-                                    }
-                                    let pong = msgs::Pong {
-                                        id: ping.id,
-                                        message: ping.message,
-                                    };
-                                    let bytes = parser::raw_response_from_msg(pong, sequence)
-                                        .expect("couldnt parse raw response");
+            run_test(eventloop, &client, ctrlr, is_log).await;
+        } else {
+            run_main(eventloop, &client, ctrlr, is_log, &seed, network).await;
+        }
+    }
+}
+
+async fn run_main(mut eventloop: EventLoop, client: &AsyncClient, mut ctrlr: Controller, is_log: bool, seed: &[u8], network: Network) {
+    let seed32: [u8; 32] = seed.try_into().expect("wrong seed");
+    let init_msg =
+        sphinx_key_signer::make_init_msg(network, seed32).expect("failed to make init msg");
+    let InitResponse {
+        root_handler,
+        init_reply: _,
+    } = sphinx_key_signer::init(init_msg, network, &Default::default(), ROOT_STORE)
+        .expect("failed to init signer");
+    // the actual handler loop
+    loop {
+        match eventloop.poll().await {
+            Ok(event) => {
+                let dummy_peer = PubKey([0; 33]);
+                if let Some((topic, msg_bytes)) = incoming_bytes(event) {
+                    match topic.as_str() {
+                        topics::VLS => {
+                            match sphinx_key_signer::handle(
+                                &root_handler,
+                                msg_bytes,
+                                dummy_peer.clone(),
+                                is_log,
+                            ) {
+                                Ok(b) => client
+                                    .publish(topics::VLS_RETURN, QoS::AtMostOnce, false, b)
+                                    .await
+                                    .expect("could not publish init response"),
+                                Err(e) => panic!("HANDLE FAILED {:?}", e),
+                            };
+                        }
+                        topics::CONTROL => {
+                            match ctrlr.handle(&msg_bytes) {
+                                Ok((_msg, res)) => {
+                                    let res_data = rmp_serde::to_vec(&res).expect("could not build control response");
                                     client
-                                        .publish(topics::VLS_RETURN, QoS::AtMostOnce, false, bytes)
+                                        .publish(
+                                            topics::CONTROL_RETURN,
+                                            QoS::AtMostOnce,
+                                            false,
+                                            res_data,
+                                        )
                                         .await
                                         .expect("could not mqtt publish");
                                 }
-                                topics::CONTROL => {
-                                    match ctrlr.handle(&msg_bytes) {
-                                        Ok((_msg, res)) => {
-                                            let res_data = rmp_serde::to_vec(&res).expect("could not publish control response");
-                                            client
-                                                .publish(
-                                                    topics::CONTROL_RETURN,
-                                                    QoS::AtMostOnce,
-                                                    false,
-                                                    res_data,
-                                                )
-                                                .await
-                                                .expect("could not mqtt publish");
-                                        }
-                                        Err(e) => log::warn!("error parsing ctrl msg {:?}", e),
-                                    };
-                                }
-                                _ => log::info!("invalid topic"),
-                            }
+                                Err(e) => log::warn!("error parsing ctrl msg {:?}", e),
+                            };
                         }
-                    }
-                    Err(e) => {
-                        log::warn!("diconnected {:?}", e);
-                        tokio::time::sleep(Duration::from_secs(1)).await;
-                        break; // break out of this loop to reconnect
+                        _ => log::info!("invalid topic"),
                     }
                 }
             }
-        } else {
-            let seed32: [u8; 32] = seed.try_into().expect("wrong seed");
-            let init_msg =
-                sphinx_key_signer::make_init_msg(network, seed32).expect("failed to make init msg");
-            let InitResponse {
-                root_handler,
-                init_reply: _,
-            } = sphinx_key_signer::init(init_msg, network, &Default::default())
-                .expect("failed to init signer");
-            // the actual handler loop
-            loop {
-                match eventloop.poll().await {
-                    Ok(event) => {
-                        let dummy_peer = PubKey([0; 33]);
-                        if let Some((topic, msg_bytes)) = incoming_bytes(event) {
-                            match topic.as_str() {
-                                topics::VLS => {
-                                    match sphinx_key_signer::handle(
-                                        &root_handler,
-                                        msg_bytes,
-                                        dummy_peer.clone(),
-                                        is_log,
-                                    ) {
-                                        Ok(b) => client
-                                            .publish(topics::VLS_RETURN, QoS::AtMostOnce, false, b)
-                                            .await
-                                            .expect("could not publish init response"),
-                                        Err(e) => panic!("HANDLE FAILED {:?}", e),
-                                    };
-                                }
-                                topics::CONTROL => {
-                                    match ctrlr.handle(&msg_bytes) {
-                                        Ok((_msg, res)) => {
-                                            let res_data = rmp_serde::to_vec(&res).expect("could not publish control response");
-                                            client
-                                                .publish(
-                                                    topics::CONTROL_RETURN,
-                                                    QoS::AtMostOnce,
-                                                    false,
-                                                    res_data,
-                                                )
-                                                .await
-                                                .expect("could not mqtt publish");
-                                        }
-                                        Err(e) => log::warn!("error parsing ctrl msg {:?}", e),
-                                    };
-                                }
-                                _ => log::info!("invalid topic"),
+            Err(e) => {
+                log::warn!("diconnected {:?}", e);
+                tokio::time::sleep(Duration::from_secs(1)).await;
+                break; // break out of this loop to reconnect
+            }
+        }
+    }
+}
+
+async fn run_test(mut eventloop: EventLoop, client: &AsyncClient, mut ctrlr: Controller, is_log: bool) {
+    // test handler loop
+    loop {
+        match eventloop.poll().await {
+            Ok(event) => {
+                // println!("{:?}", event);
+                if let Some((topic, msg_bytes)) = incoming_bytes(event) {
+                    match topic.as_str() {
+                        topics::VLS => {
+                            let (ping, sequence, dbid): (msgs::Ping, u16, u64) =
+                                parser::request_from_bytes(msg_bytes)
+                                    .expect("read ping header");
+                            if is_log {
+                                println!("sequence {}", sequence);
+                                println!("dbid {}", dbid);
+                                println!("INCOMING: {:?}", ping);
                             }
+                            let pong = msgs::Pong {
+                                id: ping.id,
+                                message: ping.message,
+                            };
+                            let bytes = parser::raw_response_from_msg(pong, sequence)
+                                .expect("couldnt parse raw response");
+                            client
+                                .publish(topics::VLS_RETURN, QoS::AtMostOnce, false, bytes)
+                                .await
+                                .expect("could not mqtt publish");
                         }
-                    }
-                    Err(e) => {
-                        log::warn!("diconnected {:?}", e);
-                        tokio::time::sleep(Duration::from_secs(1)).await;
-                        break; // break out of this loop to reconnect
+                        topics::CONTROL => {
+                            match ctrlr.handle(&msg_bytes) {
+                                Ok((_msg, res)) => {
+                                    let res_data = rmp_serde::to_vec(&res).expect("could not build control response");
+                                    client
+                                        .publish(
+                                            topics::CONTROL_RETURN,
+                                            QoS::AtMostOnce,
+                                            false,
+                                            res_data,
+                                        )
+                                        .await
+                                        .expect("could not mqtt publish");
+                                }
+                                Err(e) => log::warn!("error parsing ctrl msg {:?}", e),
+                            };
+                        }
+                        _ => log::info!("invalid topic"),
                     }
                 }
+            }
+            Err(e) => {
+                log::warn!("diconnected {:?}", e);
+                tokio::time::sleep(Duration::from_secs(1)).await;
+                break; // break out of this loop to reconnect
             }
         }
     }
