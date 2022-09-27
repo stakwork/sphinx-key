@@ -34,6 +34,8 @@ pub enum Status {
     Signing,
 }
 
+pub const ROOT_STORE: &str = "/sdcard/store";
+
 // the main event loop
 #[cfg(not(feature = "pingpong"))]
 pub fn make_event_loop(
@@ -69,7 +71,8 @@ pub fn make_event_loop(
     let InitResponse {
         root_handler,
         init_reply: _,
-    } = sphinx_key_signer::init(init_msg, network, policy).expect("failed to init signer");
+    } = sphinx_key_signer::init(init_msg, network, policy, ROOT_STORE)
+        .expect("failed to init signer");
 
     // signing loop
     let dummy_peer = PubKey([0; 33]);

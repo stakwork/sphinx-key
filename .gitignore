@@ -7,3 +7,4 @@ Cargo.lock
 notes.md
 test-flash
 .env
+teststore

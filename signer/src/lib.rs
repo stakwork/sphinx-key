@@ -27,12 +27,13 @@ pub struct InitResponse {
     pub init_reply: Vec<u8>,
 }
 
-pub const ROOT_STORE: &str = "/sdcard/store";
+// pub const ROOT_STORE: &str = "/sdcard/store";
 
 pub fn init(
     bytes: Vec<u8>,
     network: Network,
     po: &control::Policy,
+    root_store_path: &str,
 ) -> anyhow::Result<InitResponse> {
     // let persister: Arc<dyn Persist> = Arc::new(DummyPersister);
     let mut md = MsgDriver::new(bytes);
@@ -52,7 +53,7 @@ pub fn init(
     let policy = make_policy(network, po);
     let validator_factory = Arc::new(SimpleValidatorFactory::new_with_policy(policy));
     let random_time_factory = RandomStartingTimeFactory::new();
-    let persister: Arc<dyn Persist> = Arc::new(FsPersister::new(ROOT_STORE));
+    let persister: Arc<dyn Persist> = Arc::new(FsPersister::new(root_store_path));
     let clock = Arc::new(StandardClock());
     let services = NodeServices {
         validator_factory,
