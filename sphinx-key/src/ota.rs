@@ -2,6 +2,7 @@ use anyhow::{anyhow, Result};
 use embedded_svc::http::client::Client;
 use embedded_svc::http::client::Request;
 use embedded_svc::http::client::Response;
+use embedded_svc::http::Status;
 use embedded_svc::io::Read;
 use embedded_svc::ota::Ota;
 use esp_idf_svc::http::client::EspHttpClient;
@@ -9,6 +10,7 @@ use esp_idf_svc::http::client::EspHttpClientConfiguration;
 use esp_idf_svc::http::client::FollowRedirectsPolicy::FollowNone;
 use esp_idf_svc::ota::EspOta;
 use log::{error, info};
+use sphinx_key_signer::control::OtaParams;
 use std::fs::{remove_file, File};
 use std::io::BufWriter;
 use std::io::Write;
@@ -29,7 +31,7 @@ fn factory_reset() -> Result<()> {
     }
 }
 
-fn get_update(version: u64, mut url: String) -> Result<()> {
+fn get_update(params: OtaParams) -> Result<()> {
     let configuration = EspHttpClientConfiguration {
         buffer_size: Some(BUFFER_LEN),
         buffer_size_tx: Some(BUFFER_LEN / 3),
@@ -38,8 +40,8 @@ fn get_update(version: u64, mut url: String) -> Result<()> {
         crt_bundle_attach: None,
     };
     let mut client = EspHttpClient::new(&configuration)?;
-    url.push_str(&version.to_string());
-    let mut response = client.get(&url)?.submit()?;
+    let full_url = params_to_url(params);
+    let mut response = client.get(&full_url)?.submit()?;
     let mut reader = response.reader();
 
     let _ = remove_file(UPDATE_BIN_PATH);
@@ -69,13 +71,50 @@ fn get_update(version: u64, mut url: String) -> Result<()> {
     Ok(())
 }
 
-pub fn update_sphinx_key(version: u64, url: String) -> Result<()> {
+pub fn update_sphinx_key(params: OtaParams) -> Result<()> {
     info!("Getting the update...");
-    info!("Version: {}", version.to_string());
-    info!("URL: {}", url);
-    get_update(version, url)?;
+    get_update(params)?;
     info!("Update written to sd card, performing factory reset");
     factory_reset()?;
     info!("Factory reset completed!");
     Ok(())
+}
+
+pub fn validate_ota_message(params: OtaParams) -> Result<()> {
+    let configuration = EspHttpClientConfiguration {
+        buffer_size: Some(BUFFER_LEN / 3),
+        buffer_size_tx: Some(BUFFER_LEN / 3),
+        follow_redirects_policy: FollowNone,
+        use_global_ca_store: true,
+        crt_bundle_attach: None,
+    };
+    let mut client = EspHttpClient::new(&configuration)?;
+    let full_url = params_to_url(params);
+    info!("Pinging this url for an update: {}", full_url);
+    let response = client.get(&full_url)?.submit()?;
+    let status = response.status();
+    if status == 200 {
+        info!("Got valid OTA url! Proceeding with OTA update...");
+        Ok(())
+    } else if status == 404 {
+        error!("got 404, update not found on server, make sure the url and version are correct");
+        Err(anyhow!(
+            "got 404, update not found on server, make sure the url and version are correct"
+        ))
+    } else {
+        error!(
+            "got {} code when fetching update, something is wrong",
+            &status.to_string()
+        );
+        Err(anyhow!(
+            "got {} code when fetching update, something is wrong",
+            &status.to_string()
+        ))
+    }
+}
+
+fn params_to_url(params: OtaParams) -> String {
+    let mut url = params.url.clone();
+    url.push_str(&params.version.to_string());
+    url
 }

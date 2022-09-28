@@ -1,11 +1,12 @@
 use crate::conn::mqtt::QOS;
-use crate::ota::update_sphinx_key;
+use crate::ota::{update_sphinx_key, validate_ota_message};
 
 use sphinx_key_signer::control::{Config, ControlMessage, ControlResponse, Controller, Policy};
 use sphinx_key_signer::lightning_signer::bitcoin::Network;
 use sphinx_key_signer::vls_protocol::model::PubKey;
 use sphinx_key_signer::{self, make_init_msg, topics, InitResponse, ParserError, RootHandler};
 use std::sync::mpsc;
+use std::thread;
 
 use embedded_svc::httpd::Result;
 use embedded_svc::mqtt::client::utils::ConnState;
@@ -120,9 +121,6 @@ pub fn make_event_loop(
                         rmp_serde::to_vec(&res).expect("could not publish control response");
                     mqtt.publish(topics::CONTROL_RETURN, QOS, false, &res_data)
                         .expect("could not publish control response");
-                    if let ControlResponse::OtaConfirm(_) = res {
-                        unsafe { esp_idf_sys::esp_restart() };
-                    }
                 }
             }
         }
@@ -167,12 +165,20 @@ fn handle_control_response(
                     }
                 }
                 ControlMessage::Ota(params) => {
-                    if let Err(e) = update_sphinx_key(params.version, params.url.clone()) {
-                        log::error!("OTA update failed {:?}", e.to_string());
+                    if let Err(e) = validate_ota_message(params.clone()) {
+                        log::error!("OTA update cannot launch {:?}", e.to_string());
                         control_res =
-                            ControlResponse::Error(format!("OTA update failed {:?}", e))
+                            ControlResponse::Error(format!("OTA update cannot launch {:?}", e))
                     } else {
-                        log::info!("OTA update completed, about to restart the glyph...");
+                        thread::spawn(move || {
+                            if let Err(e) = update_sphinx_key(params) {
+                                log::error!("OTA update failed {:?}", e.to_string());
+                            } else {
+                                log::info!("OTA flow complete, restarting esp...");
+                                unsafe { esp_idf_sys::esp_restart() };
+                            }
+                        });
+                        log::info!("OTA update launched...");
                     }
                 }
                 _ => (),
