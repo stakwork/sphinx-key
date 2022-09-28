@@ -1,5 +1,7 @@
+mod led;
 mod ota;
 mod sdcard;
+use crate::led::set_ota_led;
 use esp_idf_sys as _; // If using the `binstart` feature of `esp-idf-sys`, always keep this module imported
 use log::{error, info, warn};
 use ota::{run_sdcard_ota_update, set_boot_main_app, UPDATE_BIN_PATH};
@@ -14,6 +16,7 @@ fn main() {
     esp_idf_sys::link_patches();
 
     thread::sleep(Duration::from_secs(10));
+    set_ota_led();
     info!("Hello, world! Mounting sd card...");
     sdcard::mount_sd_card();
     info!("SD card mounted! Checking for update...");

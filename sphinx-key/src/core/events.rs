@@ -34,6 +34,7 @@ pub enum Status {
     ConnectingToMqtt,
     Connected,
     Signing,
+    Ota,
 }
 
 pub const ROOT_STORE: &str = "/sdcard/store";
@@ -116,7 +117,9 @@ pub fn make_event_loop(
             Event::Control(ref msg_bytes) => {
                 log::info!("GOT A CONTROL MSG");
                 let cres = ctrlr.handle(msg_bytes);
-                if let Some(res) = handle_control_response(&root_handler, cres, network) {
+                if let Some(res) =
+                    handle_control_response(&root_handler, cres, network, led_tx.clone())
+                {
                     let res_data =
                         rmp_serde::to_vec(&res).expect("could not publish control response");
                     mqtt.publish(topics::CONTROL_RETURN, QOS, false, &res_data)
@@ -133,6 +136,7 @@ fn handle_control_response(
     root_handler: &RootHandler,
     cres: anyhow::Result<(ControlMessage, ControlResponse)>,
     network: Network,
+    led_tx: mpsc::Sender<Status>,
 ) -> Option<ControlResponse> {
     match cres {
         Ok((control_msg, mut control_res)) => {
@@ -171,7 +175,8 @@ fn handle_control_response(
                             ControlResponse::Error(format!("OTA update cannot launch {:?}", e))
                     } else {
                         thread::spawn(move || {
-                            if let Err(e) = update_sphinx_key(params) {
+                            led_tx.send(Status::Ota).unwrap();
+                            if let Err(e) = update_sphinx_key(params, led_tx) {
                                 log::error!("OTA update failed {:?}", e.to_string());
                             } else {
                                 log::info!("OTA flow complete, restarting esp...");
