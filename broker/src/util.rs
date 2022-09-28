@@ -24,15 +24,26 @@ pub fn read_broker_config(config_path: &str) -> Settings {
     if let Ok(set) = fs::read_to_string(config_path) {
         let table = Value::from_str(&set)
             .expect("Couldn't read broker.conf make sure it follows the toml format");
-        log::info!("Read broker.conf");
         if let Some(network) = read_network_setting(&table) {
-            settings.network = network
+            settings.network = network;
         }
         if let Some(port) = read_port_setting(&table) {
-            settings.port = port
+            settings.port = port;
         }
     } else {
         log::info!("File broker.conf not found, using default settings");
+    }
+    if let Ok(env_net) = env::var("BROKER_NETWORK") {
+        if let Ok(net) = Network::from_str(&env_net) {
+            settings.network = net;
+        }
+    }
+    if let Ok(env_port) = env::var("BROKER_PORT") {
+        if let Ok(port) = env_port.parse::<u16>() {
+            if port > 1023 {
+                settings.port = port;
+            }
+        }
     }
     settings
 }
