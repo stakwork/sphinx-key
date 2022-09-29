@@ -1,10 +1,12 @@
 use crate::conn::mqtt::QOS;
+use crate::ota::{update_sphinx_key, validate_ota_message};
 
 use sphinx_key_signer::control::{Config, ControlMessage, ControlResponse, Controller, Policy};
 use sphinx_key_signer::lightning_signer::bitcoin::Network;
 use sphinx_key_signer::vls_protocol::model::PubKey;
 use sphinx_key_signer::{self, make_init_msg, topics, InitResponse, ParserError, RootHandler};
 use std::sync::mpsc;
+use std::thread;
 
 use embedded_svc::httpd::Result;
 use embedded_svc::mqtt::client::utils::ConnState;
@@ -32,6 +34,7 @@ pub enum Status {
     ConnectingToMqtt,
     Connected,
     Signing,
+    Ota,
 }
 
 pub const ROOT_STORE: &str = "/sdcard/store";
@@ -114,7 +117,11 @@ pub fn make_event_loop(
             Event::Control(ref msg_bytes) => {
                 log::info!("GOT A CONTROL MSG");
                 let cres = ctrlr.handle(msg_bytes);
-                if let Some(res_data) = handle_control_response(&root_handler, cres, network) {
+                if let Some(res) =
+                    handle_control_response(&root_handler, cres, network, led_tx.clone())
+                {
+                    let res_data =
+                        rmp_serde::to_vec(&res).expect("could not publish control response");
                     mqtt.publish(topics::CONTROL_RETURN, QOS, false, &res_data)
                         .expect("could not publish control response");
                 }
@@ -127,43 +134,66 @@ pub fn make_event_loop(
 
 fn handle_control_response(
     root_handler: &RootHandler,
-    cres: anyhow::Result<(Vec<u8>, ControlMessage)>,
+    cres: anyhow::Result<(ControlMessage, ControlResponse)>,
     network: Network,
-) -> Option<Vec<u8>> {
+    led_tx: mpsc::Sender<Status>,
+) -> Option<ControlResponse> {
     match cres {
-        Ok((mut response, parsed_msg)) => {
+        Ok((control_msg, mut control_res)) => {
             // the following msg types require other actions besides Flash persistence
-            match parsed_msg {
+            match control_msg {
                 ControlMessage::UpdatePolicy(new_policy) => {
                     if let Err(e) =
                         sphinx_key_signer::set_policy(&root_handler, network, new_policy)
                     {
                         log::error!("set policy failed {:?}", e);
+                        control_res = ControlResponse::Error(format!("set policy failed {:?}", e))
                     }
                 }
                 ControlMessage::UpdateAllowlist(al) => {
                     if let Err(e) = sphinx_key_signer::set_allowlist(&root_handler, &al) {
                         log::error!("set allowlist failed {:?}", e);
+                        control_res =
+                            ControlResponse::Error(format!("set allowlist failed {:?}", e))
                     }
                 }
                 // overwrite the real Allowlist response, loaded from Node
                 ControlMessage::QueryAllowlist => {
-                    if let Ok(al) = sphinx_key_signer::get_allowlist(&root_handler) {
-                        response = rmp_serde::to_vec(&ControlResponse::AllowlistCurrent(al))
-                            .expect("couldnt build ControlResponse::AllowlistCurrent");
+                    match sphinx_key_signer::get_allowlist(&root_handler) {
+                        Ok(al) => control_res = ControlResponse::AllowlistCurrent(al),
+                        Err(e) => {
+                            log::error!("read allowlist failed {:?}", e);
+                            control_res =
+                                ControlResponse::Error(format!("read allowlist failed {:?}", e))
+                        }
+                    }
+                }
+                ControlMessage::Ota(params) => {
+                    if let Err(e) = validate_ota_message(params.clone()) {
+                        log::error!("OTA update cannot launch {:?}", e.to_string());
+                        control_res =
+                            ControlResponse::Error(format!("OTA update cannot launch {:?}", e))
                     } else {
-                        log::error!("read allowlist failed");
+                        thread::spawn(move || {
+                            led_tx.send(Status::Ota).unwrap();
+                            if let Err(e) = update_sphinx_key(params, led_tx) {
+                                log::error!("OTA update failed {:?}", e.to_string());
+                            } else {
+                                log::info!("OTA flow complete, restarting esp...");
+                                unsafe { esp_idf_sys::esp_restart() };
+                            }
+                        });
+                        log::info!("OTA update launched...");
                     }
                 }
                 _ => (),
             };
-            Some(response)
+            Some(control_res)
         }
         Err(e) => {
-            let response = rmp_serde::to_vec(&ControlResponse::Error(e.to_string()))
-                .expect("couldnt build ControlResponse::Error");
+            let control_res = ControlResponse::Error(e.to_string());
             log::warn!("error parsing ctrl msg {:?}", e);
-            Some(response)
+            Some(control_res)
         }
     }
 }

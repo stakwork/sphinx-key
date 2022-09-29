@@ -25,7 +25,7 @@ esp-idf-sys = { version = "0.31.6", features = ["binstart"] }
 sphinx-key-signer = { path = "../signer", optional = true }
 sphinx-crypter = { git = "https://github.com/stakwork/sphinx-rs.git" }
 embedded-svc = "0.22.1"
-esp-idf-svc = "0.42.1"
+esp-idf-svc = { version = "0.42.1", features = ["experimental", "alloc"] }
 esp-idf-hal = "0.38.0"
 embedded-hal = "=1.0.0-alpha.8"
 anyhow = {version = "1", features = ["backtrace"]}

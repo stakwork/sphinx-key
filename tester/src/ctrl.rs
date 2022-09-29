@@ -1,6 +1,6 @@
 use dotenv::dotenv;
 use serde::{Deserialize, Serialize};
-use sphinx_key_parser::control::{ControlMessage, Controller};
+use sphinx_key_parser::control::{ControlMessage, Controller, OtaParams};
 use sphinx_key_signer::lightning_signer::bitcoin::Network;
 use std::env;
 use std::time::Duration;
@@ -25,6 +25,15 @@ async fn main() -> anyhow::Result<()> {
     let seed = hex::decode(seed_string).expect("yo");
     let mut ctrl = controller_from_seed(&Network::Regtest, &seed, nonce);
 
+    let version_string: String = env::var("VERSION").unwrap_or("0".to_string());
+    let version: u64 = version_string.parse::<u64>().expect("failed to parse version");
+    let ota_url: String = env::var("OTA_URL").unwrap_or("http://192.168.1.10/sphinx-update-".to_string());
+    let control_message = ControlMessage::Ota(OtaParams {
+        version: version,
+        url: ota_url
+    });
+
+    //let msg = ctrl.build_msg(control_message)?;
     let msg = ctrl.build_msg(ControlMessage::Nonce)?;
     let msg_hex = hex::encode(&msg);
 

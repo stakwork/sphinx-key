@@ -118,13 +118,14 @@ async fn run_main(mut eventloop: EventLoop, client: &AsyncClient, mut ctrlr: Con
                         }
                         topics::CONTROL => {
                             match ctrlr.handle(&msg_bytes) {
-                                Ok((response, _new_policy)) => {
+                                Ok((_msg, res)) => {
+                                    let res_data = rmp_serde::to_vec(&res).expect("could not build control response");
                                     client
                                         .publish(
                                             topics::CONTROL_RETURN,
                                             QoS::AtMostOnce,
                                             false,
-                                            response,
+                                            res_data,
                                         )
                                         .await
                                         .expect("could not mqtt publish");
@@ -175,13 +176,14 @@ async fn run_test(mut eventloop: EventLoop, client: &AsyncClient, mut ctrlr: Con
                         }
                         topics::CONTROL => {
                             match ctrlr.handle(&msg_bytes) {
-                                Ok((response, _new_policy)) => {
+                                Ok((_msg, res)) => {
+                                    let res_data = rmp_serde::to_vec(&res).expect("could not build control response");
                                     client
                                         .publish(
                                             topics::CONTROL_RETURN,
                                             QoS::AtMostOnce,
                                             false,
-                                            response,
+                                            res_data,
                                         )
                                         .await
                                         .expect("could not mqtt publish");

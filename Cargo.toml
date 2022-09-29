@@ -1,13 +1,14 @@
 [workspace]
 
 members = [
-    "signer",
     "parser",
+    "signer",
     "tester",
 ]
 
 exclude = [
-    "sphinx-key",
-    "persister",
     "broker",
+    "factory",
+    "persister",
+    "sphinx-key",
 ]

@@ -2,7 +2,9 @@ use anyhow::Result;
 use sphinx_auther::nonce;
 use sphinx_auther::secp256k1::{PublicKey, SecretKey};
 use sphinx_auther::token::Token;
-pub use sphinx_glyph::types::{Config, ControlMessage, ControlResponse, Interval, Policy};
+pub use sphinx_glyph::types::{
+    Config, ControlMessage, ControlResponse, Interval, OtaParams, Policy,
+};
 use std::sync::{Arc, Mutex};
 
 // u64 is the nonce. Each signature must have a higher nonce
@@ -56,7 +58,7 @@ impl Controller {
         Ok(rmp_serde::from_slice(input)?)
     }
     // return the OG message for further processing
-    pub fn handle(&mut self, input: &[u8]) -> anyhow::Result<(Vec<u8>, ControlMessage)> {
+    pub fn handle(&mut self, input: &[u8]) -> anyhow::Result<(ControlMessage, ControlResponse)> {
         let msg_nonce = self.parse_msg_no_nonce(input)?;
         let msg = msg_nonce.0;
         // nonce must be higher each time
@@ -106,12 +108,11 @@ impl Controller {
                 ControlResponse::AllowlistUpdated(na)
             }
             ControlMessage::Ota(params) => {
-                // ...
+                // same as above comments, actually done in core/events.rs
                 ControlResponse::OtaConfirm(params)
             }
         };
-        let response = self.build_response(res)?;
-        Ok((response, msg))
+        Ok((msg, res))
     }
 }
 
