@@ -104,4 +104,4 @@ Password: password of the wifi from the previous step
 - `esptool.py erase_flash`
 - Next, unplug your ESP32 from your computer.
 - Take out the SD card from its slot, and use your computer to clear all the data on it. Place it back in its slot after you've done so.
-- You can now go to [this](#how-to-launch-the-signer-again) section to get going again.
+- You can now go to the section above to get going again.
