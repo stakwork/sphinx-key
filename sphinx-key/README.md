@@ -71,11 +71,12 @@ cargo generate --vcs none --git https://github.com/esp-rs/esp-idf-template cargo
 
 ### Signer
 
+- Plug in the ESP32-C3 dev board to your computer via data-enabled micro-USB.
 - `cd ~`
 - `git clone https://github.com/stakwork/sphinx-key.git`
 - `cd sphinx-key`
-- `./deploy.sh`
-- You will then be shown the logs of the signer.
+- `./deploy.sh`. This commands takes a while, it builds and flashes everything!
+- You will eventually be shown the logs of the signer.
 - Wait for the message `Waiting for data from the phone!`. The LED should blink green.
 - On your phone connect to the Wifi `sphinxkey`. This is served from the ESP32, and has no password.
 > **Note**
@@ -95,6 +96,7 @@ Password: password of the wifi from the previous step
 
 ### How to launch the signer again
 
+- Plug in the ESP32-C3 dev board to your computer via data-enabled micro-USB.
 - `cd ~/sphinx-key`
 - `./deploy.sh`
 
