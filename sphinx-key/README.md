@@ -44,57 +44,38 @@ SD card pin | ESP32-C3-DevKitM-1 v1.0 | Notes
 - Make sure you have the Apple Command Line Developer tools installed on your machine. If not, run `xcode-select --install`
 - Install rust. You can grab the installation command at https://www.rust-lang.org/tools/install
 - Install brew. Get the installation command at https://brew.sh/
-- Install python3 and virtualenv. You can run `brew install python3 virtualenv` if necessary.
+- Install python3. You can run `brew install python3` if necessary.
 - Run the following commands (the last one will take a while, go for a walk or something 😀):
 ```
+pip install esptool
 rustup install nightly
 rustup component add rust-src --toolchain nightly
-cargo install cargo-generate ldproxy espflash espmonitor
+cargo install cargo-generate cargo-espflash ldproxy
 ```
 
 ### Hello World
 
 Before we build and run the signer, we'll walk through a generic hello world to make sure the environment is all working:
 
-- Type `cd ~`. This places you in your home directory.
+- Type `cd ~`. This places you in your home directory. You can also cd into any other directory you want.
 - Run the command below, and set the following settings when prompted: `Project Name=tiny-esp32, MCU=esp32c3, ESP-IDF native build version=v4.4, STD support=true, Configure project to use Dev Containers=false`
 ```
 cargo generate --vcs none --git https://github.com/esp-rs/esp-idf-template cargo
 ```
 - `cd tiny-esp32`
-- `cargo build`
-- Once the build is complete, run `ls /dev/tty.*` and note the files you see in that directory.
-- Plug in the ESP32-C3 dev board to your computer via data-enabled micro-USB, and again run `ls /dev/tty.*`. A new file should now appear, similar to this one `/dev/tty.usbserial-1420`
-- Run `export FLASHPORT=[full file path noted in the previous step]`. In my case: `export FLASHPORT=/dev/tty.usbserial-1420`
-- Now with the ESP32 dev board still plugged in, run:
-```
-espflash --monitor $FLASHPORT target/riscv32imc-esp-espidf/debug/tiny-esp32
-```
-- This flashes the program onto the dev board, and then monitors the logs as soon as the program starts to run. By the end of execution, you should see a little `Hello World` log on your screen.
+- Plug in the ESP32-C3 dev board to your computer via data-enabled micro-USB.
+- `cargo espflash --monitor`
+- Keep iterating through the ports displayed until you find one that works.
+- This command builds and flashes the program onto the dev board, and then monitors the logs as soon as the program starts to run. By the end of execution, you should see a little `Hello World` log on your screen.
 - Do a `ctrl-c` to quit the monitor. You are now ready to build, flash, and run the signer 🙂
 
 ### Signer
 
 - `cd ~`
 - `git clone https://github.com/stakwork/sphinx-key.git`
-- `cd sphinx-key/sphinx-key`
-- `export CFLAGS=-fno-pic`
-- `export CC=$HOME/tiny-esp32/.embuild/espressif/tools/riscv32-esp-elf/esp-2021r2-patch3-8.4.0/riscv32-esp-elf/bin/riscv32-esp-elf-gcc`
-- `cargo build`. You are now building the sphinx-key signer!
-- `virtualenv venv`
-- `source venv/bin/activate`
-- `pip3 install --upgrade pip`
-- `pip3 install esptool`
-- `esptool.py --chip esp32-c3 elf2image target/riscv32imc-esp-espidf/debug/sphinx-key`
-
-Now flash the software onto the dev board using this command:
-```
-esptool.py --chip esp32c3 -p $FLASHPORT -b 460800 --before=default_reset --after=hard_reset write_flash --flash_mode dio --flash_freq 40m --flash_size 4MB 0x10000 target/riscv32imc-esp-espidf/debug/sphinx-key.bin
-```
-And then print the logs on your screen with this command:
-```
-espmonitor $FLASHPORT
-```
+- `cd sphinx-key`
+- `./deploy.sh`
+- You will then be shown the logs of the signer.
 
 - Wait for the message `Waiting for data from the phone!`. The LED should blink green.
 - On your phone connect to the Wifi `sphinxkey`. This is served from the ESP32, and has no password.
@@ -107,8 +88,7 @@ Broker IP address and port: `44.198.193.18:1883`\
 SSID: ssid of a local wifi with access to the internet\
 Password: password of the wifi from the previous step
 
-- Once the setup is complete, the message `CONFIG SAVED` should appear. Check in the log right above that all the settings are correct.
-- Press the `RST` button, to the right of the USB cable on the ESP. This does a hard reset of the ESP, and now launches the signer.
+- Once the setup is complete, the ESP will restart and attempt to connect to wifi.
 - The LED will first blink yellow while it is connecting to the wifi.
 - When the signer is pinging for the broker, the LED on the ESP blinks purple.
 - On the logs, you should see `BROKER IP AND PORT` and `LED STATUS: ConnectingToMqtt`
@@ -116,37 +96,13 @@ Password: password of the wifi from the previous step
 
 ### How to launch the signer again
 
-- Run `ls /dev/tty.*` and note the files you see in that directory.
-- Plug in the ESP32-C3 dev board to your computer via data-enabled micro-USB, and again run `ls /dev/tty.*`. A new file should now appear, similar to this one `/dev/tty.usbserial-1420`
-- Run `export FLASHPORT=[full file path noted in the previous step]`. In my case: `export FLASHPORT=/dev/tty.usbserial-1420`
-- `cd ~/sphinx-key/sphinx-key`
-- `git pull`
-- `export CFLAGS=-fno-pic`
-- `export CC=$HOME/tiny-esp32/.embuild/espressif/tools/riscv32-esp-elf/esp-2021r2-patch3-8.4.0/riscv32-esp-elf/bin/riscv32-esp-elf-gcc`
-- `cargo build`. You are now building the sphinx-key signer!
-- `source venv/bin/activate`
-- `esptool.py --chip esp32-c3 elf2image target/riscv32imc-esp-espidf/debug/sphinx-key`
-
-Now flash the software onto the dev board using this command:
-```
-esptool.py --chip esp32c3 -p $FLASHPORT -b 460800 --before=default_reset --after=hard_reset write_flash --flash_mode dio --flash_freq 40m --flash_size 4MB 0x10000 target/riscv32imc-esp-espidf/debug/sphinx-key.bin
-```
-And then print the logs on your screen with this command:
-```
-espmonitor $FLASHPORT
-```
+- `cd ~/sphinx-key`
+- `./deploy.sh`
 
 ### How to completely reset the signer
 
-- Run `ls /dev/tty.*` and note the files you see in that directory.
-- Plug in the ESP32-C3 dev board to your computer via data-enabled micro-USB, and again run `ls /dev/tty.*`. A new file should now appear, similar to this one `/dev/tty.usbserial-1420`
-- Run `export FLASHPORT=[full file path noted in the previous step]`. In my case: `export FLASHPORT=/dev/tty.usbserial-1420`
-- `cd ~/sphinx-key/sphinx-key`
-- `export CFLAGS=-fno-pic`
-- `export CC=$HOME/tiny-esp32/.embuild/espressif/tools/riscv32-esp-elf/esp-2021r2-patch3-8.4.0/riscv32-esp-elf/bin/riscv32-esp-elf-gcc`
-- `cargo build`.
-- `espflash --monitor $FLASHPORT target/riscv32imc-esp-espidf/debug/clear`.
-- In the logs, wait until you see the message `NVS cleared!`. Congratulations, you have now cleared all the persistent data on the ESP32.
+- Plug in your ESP to your computer.
+- `esptool.py erase_flash`
 - Next, unplug your ESP32 from your computer.
 - Take out the SD card from its slot, and use your computer to clear all the data on it. Place it back in its slot after you've done so.
 - You can now go to [this](#how-to-launch-the-signer-again) section to get going again.
