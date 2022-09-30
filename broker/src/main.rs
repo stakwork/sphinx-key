@@ -127,5 +127,5 @@ async fn run_main(parent_fd: i32) -> rocket::Rocket<rocket::Build> {
         signer_loop.start(Some(settings));
     });
 
-    routes::launch_rocket(tx, error_tx)
+    routes::launch_rocket(tx, error_tx, settings)
 }

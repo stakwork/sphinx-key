@@ -50,7 +50,7 @@ pub async fn run_test() -> rocket::Rocket<rocket::Build> {
             };
         }
     });
-    launch_rocket(tx, error_tx)
+    launch_rocket(tx, error_tx, settings)
 }
 
 #[allow(dead_code)]
