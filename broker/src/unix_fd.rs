@@ -61,7 +61,7 @@ impl<C: 'static + Client> SignerLoop<C> {
     }
 
     /// Start the read loop
-    pub fn start(&mut self, settings: Option<&Settings>) {
+    pub fn start(&mut self, settings: Option<Settings>) {
         info!("loop {}: start", self.log_prefix);
         match self.do_loop(settings) {
             Ok(()) => info!("loop {}: done", self.log_prefix),
@@ -70,7 +70,7 @@ impl<C: 'static + Client> SignerLoop<C> {
         }
     }
 
-    fn do_loop(&mut self, settings: Option<&Settings>) -> Result<()> {
+    fn do_loop(&mut self, settings: Option<Settings>) -> Result<()> {
         loop {
             let raw_msg = self.client.read_raw()?;
             debug!("loop {}: got raw", self.log_prefix);

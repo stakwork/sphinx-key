@@ -21,7 +21,7 @@ pub async fn run_test() -> rocket::Rocket<rocket::Build> {
     let (tx, rx) = mpsc::channel(1000);
     let (status_tx, mut status_rx) = mpsc::channel(1000);
     let (error_tx, _) = broadcast::channel(1000);
-    start_broker(rx, status_tx, error_tx.clone(), CLIENT_ID, &settings).await;
+    start_broker(rx, status_tx, error_tx.clone(), CLIENT_ID, settings).await;
     let mut connected = false;
     let tx_ = tx.clone();
     tokio::spawn(async move {

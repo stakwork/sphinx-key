@@ -98,7 +98,7 @@ async fn run_main(parent_fd: i32) -> rocket::Rocket<rocket::Build> {
     let (status_tx, mut status_rx) = mpsc::channel(1000);
     let (error_tx, _) = broadcast::channel(1000);
     log::info!("=> start broker on network: {}", settings.network);
-    start_broker(rx, status_tx, error_tx.clone(),CLIENT_ID, &settings).await;
+    start_broker(rx, status_tx, error_tx.clone(),CLIENT_ID, settings).await;
     log::info!("=> wait for connected status");
     // wait for connection = true
     let status = status_rx.recv().await.expect("couldnt receive");
@@ -124,7 +124,7 @@ async fn run_main(parent_fd: i32) -> rocket::Rocket<rocket::Build> {
     let mut signer_loop = SignerLoop::new(client, tx.clone());
     // spawn CLN listener on a std thread
     std::thread::spawn(move || {
-        signer_loop.start(Some(&settings));
+        signer_loop.start(Some(settings));
     });
 
     routes::launch_rocket(tx, error_tx)

@@ -5,6 +5,7 @@ use std::fs;
 use std::str::FromStr;
 use toml::Value;
 
+#[derive(Clone, Copy, Debug)]
 pub struct Settings {
     pub network: Network,
     pub port: u16,
