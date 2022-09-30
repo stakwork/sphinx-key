@@ -7,15 +7,15 @@ use toml::Value;
 
 #[derive(Clone, Copy, Debug)]
 pub struct Settings {
+    pub mqtt_port: u16,
     pub network: Network,
-    pub port: u16,
 }
 
 impl Default for Settings {
     fn default() -> Self {
         Settings {
+            mqtt_port: 1883,
             network: Network::Regtest,
-            port: 1883,
         }
     }
 }
@@ -28,8 +28,8 @@ pub fn read_broker_config(config_path: &str) -> Settings {
         if let Some(network) = read_network_setting(&table) {
             settings.network = network;
         }
-        if let Some(port) = read_port_setting(&table) {
-            settings.port = port;
+        if let Some(mqtt_port) = read_mqtt_port_setting(&table) {
+            settings.mqtt_port = mqtt_port;
         }
     } else {
         log::info!("File broker.conf not found, using default settings");
@@ -39,10 +39,10 @@ pub fn read_broker_config(config_path: &str) -> Settings {
             settings.network = net;
         }
     }
-    if let Ok(env_port) = env::var("BROKER_PORT") {
-        if let Ok(port) = env_port.parse::<u16>() {
-            if port > 1023 {
-                settings.port = port;
+    if let Ok(env_port) = env::var("BROKER_MQTT_PORT") {
+        if let Ok(mqtt_port) = env_port.parse::<u16>() {
+            if mqtt_port > 1023 {
+                settings.mqtt_port = mqtt_port;
             }
         }
     }
@@ -100,22 +100,22 @@ fn read_network_setting(table: &Value) -> Option<Network> {
     }
 }
 
-fn read_port_setting(table: &Value) -> Option<u16> {
-    if let None = table.get("port") {
-        log::info!("Broker port not specified, setting to default 1883");
+fn read_mqtt_port_setting(table: &Value) -> Option<u16> {
+    if let None = table.get("mqtt_port") {
+        log::info!("Broker mqtt port not specified, setting to default 1883");
         None
     } else {
-        let temp = table["port"]
+        let temp = table["mqtt_port"]
             .as_integer()
-            .expect("The port number is not an integer greater than 1023");
+            .expect("The mqtt port number is not an integer greater than 1023");
         if temp <= 1023 {
-            panic!("The port number is not an integer greater than 1023")
+            panic!("The mqtt port number is not an integer greater than 1023")
         }
         let max: i64 = u16::MAX.into();
         if temp > max {
-            panic!("The port number is way too big!")
+            panic!("The mqtt port number is way too big!")
         }
-        log::info!("Read broker port setting: {}", temp);
+        log::info!("Read broker mqtt port setting: {}", temp);
         Some(temp.try_into().unwrap())
     }
 }

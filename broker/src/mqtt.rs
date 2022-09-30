@@ -163,7 +163,7 @@ fn config(settings: Settings) -> Config {
         id.to_string(),
         ServerSettings {
             cert: None,
-            listen: SocketAddrV4::new(Ipv4Addr::new(0, 0, 0, 0), settings.port).into(),
+            listen: SocketAddrV4::new(Ipv4Addr::new(0, 0, 0, 0), settings.mqtt_port).into(),
             next_connection_delay_ms: 1,
             connections: ConnectionSettings {
                 connection_timeout_ms: 5000,
