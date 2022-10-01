@@ -29,7 +29,7 @@ pub async fn start_broker(
     status_sender: mpsc::Sender<bool>,
     error_sender: broadcast::Sender<Vec<u8>>,
     expected_client_id: &str,
-    settings: &Settings,
+    settings: Settings,
 ) {
     let config = config(settings);
     let client_id = expected_client_id.to_string();
@@ -144,7 +144,7 @@ fn metrics_to_status(metrics: ConnectionMetrics, client_connected: bool) -> Opti
     }
 }
 
-fn config(settings: &Settings) -> Config {
+fn config(settings: Settings) -> Config {
     use librumqttd::rumqttlog::Config as RouterConfig;
     use librumqttd::{ConnectionSettings, SphinxLoginCredentials, ConsoleSettings, ServerSettings};
     use std::collections::HashMap;
@@ -163,7 +163,7 @@ fn config(settings: &Settings) -> Config {
         id.to_string(),
         ServerSettings {
             cert: None,
-            listen: SocketAddrV4::new(Ipv4Addr::new(0, 0, 0, 0), settings.port).into(),
+            listen: SocketAddrV4::new(Ipv4Addr::new(0, 0, 0, 0), settings.mqtt_port).into(),
             next_connection_delay_ms: 1,
             connections: ConnectionSettings {
                 connection_timeout_ms: 5000,
