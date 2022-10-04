@@ -1,4 +1,3 @@
-use crate::conn::html;
 use crate::core::config::{decrypt_seed, ecdh_keypair, ConfigDTO};
 use sphinx_key_signer::control::Config;
 
@@ -25,8 +24,6 @@ pub fn config_server(
     let (sk1, pk1) = ecdh_keypair();
 
     let server = idf::ServerRegistry::new()
-        .at("/")
-        .get(|_| Ok(html::HTML.into()))?
         .at("/ecdh")
         .get(move |_| {
             Ok(

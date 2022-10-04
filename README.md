@@ -14,42 +14,36 @@ Find the path to your `riscv32-esp-elf-gcc` binary within the `.embuild` dir:
 
 `export CC=$PWD/.embuild/espressif/tools/riscv32-esp-elf/esp-2021r2-patch3-8.4.0/riscv32-esp-elf/bin/riscv32-esp-elf-gcc`
 
-### build test
+### build
 
-`cargo build --features pingpong`
+The wifi SSID and password needs to be in env to build the firmware. SSID must be at least 6 characters, and PASS must be at least 8 characters.
 
-### flash test
-
-`espflash target/riscv32imc-esp-espidf/debug/sphinx-key --monitor`
-
-### build release
-
-`cargo build --release`
+`SSID=sphinx-1 PASS=sphinx-1234 cargo build`
 
 ### flash release
 
-`esptool.py --chip esp32c3 elf2image target/riscv32imc-esp-espidf/release/sphinx-key`
-
-`esptool.py --chip esp32c3 -p /dev/tty.usbserial-1420 -b 460800 --before=default_reset --after=hard_reset write_flash --flash_mode dio --flash_freq 40m --flash_size 4MB 0x10000 target/riscv32imc-esp-espidf/release/sphinx-key.bin`
-
-### monitor
+`esptool.py --chip esp32c3 elf2image target/riscv32imc-esp-espidf/debug/sphinx-key`
 
 Find your port (`ls /dev/tty.*`)
 
 `PORT=/dev/tty.usbserial-1420`
 
+`esptool.py --chip esp32c3 -p $PORT -b 460800 --before=default_reset --after=hard_reset write_flash --flash_mode dio --flash_freq 40m --flash_size 4MB 0x10000 target/riscv32imc-esp-espidf/debug/sphinx-key.bin`
+
+### monitor
+
 `espmonitor $PORT`
 
 ### configure the hardware
 
-make a seed: `./sphinx-key/newseed.sh` 
+make a seed: `./newseed.sh` 
 
 make a `.env` file like:
 
 ```
 SSID={my_ssid}
 PASS={my_wifi_password}
-BROKER={my_ip}:1883
+BROKER={broker_ip_and_port}
 SEED={my_seed_hex}
 NETWORK=regtest
 ```
@@ -64,7 +58,13 @@ This will encrypt your seed and send to the hardware, along with your home wifi 
 
 `espflash target/riscv32imc-esp-espidf/debug/clear`
 
-`espmonitor /dev/tty.usbserial-1420`
+`espmonitor $PORT`
+
+### pingpong test
+
+`cargo build --features pingpong`
+
+`espflash target/riscv32imc-esp-espidf/debug/sphinx-key --monitor`
 
 ## dependencies
 

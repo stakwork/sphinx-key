@@ -83,9 +83,14 @@ pub fn start_access_point(default_nvs: Arc<EspDefaultNvs>) -> Result<Box<EspWifi
     let netif_stack = Arc::new(EspNetifStack::new()?);
     let sys_loop_stack = Arc::new(EspSysLoopStack::new()?);
     let mut wifi = Box::new(EspWifi::new(netif_stack, sys_loop_stack, default_nvs)?);
+
+    let ssid: &'static str = env!("SSID");
+    let password: &'static str = env!("PASS");
     wifi.set_configuration(&Configuration::AccessPoint(AccessPointConfiguration {
-        ssid: "sphinxkey".into(),
+        ssid: ssid.into(),
+        password: password.into(),
         channel: 6,
+        auth_method: AuthMethod::WPA2Personal,
         ..Default::default()
     }))?;
 
