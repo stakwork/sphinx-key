@@ -22,6 +22,16 @@ then
     echo "install with this command: cargo install cargo-espflash"
     exit 1
 fi
+if [ -z "$SSID" ]
+then
+    echo "Please set environment variable SSID to the SSID of the wifi you'll use to configure your sphinx-key."
+    exit 1
+fi
+if [ -z "$PASS" ]
+then
+    echo "Please set environment variable PASS to the password of the wifi you'll use to configure your sphinx-key."
+    exit 1
+fi
 for FILE in /dev/tty.*
 do
     if check_port $FILE 

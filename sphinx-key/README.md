@@ -75,6 +75,8 @@ cargo generate --vcs none --git https://github.com/esp-rs/esp-idf-template cargo
 - `cd ~`
 - `git clone https://github.com/stakwork/sphinx-key.git`
 - `cd sphinx-key`
+- `export SSID=wifi_name_you'll_use_to_configure_sphinx_key}`
+- `export PASS=password_of_wifi_you'll_use_to_configure_sphinx_key`
 - `./deploy.sh`. This commands takes a while, it builds and flashes everything!
 - You will eventually be shown the logs of the signer.
 - Wait for the message `Waiting for data from the phone!`. The LED should blink green.
