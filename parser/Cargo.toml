@@ -9,7 +9,7 @@ serde = { version = "1.0", default-features = false }
 rmp-serde = "1.1.0"
 serde_bolt = { version = "0.2", default-features = false }
 sphinx-auther = "0.1.12"
-sphinx-glyph = "0.1.0"
+sphinx-glyph = "0.1.1"
 anyhow = "1"
 
 [features]

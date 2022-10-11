@@ -49,8 +49,12 @@ async fn main() -> Result<(), Box<dyn Error>> {
         } else {
             "sphinx-1"
         };
+        let broker: String = env::var("BROKER").unwrap_or("localhost:1883".to_string());
+        let broker_: Vec<&str> = broker.split(":").collect();
+        let broker_port = broker_[1].parse::<u16>().expect("NaN");
         let (client, eventloop) = loop {
-            let mut mqttoptions = MqttOptions::new(client_id, "localhost", 1883);
+            println!("connect to {}:{}", broker_[0], broker_port);
+            let mut mqttoptions = MqttOptions::new(client_id, broker_[0], broker_port);
             mqttoptions.set_credentials(pubkey.clone(), token.clone());
             mqttoptions.set_keep_alive(Duration::from_secs(5));
             let (client, mut eventloop) = AsyncClient::new(mqttoptions, 10);
@@ -87,13 +91,16 @@ async fn main() -> Result<(), Box<dyn Error>> {
 }
 
 async fn run_main(mut eventloop: EventLoop, client: &AsyncClient, mut ctrlr: Controller, is_log: bool, seed: &[u8], network: Network) {
+
+    let store_path = env::var("STORE_PATH").unwrap_or(ROOT_STORE.to_string());
+
     let seed32: [u8; 32] = seed.try_into().expect("wrong seed");
     let init_msg =
         sphinx_key_signer::make_init_msg(network, seed32).expect("failed to make init msg");
     let InitResponse {
         root_handler,
         init_reply: _,
-    } = sphinx_key_signer::init(init_msg, network, &Default::default(), ROOT_STORE)
+    } = sphinx_key_signer::init(init_msg, network, &Default::default(), &store_path)
         .expect("failed to init signer");
     // the actual handler loop
     loop {
