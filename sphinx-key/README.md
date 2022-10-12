@@ -25,12 +25,11 @@ cargo install cargo-espflash ldproxy
 - `./deploy.sh`. This commands takes a while, it builds and flashes everything!
 - You will eventually be shown the logs of the signer.
 - Wait for the message `Waiting for data from the phone!`. The LED should blink green.
-- On your phone connect to the Wifi `sphinxkey`. This is served from the ESP32, and has no password.
+- On your phone connect to the Wifi you specified above, and use the corresponding password to log in.
 > **Note**
 > The sphinxkey network does not grant access to the internet, so ignore any warnings of that fact :)
 - Launch the signer setup flow on the sphinx app, and input the following settings:
 
-ESP IP address: `192.168.71.1`\
 Broker IP address and port: `44.198.193.18:1883`\
 SSID: ssid of a local wifi with access to the internet\
 Password: password of the wifi from the previous step
