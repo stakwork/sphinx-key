@@ -29,8 +29,8 @@ build-std-features = ["panic_immediate_abort"] # Required for older ESP-IDF vers
 [env]
 # Note: these variables are not used when using pio builder
 # Enables the esp-idf-sys "native" build feature (`cargo build --features native`) to build against ESP-IDF stable (v4.4)
-ESP_IDF_VERSION = { value = "release/v4.4" }
+ESP_IDF_VERSION = { value = "tag:v4.4.2" }
 # Enables the esp-idf-sys "native" build feature (`cargo build --features native`) to build against ESP-IDF master (mainline)
 #ESP_IDF_VERSION = { value = "master" }
-CC = { value = "../factory/.embuild/espressif/tools/riscv32-esp-elf/esp-2021r2-patch4-8.4.0/riscv32-esp-elf/bin/riscv32-esp-elf-gcc", relative = true }
+CC = { value = "../factory/.embuild/espressif/tools/riscv32-esp-elf/esp-2021r2-patch3-8.4.0/riscv32-esp-elf/bin/riscv32-esp-elf-gcc", relative = true }
 CFLAGS = { value = "-fno-pic" }

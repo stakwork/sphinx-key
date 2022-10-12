@@ -2,19 +2,15 @@
 
 A Lightning Hardware Wallet based on [Validating Lightning Signer](https://gitlab.com/lightning-signer/validating-lightning-signer)
 
-### set CFLAGS
+### build factory
 
-Before building the sphinx-key esp software, run this:
+`cd factory`
 
-`export CFLAGS=-fno-pic`
-
-### find your esp GCC 
-
-Find the path to your `riscv32-esp-elf-gcc` binary within the `.embuild` dir:
-
-`export CC=$PWD/.embuild/espressif/tools/riscv32-esp-elf/esp-2021r2-patch3-8.4.0/riscv32-esp-elf/bin/riscv32-esp-elf-gcc`
+`cargo build --release`
 
 ### build
+
+`cd ../sphinx-key`
 
 The wifi SSID and password needs to be in env to build the firmware. SSID must be at least 6 characters, and PASS must be at least 8 characters.
 

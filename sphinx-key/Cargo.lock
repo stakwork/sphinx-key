@@ -1885,9 +1885,9 @@ dependencies = [
 
 [[package]]
 name = "serde_json"
-version = "1.0.85"
+version = "1.0.86"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e55a28e3aaef9d5ce0506d0a14dbba8054ddc7e499ef522dd8b26859ec9d4a44"
+checksum = "41feea4228a6f1cd09ec7a3593a682276702cd67b5273544757dae23c096f074"
 dependencies = [
  "itoa",
  "ryu",
@@ -1989,13 +1989,14 @@ dependencies = [
 
 [[package]]
 name = "sphinx-glyph"
-version = "0.1.0"
+version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cf0527b300544e9fe193611f1be1f76e3b25f5ceab4217347429c2912b60093e"
+checksum = "dbab7d4a5119f6040006784cee5117aabf8654588620e58a01b66732bb307671"
 dependencies = [
  "anyhow",
  "rmp-serde",
  "serde",
+ "serde_json",
  "sphinx-auther",
 ]
 
