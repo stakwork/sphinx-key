@@ -14,17 +14,21 @@ A Lightning Hardware Wallet based on [Validating Lightning Signer](https://gitla
 
 The wifi SSID and password needs to be in env to build the firmware. SSID must be at least 6 characters, and PASS must be at least 8 characters.
 
-`SSID=sphinx-1 PASS=sphinx-1234 cargo build`
+`SSID=sphinx-1 PASS=sphinx-1234 cargo build --release`
+
+### install esptool
+
+`pip install esptool`
 
 ### flash release
 
-`esptool.py --chip esp32c3 elf2image target/riscv32imc-esp-espidf/debug/sphinx-key`
+`esptool.py --chip esp32c3 elf2image target/riscv32imc-esp-espidf/release/sphinx-key`
 
 Find your port (`ls /dev/tty.*`)
 
 `PORT=/dev/tty.usbserial-1420`
 
-`esptool.py --chip esp32c3 -p $PORT -b 460800 --before=default_reset --after=hard_reset write_flash --flash_mode dio --flash_freq 40m --flash_size 4MB 0x10000 target/riscv32imc-esp-espidf/debug/sphinx-key.bin`
+`esptool.py --chip esp32c3 -p $PORT -b 460800 --before=default_reset --after=hard_reset write_flash --flash_mode dio --flash_freq 40m --flash_size 4MB 0x10000 target/riscv32imc-esp-espidf/release/sphinx-key.bin`
 
 ### monitor
 
