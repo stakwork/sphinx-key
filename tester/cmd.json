@@ -1,0 +1,7 @@
+{
+  "type": "Ota",
+  "content": {
+    "url": "http://192.168.1.10/sphinx-update-",
+    "version": 0
+  }
+}
