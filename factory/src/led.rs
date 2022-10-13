@@ -7,7 +7,7 @@ use std::time::Duration;
 
 pub fn set_ota_led() {
     let peripherals = Peripherals::take().unwrap();
-    let led = peripherals.pins.gpio8.into_output().unwrap();
+    let led = peripherals.pins.gpio4.into_output().unwrap();
     let channel = peripherals.rmt.channel0;
     let config = TransmitConfig::new().clock_divider(1);
     let mut tx = Transmit::new(led, channel, &config).unwrap();
