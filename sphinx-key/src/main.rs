@@ -43,7 +43,7 @@ fn main() -> Result<()> {
 
     let (led_tx, led_rx) = mpsc::channel();
     // LED control thread
-    led_control_loop(pins.gpio4, peripherals.rmt.channel0, led_rx);
+    led_control_loop(pins.gpio0, peripherals.rmt.channel0, led_rx);
 
     led_tx.send(Status::MountingSDCard).unwrap();
     println!("About to mount the sdcard...");
