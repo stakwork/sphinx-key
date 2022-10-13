@@ -46,6 +46,7 @@ then
     echo "Make sure the ESP is connected with a data USB cable, and try again."
     exit 1
 fi
+esptool.py erase_flash
 git pull
 cd factory
 cargo espflash --release $PORT
