@@ -44,11 +44,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         let pubkey = hex::encode(&ctrlr.pubkey().serialize());
         let token = ctrlr.make_auth_token()?;
 
-        let client_id = if is_test {
-            "test-1" 
-        } else {
-            "sphinx-1"
-        };
+        let client_id = if is_test { "test-1" } else { "sphinx-1" };
         let broker: String = env::var("BROKER").unwrap_or("localhost:1883".to_string());
         let broker_: Vec<&str> = broker.split(":").collect();
         let broker_port = broker_[1].parse::<u16>().expect("NaN");
@@ -90,8 +86,14 @@ async fn main() -> Result<(), Box<dyn Error>> {
     }
 }
 
-async fn run_main(mut eventloop: EventLoop, client: &AsyncClient, mut ctrlr: Controller, is_log: bool, seed: &[u8], network: Network) {
-
+async fn run_main(
+    mut eventloop: EventLoop,
+    client: &AsyncClient,
+    mut ctrlr: Controller,
+    is_log: bool,
+    seed: &[u8],
+    network: Network,
+) {
     let store_path = env::var("STORE_PATH").unwrap_or(ROOT_STORE.to_string());
 
     let seed32: [u8; 32] = seed.try_into().expect("wrong seed");
@@ -120,13 +122,22 @@ async fn run_main(mut eventloop: EventLoop, client: &AsyncClient, mut ctrlr: Con
                                     .publish(topics::VLS_RETURN, QoS::AtMostOnce, false, b)
                                     .await
                                     .expect("could not publish init response"),
-                                Err(e) => panic!("HANDLE FAILED {:?}", e),
+                                Err(e) => client
+                                    .publish(
+                                        topics::ERROR,
+                                        QoS::AtMostOnce,
+                                        false,
+                                        e.to_string().as_bytes(),
+                                    )
+                                    .await
+                                    .expect("could not publish init response"),
                             };
                         }
                         topics::CONTROL => {
                             match ctrlr.handle(&msg_bytes) {
                                 Ok((_msg, res)) => {
-                                    let res_data = rmp_serde::to_vec(&res).expect("could not build control response");
+                                    let res_data = rmp_serde::to_vec(&res)
+                                        .expect("could not build control response");
                                     client
                                         .publish(
                                             topics::CONTROL_RETURN,
@@ -153,7 +164,12 @@ async fn run_main(mut eventloop: EventLoop, client: &AsyncClient, mut ctrlr: Con
     }
 }
 
-async fn run_test(mut eventloop: EventLoop, client: &AsyncClient, mut ctrlr: Controller, is_log: bool) {
+async fn run_test(
+    mut eventloop: EventLoop,
+    client: &AsyncClient,
+    mut ctrlr: Controller,
+    is_log: bool,
+) {
     // test handler loop
     loop {
         match eventloop.poll().await {
@@ -163,8 +179,7 @@ async fn run_test(mut eventloop: EventLoop, client: &AsyncClient, mut ctrlr: Con
                     match topic.as_str() {
                         topics::VLS => {
                             let (ping, sequence, dbid): (msgs::Ping, u16, u64) =
-                                parser::request_from_bytes(msg_bytes)
-                                    .expect("read ping header");
+                                parser::request_from_bytes(msg_bytes).expect("read ping header");
                             if is_log {
                                 println!("sequence {}", sequence);
                                 println!("dbid {}", dbid);
@@ -184,7 +199,8 @@ async fn run_test(mut eventloop: EventLoop, client: &AsyncClient, mut ctrlr: Con
                         topics::CONTROL => {
                             match ctrlr.handle(&msg_bytes) {
                                 Ok((_msg, res)) => {
-                                    let res_data = rmp_serde::to_vec(&res).expect("could not build control response");
+                                    let res_data = rmp_serde::to_vec(&res)
+                                        .expect("could not build control response");
                                     client
                                         .publish(
                                             topics::CONTROL_RETURN,
