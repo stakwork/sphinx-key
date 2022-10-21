@@ -20,7 +20,9 @@ pub async fn run_test() -> rocket::Rocket<rocket::Build> {
 
     let (tx, rx) = mpsc::channel(1000);
     let (status_tx, mut status_rx) = mpsc::channel(1000);
-    let (error_tx, _) = broadcast::channel(1000);
+    let (error_tx, error_rx) = broadcast::channel(1000);
+    crate::error_log::log_errors(error_rx);
+
     start_broker(rx, status_tx, error_tx.clone(), CLIENT_ID, settings).await;
     let mut connected = false;
     let tx_ = tx.clone();
@@ -74,9 +76,7 @@ pub async fn iteration(
     // Send a request to the MQTT handler to send to signer
     let (request, reply_rx) = ChannelRequest::new(topics::VLS, ping_bytes);
     tx.send(request).await?;
-    println!("tx.send(request)");
     let res = reply_rx.await?;
-    println!("reply_rx.await");
     let reply = parser::response_from_bytes(res.reply, sequence)?;
     match reply {
         Message::Pong(p) => {

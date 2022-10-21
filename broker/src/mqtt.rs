@@ -73,9 +73,8 @@ pub async fn start_broker(
             while let Ok(message) = link_rx.recv().await {
                 for payload in message.payload {
                     if message.topic == topics::ERROR {
-                        let _ = error_sender.send(payload.to_vec());
-                    }
-                    if let Err(e) = msg_tx.send(payload.to_vec()).await {
+                        error_sender.send(payload.to_vec()).expect("asdfasdf");
+                    } else if let Err(e) = msg_tx.send(payload.to_vec()).await {
                         log::warn!("pub err {:?}", e);
                     }
                 }

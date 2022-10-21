@@ -1,5 +1,6 @@
 #![feature(once_cell)]
 mod chain_tracker;
+mod error_log;
 mod mqtt;
 mod routes;
 mod run_test;
@@ -55,7 +56,6 @@ pub struct ChannelReply {
 
 const CLIENT_ID: &str = "sphinx-1";
 const BROKER_CONFIG_PATH: &str = "../broker.conf";
-const DEFAULT_ERROR_LOG_PATH: &str = "/root/.lightning/broker_errors.log";
 
 #[rocket::launch]
 async fn rocket() -> _ {
@@ -97,7 +97,9 @@ async fn run_main(parent_fd: i32) -> rocket::Rocket<rocket::Build> {
 
     let (tx, rx) = mpsc::channel(1000);
     let (status_tx, mut status_rx) = mpsc::channel(1000);
-    let (error_tx, mut error_rx) = broadcast::channel(1000);
+    let (error_tx, error_rx) = broadcast::channel(1000);
+    error_log::log_errors(error_rx);
+
     log::info!("=> start broker on network: {}", settings.network);
     start_broker(rx, status_tx, error_tx.clone(), CLIENT_ID, settings).await;
     log::info!("=> wait for connected status");
@@ -105,23 +107,6 @@ async fn run_main(parent_fd: i32) -> rocket::Rocket<rocket::Build> {
     let status = status_rx.recv().await.expect("couldnt receive");
     log::info!("=> connection status: {}", status);
     // assert_eq!(status, true, "expected connected = true");
-
-    // collect errors
-    tokio::spawn(async move {
-        use std::io::Write;
-        let err_log_path = env::var("BROKER_ERROR_LOG_PATH").unwrap_or(DEFAULT_ERROR_LOG_PATH.to_string());
-        if let Ok(mut file) = std::fs::OpenOptions::new()
-            .create(true) // create if doesn't exist
-            .append(true)
-            .open(err_log_path)
-        {
-            while let Ok(err_msg) = error_rx.recv().await {
-                if let Err(e) = file.write_all(&err_msg) {
-                    log::warn!("failed to write error to log {:?}", e);
-                }
-            }
-        }
-    });
 
     if let Ok(btc_url) = env::var("BITCOIND_RPC_URL") {
         let signer_port = MqttSignerPort::new(tx.clone());
