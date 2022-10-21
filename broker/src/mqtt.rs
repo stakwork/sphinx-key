@@ -7,7 +7,7 @@ use librumqttd::{
     Config,
 };
 use rocket::tokio::time::timeout;
-use rocket::tokio::{self, sync::mpsc, sync::broadcast};
+use rocket::tokio::{self, sync::broadcast, sync::mpsc};
 use sphinx_key_parser::topics;
 use std::sync::Arc;
 use std::sync::{LazyLock, Mutex};
@@ -140,7 +140,7 @@ fn metrics_to_status(metrics: ConnectionMetrics, client_connected: bool) -> Opti
 
 fn config(settings: Settings) -> Config {
     use librumqttd::rumqttlog::Config as RouterConfig;
-    use librumqttd::{ConnectionSettings, SphinxLoginCredentials, ConsoleSettings, ServerSettings};
+    use librumqttd::{ConnectionSettings, ConsoleSettings, ServerSettings, SphinxLoginCredentials};
     use std::collections::HashMap;
     use std::net::{Ipv4Addr, SocketAddrV4};
     use std::path::PathBuf;
@@ -167,9 +167,7 @@ fn config(settings: Settings) -> Config {
                 max_inflight_count: 200,
                 max_inflight_size: 1024,
                 login_credentials: None,
-                sphinx_auth: Some(SphinxLoginCredentials {
-                    within: None,
-                }),
+                sphinx_auth: Some(SphinxLoginCredentials { within: None }),
             },
         },
     );

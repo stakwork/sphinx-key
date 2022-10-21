@@ -2,11 +2,14 @@ use crate::util::Settings;
 use crate::ChannelRequest;
 use rocket::fairing::{Fairing, Info, Kind};
 use rocket::http::Header;
-use rocket::tokio::sync::{mpsc::Sender, broadcast::{self, error::RecvError}};
-use rocket::response::stream::{EventStream, Event};
+use rocket::response::stream::{Event, EventStream};
 use rocket::tokio::select;
+use rocket::tokio::sync::{
+    broadcast::{self, error::RecvError},
+    mpsc::Sender,
+};
 use rocket::*;
-use sphinx_key_parser::{topics, error::Error as ParserError};
+use sphinx_key_parser::{error::Error as ParserError, topics};
 use std::net::IpAddr::V4;
 use std::net::Ipv4Addr;
 
@@ -46,7 +49,11 @@ async fn errors(error_tx: &State<broadcast::Sender<Vec<u8>>>, mut end: Shutdown)
     }
 }
 
-pub fn launch_rocket(tx: Sender<ChannelRequest>, error_tx: broadcast::Sender<Vec<u8>>, settings: Settings) -> Rocket<Build> {
+pub fn launch_rocket(
+    tx: Sender<ChannelRequest>,
+    error_tx: broadcast::Sender<Vec<u8>>,
+    settings: Settings,
+) -> Rocket<Build> {
     let config = Config {
         address: V4(Ipv4Addr::UNSPECIFIED),
         port: settings.http_port,

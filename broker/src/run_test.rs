@@ -2,7 +2,7 @@ use crate::mqtt::start_broker;
 use crate::routes::launch_rocket;
 use crate::util::Settings;
 use crate::ChannelRequest;
-use rocket::tokio::{self, sync::mpsc, sync::broadcast};
+use rocket::tokio::{self, sync::broadcast, sync::mpsc};
 use sphinx_key_parser as parser;
 use sphinx_key_parser::topics;
 use vls_protocol::serde_bolt::WireString;
