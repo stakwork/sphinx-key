@@ -2,6 +2,7 @@ mod derive;
 mod policy;
 mod randomstartingtime;
 
+use anyhow::anyhow;
 use lightning_signer::bitcoin::blockdata::constants::ChainHash;
 use lightning_signer::node::NodeServices;
 use lightning_signer::persist::Persist;
@@ -109,9 +110,15 @@ pub fn handle(
     }
     let reply = if dbid > 0 {
         let handler = root_handler.for_new_client(dbid, dummy_peer.clone(), dbid);
-        handler.handle(message).expect("handle")
+        match handler.handle(message) {
+            Ok(r) => r,
+            Err(e) => return Err(anyhow!("client {} handler error: {:?}", dbid, e)),
+        }
     } else {
-        root_handler.handle(message).expect("handle")
+        match root_handler.handle(message) {
+            Ok(r) => r,
+            Err(e) => return Err(anyhow!("root handler error: {:?}", e)),
+        }
     };
     if do_log {
         log::info!("VLS msg handled");
