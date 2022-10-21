@@ -130,7 +130,7 @@ async fn run_main(
                                         e.to_string().as_bytes(),
                                     )
                                     .await
-                                    .expect("could not publish init response"),
+                                    .expect("could not publish error response"),
                             };
                         }
                         topics::CONTROL => {
