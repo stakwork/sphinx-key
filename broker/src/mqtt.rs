@@ -63,10 +63,7 @@ pub async fn start_broker(
                 if let Some(c) = metrics_to_status(metrics, get_connected()) {
                     set_connected(c);
                     log::info!("connection status changed to: {}", c);
-                    status_sender_
-                        .send(c)
-                        .await
-                        .expect("couldnt send connection status");
+                    let _ = status_sender_.send(c).await;
                 }
                 tokio::time::sleep(Duration::from_millis(500)).await;
             }
@@ -102,10 +99,7 @@ pub async fn start_broker(
                     Err(e) => {
                         log::warn!("reply_tx timed out {:?}", e);
                         set_connected(false);
-                        status_sender
-                            .send(false)
-                            .await
-                            .expect("couldnt send connection status");
+                        let _ = status_sender.send(false).await;
                     }
                 }
             }
