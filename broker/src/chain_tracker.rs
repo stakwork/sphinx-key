@@ -1,7 +1,7 @@
 use crate::{ChannelReply, ChannelRequest};
 use async_trait::async_trait;
 use rocket::tokio::sync::{mpsc, oneshot};
-use sphinx_key_parser::topics;
+use sphinx_signer::sphinx_glyph::topics;
 use vls_protocol::{Error, Result};
 use vls_protocol_client::SignerPort;
 

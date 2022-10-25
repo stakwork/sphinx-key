@@ -8,7 +8,7 @@ use librumqttd::{
 };
 use rocket::tokio::time::timeout;
 use rocket::tokio::{self, sync::broadcast, sync::mpsc};
-use sphinx_key_parser::topics;
+use sphinx_signer::sphinx_glyph::topics;
 use std::sync::Arc;
 use std::sync::{LazyLock, Mutex};
 use std::time::Duration;

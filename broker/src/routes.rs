@@ -9,7 +9,7 @@ use rocket::tokio::sync::{
     mpsc::Sender,
 };
 use rocket::*;
-use sphinx_key_parser::{error::Error as ParserError, topics};
+use sphinx_signer::sphinx_glyph::{error::Error as GlyphError, topics};
 use std::net::IpAddr::V4;
 use std::net::Ipv4Addr;
 
@@ -37,7 +37,7 @@ async fn errors(error_tx: &State<broadcast::Sender<Vec<u8>>>, mut end: Shutdown)
         loop {
             let msg = select! {
                 msg = rx.recv() => match msg {
-                    Ok(msg) => ParserError::from_slice(&msg[..]),
+                    Ok(msg) => GlyphError::from_slice(&msg[..]),
                     Err(RecvError::Closed) => break,
                     Err(RecvError::Lagged(_)) => continue,
                 },

@@ -8,7 +8,8 @@ default-run = "sphinx-key-broker"
 strip = "debuginfo"
 
 [dependencies]
-sphinx-key-parser = { path = "../parser" }
+sphinx-signer = { git = "https://github.com/stakwork/sphinx-rs" }
+# sphinx-key-parser = { path = "../parser" }
 vls-protocol = { git = "https://gitlab.com/lightning-signer/validating-lightning-signer.git" }
 vls-proxy = { git = "https://gitlab.com/lightning-signer/validating-lightning-signer.git" }
 vls-frontend = { git = "https://gitlab.com/lightning-signer/validating-lightning-signer.git" }

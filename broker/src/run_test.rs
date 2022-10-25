@@ -3,10 +3,9 @@ use crate::routes::launch_rocket;
 use crate::util::Settings;
 use crate::ChannelRequest;
 use rocket::tokio::{self, sync::broadcast, sync::mpsc};
-use sphinx_key_parser as parser;
-use sphinx_key_parser::topics;
 use vls_protocol::serde_bolt::WireString;
 use vls_protocol::{msgs, msgs::Message};
+use sphinx_signer::{parser, sphinx_glyph::topics};
 
 const CLIENT_ID: &str = "test-1";
 
