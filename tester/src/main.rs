@@ -1,18 +1,21 @@
-use parser::topics;
-use sphinx_key_parser as parser;
-use sphinx_key_signer::lightning_signer::bitcoin::Network;
+use sphinx_signer::sphinx_glyph::topics;
+use sphinx_signer::parser;
+use sphinx_signer::lightning_signer::bitcoin::Network;
+use sphinx_signer::lightning_signer::persist::Persist;
+use sphinx_signer::persist::FsPersister;
 
 use clap::{App, AppSettings, Arg};
 use dotenv::dotenv;
 use rumqttc::{self, AsyncClient, Event, EventLoop, MqttOptions, Packet, QoS};
-use sphinx_key_signer::control::Controller;
-use sphinx_key_signer::vls_protocol::{model::PubKey, msgs};
-use sphinx_key_signer::{self, InitResponse};
+use sphinx_signer::sphinx_glyph::control::Controller;
+use sphinx_signer::vls_protocol::{model::PubKey, msgs};
+use sphinx_signer::{self, InitResponse};
 use std::convert::TryInto;
 use std::env;
 use std::error::Error;
 use std::str::FromStr;
 use std::time::Duration;
+use std::sync::Arc;
 
 pub const ROOT_STORE: &str = "teststore";
 
@@ -98,11 +101,12 @@ async fn run_main(
 
     let seed32: [u8; 32] = seed.try_into().expect("wrong seed");
     let init_msg =
-        sphinx_key_signer::make_init_msg(network, seed32).expect("failed to make init msg");
+        sphinx_signer::make_init_msg(network, seed32).expect("failed to make init msg");
+    let persister: Arc<dyn Persist> = Arc::new(FsPersister::new(&store_path, None));
     let InitResponse {
         root_handler,
         init_reply: _,
-    } = sphinx_key_signer::init(init_msg, network, &Default::default(), &store_path)
+    } = sphinx_signer::init(init_msg, network, &Default::default(), persister)
         .expect("failed to init signer");
     // the actual handler loop
     loop {
@@ -112,7 +116,7 @@ async fn run_main(
                 if let Some((topic, msg_bytes)) = incoming_bytes(event) {
                     match topic.as_str() {
                         topics::VLS => {
-                            match sphinx_key_signer::handle(
+                            match sphinx_signer::handle(
                                 &root_handler,
                                 msg_bytes,
                                 dummy_peer.clone(),
@@ -278,6 +282,6 @@ pub fn setup_logging(who: &str, level_arg: &str) {
 }
 
 pub fn controller_from_seed(network: &Network, seed: &[u8]) -> Controller {
-    let (pk, sk) = sphinx_key_signer::derive_node_keys(network, seed);
+    let (pk, sk) = sphinx_signer::derive_node_keys(network, seed);
     Controller::new(sk, pk, 0)
 }

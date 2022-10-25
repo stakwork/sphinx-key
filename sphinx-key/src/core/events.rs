@@ -1,11 +1,18 @@
 use crate::conn::mqtt::QOS;
 use crate::ota::{update_sphinx_key, validate_ota_message};
 
-use sphinx_key_signer::control::{Config, ControlMessage, ControlResponse, Controller, Policy};
-use sphinx_key_signer::lightning_signer::bitcoin::Network;
-use sphinx_key_signer::vls_protocol::model::PubKey;
-use sphinx_key_signer::{self, make_init_msg, topics, InitResponse, ParserError, RootHandler};
+use sphinx_signer::lightning_signer::bitcoin::Network;
+use sphinx_signer::lightning_signer::persist::Persist;
+use sphinx_signer::persist::FsPersister;
+use sphinx_signer::sphinx_glyph::control::{
+    Config, ControlMessage, ControlResponse, Controller, Policy,
+};
+use sphinx_signer::sphinx_glyph::error::Error as GlyphError;
+use sphinx_signer::sphinx_glyph::topics;
+use sphinx_signer::vls_protocol::model::PubKey;
+use sphinx_signer::{self, make_init_msg, InitResponse, RootHandler};
 use std::sync::mpsc;
+use std::sync::Arc;
 use std::thread;
 
 use embedded_svc::httpd::Result;
@@ -69,13 +76,16 @@ pub fn make_event_loop(
         }
     }
 
+    // create the fs persister
+    // 8 character max file names
+    let persister: Arc<dyn Persist> = Arc::new(FsPersister::new(&ROOT_STORE, Some(8)));
+
     // initialize the RootHandler
     let init_msg = make_init_msg(network, seed).expect("failed to make init msg");
     let InitResponse {
         root_handler,
         init_reply: _,
-    } = sphinx_key_signer::init(init_msg, network, policy, ROOT_STORE)
-        .expect("failed to init signer");
+    } = sphinx_signer::init(init_msg, network, policy, persister).expect("failed to init signer");
 
     // signing loop
     let dummy_peer = PubKey([0; 33]);
@@ -95,7 +105,7 @@ pub fn make_event_loop(
             }
             Event::VlsMessage(ref msg_bytes) => {
                 led_tx.send(Status::Signing).unwrap();
-                let _ret = match sphinx_key_signer::handle(
+                let _ret = match sphinx_signer::handle(
                     &root_handler,
                     msg_bytes.clone(),
                     dummy_peer.clone(),
@@ -106,7 +116,7 @@ pub fn make_event_loop(
                             .expect("could not publish VLS response");
                     }
                     Err(e) => {
-                        let err_msg = ParserError::new(1, &e.to_string());
+                        let err_msg = GlyphError::new(1, &e.to_string());
                         log::error!("HANDLE FAILED {:?}", e);
                         mqtt.publish(topics::ERROR, QOS, false, &err_msg.to_vec()[..])
                             .expect("could not publish VLS error");
@@ -144,14 +154,14 @@ fn handle_control_response(
             match control_msg {
                 ControlMessage::UpdatePolicy(new_policy) => {
                     if let Err(e) =
-                        sphinx_key_signer::set_policy(&root_handler, network, new_policy)
+                        sphinx_signer::policy::set_policy(&root_handler, network, new_policy)
                     {
                         log::error!("set policy failed {:?}", e);
                         control_res = ControlResponse::Error(format!("set policy failed {:?}", e))
                     }
                 }
                 ControlMessage::UpdateAllowlist(al) => {
-                    if let Err(e) = sphinx_key_signer::set_allowlist(&root_handler, &al) {
+                    if let Err(e) = sphinx_signer::policy::set_allowlist(&root_handler, &al) {
                         log::error!("set allowlist failed {:?}", e);
                         control_res =
                             ControlResponse::Error(format!("set allowlist failed {:?}", e))
@@ -159,7 +169,7 @@ fn handle_control_response(
                 }
                 // overwrite the real Allowlist response, loaded from Node
                 ControlMessage::QueryAllowlist => {
-                    match sphinx_key_signer::get_allowlist(&root_handler) {
+                    match sphinx_signer::policy::get_allowlist(&root_handler) {
                         Ok(al) => control_res = ControlResponse::AllowlistCurrent(al),
                         Err(e) => {
                             log::error!("read allowlist failed {:?}", e);
@@ -221,7 +231,7 @@ pub fn make_event_loop(
             }
             Event::VlsMessage(msg_bytes) => {
                 led_tx.send(Status::Signing).unwrap();
-                let b = sphinx_key_signer::parse_ping_and_form_response(msg_bytes);
+                let b = sphinx_signer::parse_ping_and_form_response(msg_bytes);
                 if do_log {
                     log::info!("GOT A PING MESSAGE! returning pong now...");
                 }

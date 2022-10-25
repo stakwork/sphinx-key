@@ -1,7 +1,7 @@
 use dotenv::dotenv;
 use serde::{Deserialize, Serialize};
-use sphinx_key_parser::control::{ControlMessage, Controller};
-use sphinx_key_signer::lightning_signer::bitcoin::Network;
+use sphinx_signer::sphinx_glyph::control::{ControlMessage, Controller};
+use sphinx_signer::lightning_signer::bitcoin::Network;
 use std::env;
 use std::time::Duration;
 
@@ -58,6 +58,6 @@ async fn main() -> anyhow::Result<()> {
 }
 
 pub fn controller_from_seed(network: &Network, seed: &[u8], nonce: u64) -> Controller {
-    let (pk, sk) = sphinx_key_signer::derive_node_keys(network, seed);
+    let (pk, sk) = sphinx_signer::derive_node_keys(network, seed);
     Controller::new(sk, pk, nonce)
 }

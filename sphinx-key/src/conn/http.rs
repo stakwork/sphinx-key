@@ -1,5 +1,5 @@
 use crate::core::config::{decrypt_seed, ecdh_keypair, ConfigDTO};
-use sphinx_key_signer::control::Config;
+use sphinx_signer::sphinx_glyph::control::Config;
 
 use serde::Deserialize;
 use std::sync::{Arc, Condvar, Mutex};

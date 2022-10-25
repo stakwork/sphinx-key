@@ -11,7 +11,7 @@ use esp_idf_svc::http::client::EspHttpClientConfiguration;
 use esp_idf_svc::http::client::FollowRedirectsPolicy::FollowNone;
 use esp_idf_svc::ota::EspOta;
 use log::{error, info};
-use sphinx_key_signer::control::OtaParams;
+use sphinx_signer::sphinx_glyph::control::OtaParams;
 use std::fs::{remove_file, File};
 use std::io::BufWriter;
 use std::io::Write;

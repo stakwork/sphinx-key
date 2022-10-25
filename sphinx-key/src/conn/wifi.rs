@@ -1,4 +1,4 @@
-use sphinx_key_signer::control::Config;
+use sphinx_signer::sphinx_glyph::control::Config;
 
 use esp_idf_svc::netif::*;
 use esp_idf_svc::nvs::EspDefaultNvs;

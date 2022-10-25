@@ -20,8 +20,8 @@ use std::time::SystemTime;
 use esp_idf_hal::peripherals::Peripherals;
 use esp_idf_svc::nvs::*;
 
-use sphinx_key_signer::control::{Config, ControlPersist, Policy};
-use sphinx_key_signer::lightning_signer::bitcoin::Network;
+use sphinx_signer::sphinx_glyph::control::{Config, ControlPersist, Policy};
+use sphinx_signer::lightning_signer::bitcoin::Network;
 
 #[cfg(not(feature = "pingpong"))]
 const CLIENT_ID: &str = "sphinx-1";

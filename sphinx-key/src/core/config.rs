@@ -15,7 +15,7 @@ use sphinx_crypter::ecdh::{derive_shared_secret_from_slice, PUBLIC_KEY_LEN};
 use sphinx_crypter::secp256k1::rand::thread_rng;
 use sphinx_crypter::secp256k1::{PublicKey, Secp256k1, SecretKey};
 
-use sphinx_key_signer::control::Config;
+use sphinx_signer::sphinx_glyph::control::Config;
 // #[derive(Clone, Debug, Deserialize, Serialize)]
 // pub struct Config {
 //     pub broker: String,

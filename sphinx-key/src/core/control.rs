@@ -3,8 +3,8 @@ use embedded_svc::storage::RawStorage;
 use embedded_svc::storage::StorageBase;
 use esp_idf_svc::nvs::EspDefaultNvs;
 use esp_idf_svc::nvs_storage::EspNvsStorage;
-use sphinx_key_signer::control::{Config, ControlPersist, Controller, FlashKey, Policy};
-use sphinx_key_signer::lightning_signer::bitcoin::Network;
+use sphinx_signer::sphinx_glyph::control::{Config, ControlPersist, Controller, FlashKey, Policy};
+use sphinx_signer::lightning_signer::bitcoin::Network;
 use std::convert::TryInto;
 use std::sync::{Arc, Mutex};
 
@@ -14,7 +14,7 @@ pub fn controller_from_seed(
     seed: &[u8],
     flash: Arc<Mutex<FlashPersister>>,
 ) -> Controller {
-    let (pk, sk) = sphinx_key_signer::derive_node_keys(network, seed);
+    let (pk, sk) = sphinx_signer::derive_node_keys(network, seed);
     Controller::new_with_persister(sk, pk, flash)
 }
 

@@ -1,5 +1,5 @@
 use crate::core::events::Event as CoreEvent;
-use sphinx_key_signer::topics;
+use sphinx_signer::sphinx_glyph::topics;
 
 use anyhow::Result;
 use embedded_svc::mqtt::client::utils::ConnState;
