@@ -32,6 +32,11 @@ then
     echo "Please set environment variable PASS to the password of the wifi you'll use to configure your sphinx-key."
     exit 1
 fi
+if [ ${#PASS} -lt 8 ]
+then
+    echo "Please set PASS to a password longer than 7 characters."
+    exit 1
+fi
 for FILE in /dev/tty.*
 do
     if check_port $FILE 
@@ -46,12 +51,12 @@ then
     echo "Make sure the ESP is connected with a data USB cable, and try again."
     exit 1
 fi
-esptool.py erase_flash
-git pull
-cd factory
-cargo espflash --release $PORT
-cd ../sphinx-key
-cargo build --release
-esptool.py --chip esp32-c3 elf2image target/riscv32imc-esp-espidf/release/sphinx-key
-esptool.py --chip esp32c3 -b 460800 --before=default_reset --after=hard_reset write_flash --flash_mode dio --flash_freq 40m --flash_size 4MB 0x80000 target/riscv32imc-esp-espidf/release/sphinx-key.bin
+esptool.py erase_flash &&
+git pull &&
+cd factory &&
+cargo espflash --release $PORT &&
+cd ../sphinx-key &&
+cargo build --release &&
+esptool.py --chip esp32-c3 elf2image target/riscv32imc-esp-espidf/release/sphinx-key &&
+esptool.py --chip esp32c3 -b 460800 --before=default_reset --after=hard_reset write_flash --flash_mode dio --flash_freq 40m --flash_size 4MB 0x80000 target/riscv32imc-esp-espidf/release/sphinx-key.bin &&
 cargo espflash serial-monitor $PORT

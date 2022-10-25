@@ -104,11 +104,14 @@ fn main() -> Result<()> {
     } else {
         led_tx.send(Status::WifiAccessPoint).unwrap();
         println!("=============> START SERVER NOW AND WAIT <==============");
-        if let Ok((_wifi, config, seed)) = start_config_server_and_wait(default_nvs.clone()) {
-            flash.write_config(config).expect("could not store config");
-            flash.write_seed(seed).expect("could not store seed");
-            println!("CONFIG SAVED");
-            unsafe { esp_idf_sys::esp_restart() };
+        match start_config_server_and_wait(default_nvs.clone()) {
+            Ok((_wifi, config, seed)) => {
+                flash.write_config(config).expect("could not store config");
+                flash.write_seed(seed).expect("could not store seed");
+                println!("CONFIG SAVED");
+                unsafe { esp_idf_sys::esp_restart() };
+            },
+            Err(msg) => log::error!("{}", msg),
         }
     }
 

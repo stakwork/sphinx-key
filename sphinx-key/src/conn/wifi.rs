@@ -86,6 +86,10 @@ pub fn start_access_point(default_nvs: Arc<EspDefaultNvs>) -> Result<Box<EspWifi
 
     let ssid: &'static str = env!("SSID");
     let password: &'static str = env!("PASS");
+    if password.len() < 8 {
+        return Err(anyhow::anyhow!("Password error!\nCurrent password: {}\nYour wifi password must be >= 8 characters. Compile this software again with a longer password.", password));
+    }
+
     wifi.set_configuration(&Configuration::AccessPoint(AccessPointConfiguration {
         ssid: ssid.into(),
         password: password.into(),
@@ -100,7 +104,7 @@ pub fn start_access_point(default_nvs: Arc<EspDefaultNvs>) -> Result<Box<EspWifi
 
     let status = wifi.get_status();
     if let Status(ClientStatus::Stopped, ApStatus::Started(ApIpStatus::Done)) = status {
-        info!("Wifi started!");
+        info!("Wifi started!\n \nWIFI NAME: {}\nWIFI PASSWORD: {}\n", ssid, password);
     } else {
         return Err(anyhow::anyhow!("Unexpected AP Wifi status: {:?}", status));
     }
