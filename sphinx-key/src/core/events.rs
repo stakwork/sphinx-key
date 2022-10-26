@@ -12,7 +12,7 @@ use sphinx_signer::sphinx_glyph::topics;
 use sphinx_signer::vls_protocol::model::PubKey;
 use sphinx_signer::{self, make_init_msg, InitResponse, RootHandler};
 use std::sync::mpsc;
-use std::sync::Arc;
+use std::sync::{Arc, MutexGuard};
 use std::thread;
 
 use embedded_svc::httpd::Result;
@@ -49,7 +49,7 @@ pub const ROOT_STORE: &str = "/sdcard/store";
 // the main event loop
 #[cfg(not(feature = "pingpong"))]
 pub fn make_event_loop(
-    mut mqtt: EspMqttClient<ConnState<MessageImpl, EspError>>,
+    mut mqtt: MutexGuard<EspMqttClient<ConnState<MessageImpl, EspError>>>,
     rx: mpsc::Receiver<Event>,
     network: Network,
     do_log: bool,

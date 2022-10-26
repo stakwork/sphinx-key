@@ -5,6 +5,7 @@ mod ota;
 mod periph;
 
 use crate::core::control::{controller_from_seed, FlashPersister};
+use crate::core::logs::setup_logs;
 use crate::core::{config::*, events::*};
 use crate::periph::led::led_control_loop;
 #[allow(unused_imports)]
@@ -20,8 +21,8 @@ use std::time::SystemTime;
 use esp_idf_hal::peripherals::Peripherals;
 use esp_idf_svc::nvs::*;
 
-use sphinx_signer::sphinx_glyph::control::{Config, ControlPersist, Policy};
 use sphinx_signer::lightning_signer::bitcoin::Network;
+use sphinx_signer::sphinx_glyph::control::{Config, ControlPersist, Policy};
 
 #[cfg(not(feature = "pingpong"))]
 const CLIENT_ID: &str = "sphinx-1";
@@ -110,7 +111,7 @@ fn main() -> Result<()> {
                 flash.write_seed(seed).expect("could not store seed");
                 println!("CONFIG SAVED");
                 unsafe { esp_idf_sys::esp_restart() };
-            },
+            }
             Err(msg) => log::error!("{}", msg),
         }
     }
@@ -145,6 +146,9 @@ fn make_and_launch_client(
     let (mqtt, connection) = conn::mqtt::make_client(&config.broker, CLIENT_ID, &pubkey, &token)?;
     let mqtt_client = conn::mqtt::start_listening(mqtt, connection, tx)?;
 
+    let mqtt_mutex = Arc::new(Mutex::new(mqtt_client));
+    setup_logs(mqtt_mutex.clone());
+
     // this blocks forever... the "main thread"
     let do_log = true;
     log::info!("Network set to {:?}", network);
@@ -152,7 +156,7 @@ fn make_and_launch_client(
     log::info!("{:?}", config);
 
     make_event_loop(
-        mqtt_client,
+        mqtt_mutex.lock().unwrap(),
         rx,
         network,
         do_log,

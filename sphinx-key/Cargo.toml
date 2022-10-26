@@ -36,6 +36,7 @@ serde = { version = "1.0.137", default-features = false }
 serde_json = { version = "1.0.81", default-features = false }
 hex = "0.4.3"
 rmp-serde = "1.1.0"
+fern = { version = "0.6" }
 
 [build-dependencies]
 embuild = "0.29"
