@@ -9,7 +9,7 @@ use std::sync::{Arc, Mutex};
 
 struct MyLogger {
     filter: LevelFilter,
-    mqtt: Arc<Mutex<EspMqttClient<ConnState<MessageImpl, EspError>>>>,
+    mqtt: Option<Arc<Mutex<EspMqttClient<ConnState<MessageImpl, EspError>>>>>,
 }
 
 impl Log for MyLogger {
@@ -20,10 +20,13 @@ impl Log for MyLogger {
     fn log(&self, record: &Record) {
         if self.enabled(record.metadata()) {
             let lg = format!("{} {} {}", record.level(), record.target(), record.args());
-            println!("{}", &lg);
-            let mut mqtt = self.mqtt.lock().unwrap();
-            mqtt.publish(topics::ERROR, QOS, false, lg.as_bytes())
-                .expect("could not publish VLS error");
+            if let Some(mqtt_) = &self.mqtt {
+                let mut mqtt = mqtt_.lock().unwrap();
+                mqtt.publish(topics::ERROR, QOS, false, lg.as_bytes())
+                    .expect("could not publish VLS error");
+            } else {
+                println!("{}", &lg);
+            }
         }
     }
 
@@ -33,11 +36,11 @@ impl Log for MyLogger {
 pub fn setup_logs(mqtt: Arc<Mutex<EspMqttClient<ConnState<MessageImpl, EspError>>>>) {
     let elog1: Box<dyn Log> = Box::new(MyLogger {
         filter: LevelFilter::Info,
-        mqtt: mqtt.clone(),
+        mqtt: None,
     });
     let elog2: Box<dyn Log> = Box::new(MyLogger {
         filter: LevelFilter::Warn,
-        mqtt: mqtt.clone(),
+        mqtt: Some(mqtt),
     });
     fern::Dispatch::new()
         .level(LevelFilter::Warn)
