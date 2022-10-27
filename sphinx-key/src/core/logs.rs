@@ -39,19 +39,19 @@ pub fn setup_logs(mqtt: Arc<Mutex<EspMqttClient<ConnState<MessageImpl, EspError>
         mqtt: None,
     });
     let elog2: Box<dyn Log> = Box::new(MyLogger {
-        filter: LevelFilter::Warn,
+        filter: LevelFilter::Info,
         mqtt: Some(mqtt),
     });
     fern::Dispatch::new()
         .level(LevelFilter::Warn)
-        .level_for("vls::policy", LevelFilter::Info)
+        .level_for("lightning_signer", LevelFilter::Info)
         .chain(elog1) // Chaining two logs
         .chain(elog2)
         .apply()
         .expect("log config");
     debug!("debug");
     info!("info");
-    info!(target: "vls::policy", "info policy");
-    warn!(target: "vls::policy", "warn policy");
+    info!(target: "lightning_signer", "info policy");
+    warn!(target: "lightning_signer", "warn policy");
     warn!("warn");
 }

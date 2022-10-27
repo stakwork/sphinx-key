@@ -149,40 +149,19 @@ fn handle_control_response(
     led_tx: mpsc::Sender<Status>,
 ) -> Option<ControlResponse> {
     match cres {
-        Ok((control_msg, mut control_res)) => {
+        Ok((control_msg, control_res)) => {
             // the following msg types require other actions besides Flash persistence
+            let mut res = sphinx_signer::policy::update_controls(
+                root_handler,
+                network,
+                control_msg.clone(),
+                control_res,
+            );
             match control_msg {
-                ControlMessage::UpdatePolicy(new_policy) => {
-                    if let Err(e) =
-                        sphinx_signer::policy::set_policy(&root_handler, network, new_policy)
-                    {
-                        log::error!("set policy failed {:?}", e);
-                        control_res = ControlResponse::Error(format!("set policy failed {:?}", e))
-                    }
-                }
-                ControlMessage::UpdateAllowlist(al) => {
-                    if let Err(e) = sphinx_signer::policy::set_allowlist(&root_handler, &al) {
-                        log::error!("set allowlist failed {:?}", e);
-                        control_res =
-                            ControlResponse::Error(format!("set allowlist failed {:?}", e))
-                    }
-                }
-                // overwrite the real Allowlist response, loaded from Node
-                ControlMessage::QueryAllowlist => {
-                    match sphinx_signer::policy::get_allowlist(&root_handler) {
-                        Ok(al) => control_res = ControlResponse::AllowlistCurrent(al),
-                        Err(e) => {
-                            log::error!("read allowlist failed {:?}", e);
-                            control_res =
-                                ControlResponse::Error(format!("read allowlist failed {:?}", e))
-                        }
-                    }
-                }
                 ControlMessage::Ota(params) => {
                     if let Err(e) = validate_ota_message(params.clone()) {
                         log::error!("OTA update cannot launch {:?}", e.to_string());
-                        control_res =
-                            ControlResponse::Error(format!("OTA update cannot launch {:?}", e))
+                        res = ControlResponse::Error(format!("OTA update cannot launch {:?}", e))
                     } else {
                         thread::spawn(move || {
                             led_tx.send(Status::Ota).unwrap();
@@ -198,12 +177,12 @@ fn handle_control_response(
                 }
                 _ => (),
             };
-            Some(control_res)
+            Some(res)
         }
         Err(e) => {
-            let control_res = ControlResponse::Error(e.to_string());
+            let res = ControlResponse::Error(e.to_string());
             log::warn!("error parsing ctrl msg {:?}", e);
-            Some(control_res)
+            Some(res)
         }
     }
 }
