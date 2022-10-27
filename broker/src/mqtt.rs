@@ -6,7 +6,7 @@ use librumqttd::{
     rumqttlog::router::ConnectionMetrics,
     Config,
 };
-use rocket::tokio::time::timeout;
+// use rocket::tokio::time::timeout;
 use rocket::tokio::{self, sync::broadcast, sync::mpsc};
 use sphinx_signer::sphinx_glyph::topics;
 use std::sync::Arc;
@@ -14,7 +14,7 @@ use std::sync::{LazyLock, Mutex};
 use std::time::Duration;
 
 // must get a reply within this time, or disconnects
-const REPLY_TIMEOUT_MS: u64 = 10000;
+// const REPLY_TIMEOUT_MS: u64 = 10000;
 
 static CONNECTED: LazyLock<Mutex<bool>> = LazyLock::new(|| Mutex::new(false));
 fn set_connected(b: bool) {
@@ -87,20 +87,26 @@ pub async fn start_broker(
                     .publish(&msg.topic, false, msg.message)
                     .await
                     .expect("could not mqtt pub");
-                match timeout(Duration::from_millis(REPLY_TIMEOUT_MS), msg_rx.recv()).await {
-                    Ok(reply) => {
-                        if let Err(_) = msg.reply_tx.send(ChannelReply {
-                            reply: reply.unwrap(),
-                        }) {
-                            log::warn!("could not send on reply_tx");
-                        }
-                    }
-                    Err(e) => {
-                        log::warn!("reply_tx timed out {:?}", e);
-                        set_connected(false);
-                        let _ = status_sender.send(false).await;
-                    }
+                match msg_rx.recv().await {
+                    Some(reply) => if let Err(_) = msg.reply_tx.send(ChannelReply { reply }) {
+                        log::warn!("could not send on reply_tx");
+                    },
+                    None => log::warn!("empty reply")
                 }
+                // match timeout(Duration::from_millis(REPLY_TIMEOUT_MS), msg_rx.recv()).await {
+                //     Ok(reply) => {
+                //         if let Err(_) = msg.reply_tx.send(ChannelReply {
+                //             reply: reply.unwrap(),
+                //         }) {
+                //             log::warn!("could not send on reply_tx");
+                //         }
+                //     }
+                //     Err(e) => {
+                //         log::warn!("reply_tx timed out {:?}", e);
+                //         set_connected(false);
+                //         let _ = status_sender.send(false).await;
+                //     }
+                // }
             }
         });
 
