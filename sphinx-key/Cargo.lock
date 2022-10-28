@@ -1893,7 +1893,7 @@ dependencies = [
 [[package]]
 name = "sphinx-crypter"
 version = "0.1.0"
-source = "git+https://github.com/stakwork/sphinx-rs.git#0aa9fed7a0d1f0690cbd43695a73cd38d51f9be7"
+source = "git+https://github.com/stakwork/sphinx-rs.git#19454cf58a81210ecd66acfeeecf3376ba464978"
 dependencies = [
  "anyhow",
  "chacha20poly1305",
@@ -1941,7 +1941,7 @@ dependencies = [
 [[package]]
 name = "sphinx-signer"
 version = "0.1.0"
-source = "git+https://github.com/stakwork/sphinx-rs.git#0aa9fed7a0d1f0690cbd43695a73cd38d51f9be7"
+source = "git+https://github.com/stakwork/sphinx-rs.git#19454cf58a81210ecd66acfeeecf3376ba464978"
 dependencies = [
  "anyhow",
  "bip39",
