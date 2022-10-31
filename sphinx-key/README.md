@@ -32,11 +32,11 @@ cargo install cargo-espflash ldproxy
 - In the `~/sphinx-key/tester` directory, create a file `.env` with the settings shown below:
 
 ```
-SSID="name of your home wifi - signer will use that to connect to the internet and ping the remote node"
-PASS="password of your home wifi"
-BROKER="xx.xx.xx.xx:xxxx" # IP address and port your broker is listening on on your remote server.
+SSID="foo" # name of your home wifi - signer will use that to connect to the internet and ping the remote node
+PASS="bar" # password of your home wifi
+BROKER="00.00.00.00:0000" # IP address and port your broker is listening on on your remote server.
 NETWORK="regtest"
-SEED=c7629e0f2edf1be66f01c0824022c5d30756ffa0f17213d2be463a458d200803 # You can use the script at ~/sphinx-key/sphinx-key/newseed.sh to generate a fresh seed.
+SEED=c7629e0f2edf1be66f01c0824022c5d30756ffa0f17213d2be463a458d200803 # you can use the script at ~/sphinx-key/sphinx-key/newseed.sh to generate a fresh seed.
 ```
 
 - Connect to the very first wifi network you specified above, enter the password, and then in `~/sphinx-key/tester` run `cargo run --bin config`.
@@ -49,6 +49,7 @@ SEED=c7629e0f2edf1be66f01c0824022c5d30756ffa0f17213d2be463a458d200803 # You can 
 - On the logs, you should see `BROKER IP AND PORT` and `LED STATUS: ConnectingToMqtt`
 - Now that the signer is configured, and pinging for the node, we'll proceed with setting up the node on the remote server.
 - You can take a break here if you want, just unplug and plug the signer back in - all the settings you configured up until now are written to non-volatile flash memory.
+- After you plug the signer back in, launch `cd ~/sphinx-key && ./monitor.sh` to print the logs to your screen once again.
 
 ### Remote Node Setup
 
