@@ -58,6 +58,7 @@ SEED=c7629e0f2edf1be66f01c0824022c5d30756ffa0f17213d2be463a458d200803 # you can 
 - Create the directory `~/.lightning` and in that directory write the file `config` with at least the following settings:
 ```
 network=regtest
+# Adapt the part after the colon below to point it to the sphinx-key-broker binary
 subdaemon=hsmd:/home/ubuntu/sphinx-key/broker/target/debug/sphinx-key-broker
 ```
 
@@ -72,19 +73,12 @@ mqtt_port=1883
 - Use the binary at `~/vls-hsmd/lightning/cli/lightning-cli` to manage your node.
 - If you've reached this far, congratulations ! You are all setup with a validating lightning signer. Go show it to your friends :)
 
-### How to launch the signer again
-
-- Plug in the ESP32-C3 dev board to your computer via data-enabled micro-USB.
-- `cd ~/sphinx-key`
-- `./deploy.sh`
-
 ### How to completely reset the signer
 
-- Plug in your ESP to your computer.
-- `esptool.py erase_flash`
-- Next, unplug your ESP32 from your computer.
 - Take out the SD card from its slot, and use your computer to clear all the data on it. Place it back in its slot after you've done so.
-- You can now go to the section above to get going again.
+- Plug in your signer to your computer.
+- `cd ~/sphinx-key && ./deploy.sh`
+- You can now go to the signer section above to get going again.
 
 
 ### DIY Hardware Setup
