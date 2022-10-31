@@ -1,7 +1,7 @@
 use dotenv::dotenv;
 use serde::{Deserialize, Serialize};
-use sphinx_signer::sphinx_glyph::control::{ControlMessage, Controller};
 use sphinx_signer::lightning_signer::bitcoin::Network;
+use sphinx_signer::sphinx_glyph::control::{ControlMessage, Controller};
 use std::env;
 use std::time::Duration;
 

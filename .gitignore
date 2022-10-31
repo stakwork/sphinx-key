@@ -1,7 +1,7 @@
 .vscode
 .embuild
 target
-Cargo.lock
+!Cargo.lock
 !sphinx-key/Cargo.lock
 !factory/Cargo.lock
 .DS_Store

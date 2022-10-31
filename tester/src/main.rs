@@ -1,21 +1,21 @@
-use sphinx_signer::sphinx_glyph::topics;
-use sphinx_signer::parser;
 use sphinx_signer::lightning_signer::bitcoin::Network;
 use sphinx_signer::lightning_signer::persist::Persist;
+use sphinx_signer::parser;
 use sphinx_signer::persist::FsPersister;
+use sphinx_signer::sphinx_glyph::{topics, types};
 
 use clap::{App, AppSettings, Arg};
 use dotenv::dotenv;
 use rumqttc::{self, AsyncClient, Event, EventLoop, MqttOptions, Packet, QoS};
 use sphinx_signer::sphinx_glyph::control::Controller;
 use sphinx_signer::vls_protocol::{model::PubKey, msgs};
-use sphinx_signer::{self, InitResponse};
+use sphinx_signer::{self};
 use std::convert::TryInto;
 use std::env;
 use std::error::Error;
 use std::str::FromStr;
-use std::time::Duration;
 use std::sync::Arc;
+use std::time::Duration;
 
 pub const ROOT_STORE: &str = "teststore";
 
@@ -100,14 +100,10 @@ async fn run_main(
     let store_path = env::var("STORE_PATH").unwrap_or(ROOT_STORE.to_string());
 
     let seed32: [u8; 32] = seed.try_into().expect("wrong seed");
-    let init_msg =
-        sphinx_signer::make_init_msg(network, seed32).expect("failed to make init msg");
     let persister: Arc<dyn Persist> = Arc::new(FsPersister::new(&store_path, None));
-    let InitResponse {
-        root_handler,
-        init_reply: _,
-    } = sphinx_signer::init(init_msg, network, &Default::default(), persister)
-        .expect("failed to init signer");
+    let policy = types::Policy::default();
+    let root_handler = sphinx_signer::root::init(seed32, network, &policy, persister)
+        .expect("Could not initialize root_handler");
     // the actual handler loop
     loop {
         match eventloop.poll().await {
@@ -116,7 +112,7 @@ async fn run_main(
                 if let Some((topic, msg_bytes)) = incoming_bytes(event) {
                     match topic.as_str() {
                         topics::VLS => {
-                            match sphinx_signer::handle(
+                            match sphinx_signer::root::handle(
                                 &root_handler,
                                 msg_bytes,
                                 dummy_peer.clone(),
