@@ -34,7 +34,7 @@ cargo install cargo-espflash ldproxy
 ```
 SSID="foo" # name of your home wifi - signer will use that to connect to the internet and ping the remote node
 PASS="bar" # password of your home wifi
-BROKER="00.00.00.00:0000" # IP address and port your broker is listening on on your remote server.
+BROKER="xx.xx.xx.xx:1883" # IP address and port your broker is listening on on your remote server.
 NETWORK="regtest"
 SEED=c7629e0f2edf1be66f01c0824022c5d30756ffa0f17213d2be463a458d200803 # you can use the script at ~/sphinx-key/sphinx-key/newseed.sh to generate a fresh seed.
 ```
@@ -53,6 +53,24 @@ SEED=c7629e0f2edf1be66f01c0824022c5d30756ffa0f17213d2be463a458d200803 # you can 
 
 ### Remote Node Setup
 
+- Follow the instructions at this link to build a CLN branch that works with the signer: https://gitlab.com/lightning-signer/vls-hsmd/-/blob/main/SETUP.md
+- Then do `cd ~ && git clone https://github.com/stakwork/sphinx-key.git && cd sphinx-key/broker && cargo build`.
+- Create the directory `~/.lightning` and in that directory write the file `config` with at least the following settings:
+```
+network=regtest
+subdaemon=hsmd:/home/ubuntu/sphinx-key/broker/target/debug/sphinx-key-broker
+```
+
+- In the same directory, also create the file `broker.conf` with the template shown below:
+```
+network="regtest"
+mqtt_port=1883
+```
+
+- Finally, run the binary at `~/vls-hsmd/lightning/lightningd/lightningd` to launch the node. It will first establish a connection with the signer before proceeding with the usual operation of a CLN node.
+- Once the connection is established, the LED on the signer should start to blink white, which means your signer is now connected to your node, and is ready for normal operation.
+- Use the binary at `~/vls-hsmd/lightning/cli/lightning-cli` to manage your node.
+- If you've reached this far, congratulations ! You are all setup with a validating lightning signer. Go show it to your friends :)
 
 ### How to launch the signer again
 
@@ -108,4 +126,3 @@ SD card pin | ESP32-C3-DevKitM-1 v1.0 | Notes
  VCC        | 3V3                     |
  GND        | GND                     |
 
-- Soon after, the LED should start to blink white, which means your signer is now connected to your node, and is ready for normal operation.
