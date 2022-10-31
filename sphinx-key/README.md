@@ -17,6 +17,9 @@ cargo install cargo-espflash ldproxy
 ### Signer
 
 - Plug in the ESP32-C3 dev board to your computer via data-enabled micro-USB.
+> **Note**
+> The only use of the data usb connection to the signer is to write the program binary to flash memory - during operation, the usb connection is only used for power.
+
 - `cd ~`
 - `git clone https://github.com/stakwork/sphinx-key.git`
 - `cd sphinx-key`
@@ -25,20 +28,30 @@ cargo install cargo-espflash ldproxy
 - `./deploy.sh`. This commands takes a while, it builds and flashes everything!
 - You will eventually be shown the logs of the signer.
 - Wait for the message `Waiting for data from the phone!`. The LED should blink green.
-- On your phone connect to the Wifi you specified above, and use the corresponding password to log in.
+- Open a new terminal window, and `cd ~/sphinx-key/tester && cargo build`
+- In the `~/sphinx-key/tester` directory, create a file `.env` with the settings shown below:
+
+```
+SSID="name of your home wifi - signer will use that to connect to the internet and ping the remote node"
+PASS="password of your home wifi"
+BROKER="xx.xx.xx.xx:xxxx" # IP address and port your broker is listening on on your remote server.
+NETWORK="regtest"
+SEED=c7629e0f2edf1be66f01c0824022c5d30756ffa0f17213d2be463a458d200803 # You can use the script at ~/sphinx-key/sphinx-key/newseed.sh to generate a fresh seed.
+```
+
+- Connect to the very first wifi network you specified above, enter the password, and then in `~/sphinx-key/tester` run `cargo run --bin config`.
 > **Note**
 > The sphinxkey network does not grant access to the internet, so ignore any warnings of that fact :)
-- Launch the signer setup flow on the sphinx app, and input the following settings:
-
-Broker IP address and port: `44.198.193.18:1883`\
-SSID: ssid of a local wifi with access to the internet\
-Password: password of the wifi from the previous step
 
 - Once the setup is complete, the ESP will restart and attempt to connect to wifi.
 - The LED will first blink yellow while it is connecting to the wifi.
 - When the signer is pinging for the broker, the LED on the ESP blinks purple.
 - On the logs, you should see `BROKER IP AND PORT` and `LED STATUS: ConnectingToMqtt`
-- Soon after, the LED should start to blink white, which means your signer is now connected to your node, and is ready for normal operation.
+- Now that the signer is configured, and pinging for the node, we'll proceed with setting up the node on the remote server.
+- You can take a break here if you want, just unplug and plug the signer back in - all the settings you configured up until now are written to non-volatile flash memory.
+
+### Remote Node Setup
+
 
 ### How to launch the signer again
 
@@ -55,7 +68,7 @@ Password: password of the wifi from the previous step
 - You can now go to the section above to get going again.
 
 
-### Hardware setup
+### DIY Hardware Setup
 
 #### Picture
 
@@ -93,3 +106,5 @@ SD card pin | ESP32-C3-DevKitM-1 v1.0 | Notes
  DI         | GPIO7                   |
  VCC        | 3V3                     |
  GND        | GND                     |
+
+- Soon after, the LED should start to blink white, which means your signer is now connected to your node, and is ready for normal operation.
