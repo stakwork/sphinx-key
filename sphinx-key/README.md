@@ -16,7 +16,7 @@ cargo install cargo-espflash ldproxy
 
 ### Signer
 
-- Plug in the ESP32-C3 dev board to your computer via data-enabled micro-USB.
+- Plug in the signer to your computer via data-enabled micro-USB.
 > **Note**
 > The only use of the data usb connection to the signer is to write the program binary to flash memory - during operation, the usb connection is only used for power.
 
