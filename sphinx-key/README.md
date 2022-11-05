@@ -1,16 +1,15 @@
 ## Instructions to build and run the Sphinx Key signer
 
-### Software setup ( MacOS )
+### Software setup ( Linux, macOS )
 
-- Make sure you have the Apple Command Line Developer tools installed on your machine. If not, run `xcode-select --install`
+- On macOS, make sure you have the Apple Command Line Developer tools installed on your machine.
 - Install rust. You can grab the installation command at https://www.rust-lang.org/tools/install
-- Install brew. Get the installation command at https://brew.sh/
-- Install python3. You can run `brew install python3` if necessary.
+- Install python3.
 - Run the following commands (the last one will take a while, go for a walk or something 😀):
 ```
 pip install esptool
-rustup install nightly
-rustup component add rust-src --toolchain nightly
+rustup install nightly-2022-10-20
+rustup component add rust-src --toolchain nightly-2022-10-20
 cargo install cargo-espflash ldproxy
 ```
 

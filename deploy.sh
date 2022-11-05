@@ -39,12 +39,21 @@ then
 fi
 for FILE in /dev/tty.*
 do
+    # Check for port on macOS
     if check_port $FILE 
     then
         PORT=$FILE
         break
     fi
 done
+if [ -z "$PORT" ]
+then
+    # Check for port on linux
+    if check_port /dev/ttyUSB0
+    then
+        PORT=/dev/ttyUSB0
+    fi
+fi
 if [ -z "$PORT" ]
 then
     echo "ESP likely not connected! Exiting now."
