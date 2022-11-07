@@ -30,6 +30,7 @@ pub enum Event {
     Control(Vec<u8>),
 }
 
+/*
 #[derive(Debug, Ord, PartialOrd, Eq, PartialEq)]
 pub enum Status {
     Starting,
@@ -43,6 +44,7 @@ pub enum Status {
     Signing,
     Ota,
 }
+*/
 
 pub const ROOT_STORE: &str = "/sdcard/store";
 
@@ -53,7 +55,7 @@ pub fn make_event_loop(
     rx: mpsc::Receiver<Event>,
     network: Network,
     do_log: bool,
-    led_tx: mpsc::Sender<Status>,
+    //led_tx: mpsc::Sender<Status>,
     config: Config,
     seed: [u8; 32],
     policy: &Policy,
@@ -69,7 +71,7 @@ pub fn make_event_loop(
                     .expect("could not MQTT subscribe");
                 mqtt.subscribe(topics::CONTROL, QOS)
                     .expect("could not MQTT subscribe");
-                led_tx.send(Status::Connected).unwrap();
+                //led_tx.send(Status::Connected).unwrap();
                 break;
             }
             _ => (),
@@ -97,14 +99,14 @@ pub fn make_event_loop(
                     .expect("could not MQTT subscribe");
                 mqtt.subscribe(topics::CONTROL, QOS)
                     .expect("could not MQTT subscribe");
-                led_tx.send(Status::Connected).unwrap();
+                //led_tx.send(Status::Connected).unwrap();
             }
             Event::Disconnected => {
-                led_tx.send(Status::ConnectingToMqtt).unwrap();
+                //led_tx.send(Status::ConnectingToMqtt).unwrap();
                 log::info!("GOT A Event::Disconnected msg!");
             }
             Event::VlsMessage(ref msg_bytes) => {
-                led_tx.send(Status::Signing).unwrap();
+                //led_tx.send(Status::Signing).unwrap();
                 let _ret = match sphinx_signer::handle(
                     &root_handler,
                     msg_bytes.clone(),
@@ -128,7 +130,8 @@ pub fn make_event_loop(
                 log::info!("GOT A CONTROL MSG");
                 let cres = ctrlr.handle(msg_bytes);
                 if let Some(res) =
-                    handle_control_response(&root_handler, cres, network, led_tx.clone())
+                    handle_control_response(&root_handler, cres, network)
+                    //handle_control_response(&root_handler, cres, network, led_tx.clone())
                 {
                     let res_data =
                         rmp_serde::to_vec(&res).expect("could not publish control response");
@@ -146,7 +149,7 @@ fn handle_control_response(
     root_handler: &RootHandler,
     cres: anyhow::Result<(ControlMessage, ControlResponse)>,
     network: Network,
-    led_tx: mpsc::Sender<Status>,
+    //led_tx: mpsc::Sender<Status>,
 ) -> Option<ControlResponse> {
     match cres {
         Ok((control_msg, mut control_res)) => {
@@ -185,8 +188,8 @@ fn handle_control_response(
                             ControlResponse::Error(format!("OTA update cannot launch {:?}", e))
                     } else {
                         thread::spawn(move || {
-                            led_tx.send(Status::Ota).unwrap();
-                            if let Err(e) = update_sphinx_key(params, led_tx) {
+                            //led_tx.send(Status::Ota).unwrap();
+                            if let Err(e) = update_sphinx_key(params) {
                                 log::error!("OTA update failed {:?}", e.to_string());
                             } else {
                                 log::info!("OTA flow complete, restarting esp...");
@@ -214,7 +217,7 @@ pub fn make_event_loop(
     rx: mpsc::Receiver<Event>,
     _network: Network,
     do_log: bool,
-    led_tx: mpsc::Sender<Status>,
+    //led_tx: mpsc::Sender<Status>,
     _config: Config,
     _seed: [u8; 32],
     _policy: &Policy,
@@ -224,13 +227,13 @@ pub fn make_event_loop(
     while let Ok(event) = rx.recv() {
         match event {
             Event::Connected => {
-                led_tx.send(Status::ConnectedToMqtt).unwrap();
+                //led_tx.send(Status::ConnectedToMqtt).unwrap();
                 log::info!("SUBSCRIBE TO {}", topics::VLS);
                 mqtt.subscribe(topics::VLS, QOS)
                     .expect("could not MQTT subscribe");
             }
             Event::VlsMessage(msg_bytes) => {
-                led_tx.send(Status::Signing).unwrap();
+                //led_tx.send(Status::Signing).unwrap();
                 let b = sphinx_signer::parse_ping_and_form_response(msg_bytes);
                 if do_log {
                     log::info!("GOT A PING MESSAGE! returning pong now...");
@@ -239,7 +242,7 @@ pub fn make_event_loop(
                     .expect("could not publish ping response");
             }
             Event::Disconnected => {
-                led_tx.send(Status::ConnectingToMqtt).unwrap();
+                //led_tx.send(Status::ConnectingToMqtt).unwrap();
                 log::info!("GOT A Event::Disconnected msg!");
             }
             Event::Control(_) => (),

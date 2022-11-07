@@ -1,4 +1,4 @@
-use crate::core::events::Status;
+//use crate::core::events::Status;
 use anyhow::{anyhow, Result};
 use embedded_svc::http::client::Client;
 use embedded_svc::http::client::Request;
@@ -15,7 +15,7 @@ use sphinx_signer::sphinx_glyph::control::OtaParams;
 use std::fs::{remove_file, File};
 use std::io::BufWriter;
 use std::io::Write;
-use std::sync::mpsc;
+//use std::sync::mpsc;
 
 const BUFFER_LEN: usize = 3072;
 const UPDATE_BIN_PATH: &str = "/sdcard/update.bin";
@@ -33,7 +33,7 @@ fn factory_reset() -> Result<()> {
     }
 }
 
-fn get_update(params: OtaParams, led_tx: mpsc::Sender<Status>) -> Result<()> {
+fn get_update(params: OtaParams) -> Result<()> {
     let configuration = EspHttpClientConfiguration {
         buffer_size: Some(BUFFER_LEN),
         buffer_size_tx: Some(BUFFER_LEN / 3),
@@ -64,7 +64,7 @@ fn get_update(params: OtaParams, led_tx: mpsc::Sender<Status>) -> Result<()> {
         write_tot += w;
         i += 1;
         if i % 20 == 0 {
-            led_tx.send(Status::Ota).unwrap();
+            //led_tx.send(Status::Ota).unwrap();
             info!("Cumulative bytes read: {}", read_tot);
             info!("Cumulative bytes written: {}", write_tot);
         }
@@ -74,9 +74,9 @@ fn get_update(params: OtaParams, led_tx: mpsc::Sender<Status>) -> Result<()> {
     Ok(())
 }
 
-pub fn update_sphinx_key(params: OtaParams, led_tx: mpsc::Sender<Status>) -> Result<()> {
+pub fn update_sphinx_key(params: OtaParams) -> Result<()> {
     info!("Getting the update...");
-    get_update(params, led_tx)?;
+    get_update(params)?;
     info!("Update written to sd card, performing factory reset");
     factory_reset()?;
     info!("Factory reset completed!");
