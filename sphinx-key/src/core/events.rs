@@ -10,7 +10,7 @@ use sphinx_signer::sphinx_glyph::control::{
 use sphinx_signer::sphinx_glyph::error::Error as GlyphError;
 use sphinx_signer::sphinx_glyph::topics;
 use sphinx_signer::vls_protocol::model::PubKey;
-use sphinx_signer::{self, make_init_msg, InitResponse, RootHandler};
+use sphinx_signer::{self, RootHandler};
 use std::sync::mpsc;
 use std::sync::Arc;
 use std::thread;
@@ -83,11 +83,7 @@ pub fn make_event_loop(
     let persister: Arc<dyn Persist> = Arc::new(FsPersister::new(&ROOT_STORE, Some(8)));
 
     // initialize the RootHandler
-    let init_msg = make_init_msg(network, seed).expect("failed to make init msg");
-    let InitResponse {
-        root_handler,
-        init_reply: _,
-    } = sphinx_signer::init(init_msg, network, policy, persister).expect("failed to init signer");
+    let root_handler = sphinx_signer::root::init(seed, network, policy, persister).expect("failed to init signer");
 
     // signing loop
     let dummy_peer = PubKey([0; 33]);
@@ -107,7 +103,7 @@ pub fn make_event_loop(
             }
             Event::VlsMessage(ref msg_bytes) => {
                 //led_tx.send(Status::Signing).unwrap();
-                let _ret = match sphinx_signer::handle(
+                let _ret = match sphinx_signer::root::handle(
                     &root_handler,
                     msg_bytes.clone(),
                     dummy_peer.clone(),
