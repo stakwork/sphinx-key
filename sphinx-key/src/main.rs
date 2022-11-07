@@ -6,7 +6,7 @@ mod periph;
 
 use crate::core::control::{controller_from_seed, FlashPersister};
 use crate::core::{config::*, events::*};
-use crate::periph::led::led_control_loop;
+//use crate::periph::led::led_control_loop;
 #[allow(unused_imports)]
 use crate::periph::sd::{mount_sd_card, simple_fs_test};
 
@@ -17,7 +17,7 @@ use std::thread;
 use std::time::Duration;
 use std::time::SystemTime;
 
-use esp_idf_hal::peripherals::Peripherals;
+//use esp_idf_hal::peripherals::Peripherals;
 use esp_idf_svc::nvs::*;
 
 use sphinx_signer::sphinx_glyph::control::{Config, ControlPersist, Policy};
@@ -38,14 +38,14 @@ fn main() -> Result<()> {
 
     thread::sleep(Duration::from_secs(1));
 
-    let peripherals = Peripherals::take().unwrap();
-    let pins = peripherals.pins;
+    //let peripherals = Peripherals::take().unwrap();
+    //let pins = peripherals.pins;
 
-    let (led_tx, led_rx) = mpsc::channel();
+    //let (led_tx, led_rx) = mpsc::channel();
     // LED control thread
-    led_control_loop(pins.gpio0, peripherals.rmt.channel0, led_rx);
+    //led_control_loop(pins.gpio0, peripherals.rmt.channel0, led_rx);
 
-    led_tx.send(Status::MountingSDCard).unwrap();
+    //led_tx.send(Status::MountingSDCard).unwrap();
     println!("About to mount the sdcard...");
     while let Err(_e) = mount_sd_card() {
         println!("Failed to mount sd card. Make sure it is connected, trying again...");
@@ -62,7 +62,7 @@ fn main() -> Result<()> {
             "=============> START CLIENT NOW <============== {:?}",
             exist
         );
-        led_tx.send(Status::ConnectingToWifi).unwrap();
+        //led_tx.send(Status::ConnectingToWifi).unwrap();
         let _wifi = loop {
             if let Ok(wifi) = start_wifi_client(default_nvs.clone(), &exist) {
                 println!("Wifi connected!");
@@ -73,7 +73,7 @@ fn main() -> Result<()> {
             }
         };
 
-        led_tx.send(Status::SyncingTime).unwrap();
+        //led_tx.send(Status::SyncingTime).unwrap();
         conn::sntp::sync_time();
         let now = SystemTime::now()
             .duration_since(SystemTime::UNIX_EPOCH)
@@ -83,7 +83,7 @@ fn main() -> Result<()> {
             now.as_secs(),
         );
 
-        led_tx.send(Status::ConnectingToMqtt).unwrap();
+        //led_tx.send(Status::ConnectingToMqtt).unwrap();
 
         let flash_arc = Arc::new(Mutex::new(flash));
         loop {
@@ -91,7 +91,7 @@ fn main() -> Result<()> {
                 exist.clone(),
                 seed,
                 &policy,
-                led_tx.clone(),
+                //led_tx.clone(),
                 flash_arc.clone(),
             ) {
                 println!("Exited out of the event loop, trying again in 5 seconds...");
@@ -102,7 +102,7 @@ fn main() -> Result<()> {
             }
         }
     } else {
-        led_tx.send(Status::WifiAccessPoint).unwrap();
+        //led_tx.send(Status::WifiAccessPoint).unwrap();
         println!("=============> START SERVER NOW AND WAIT <==============");
         match start_config_server_and_wait(default_nvs.clone()) {
             Ok((_wifi, config, seed)) => {
@@ -122,7 +122,7 @@ fn make_and_launch_client(
     config: Config,
     seed: [u8; 32],
     policy: &Policy,
-    led_tx: mpsc::Sender<Status>,
+    //led_tx: mpsc::Sender<Status>,
     flash: Arc<Mutex<FlashPersister>>,
 ) -> anyhow::Result<()> {
     let (tx, rx) = mpsc::channel();
@@ -156,7 +156,7 @@ fn make_and_launch_client(
         rx,
         network,
         do_log,
-        led_tx,
+        //led_tx,
         config,
         seed,
         policy,
