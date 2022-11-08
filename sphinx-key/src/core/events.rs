@@ -88,6 +88,7 @@ pub fn make_event_loop(
 
     // signing loop
     let dummy_peer = PubKey([0; 33]);
+    let mut out_buffer: Vec<u8> = Vec::with_capacity(600);
     while let Ok(event) = rx.recv() {
         match event {
             Event::Connected => {
@@ -102,16 +103,18 @@ pub fn make_event_loop(
                 //led_tx.send(Status::ConnectingToMqtt).unwrap();
                 log::info!("GOT A Event::Disconnected msg!");
             }
-            Event::VlsMessage(ref msg_bytes) => {
+            Event::VlsMessage(msg_bytes) => {
                 //led_tx.send(Status::Signing).unwrap();
+                out_buffer.clear();
                 let _ret = match sphinx_signer::root::handle(
                     &root_handler,
-                    msg_bytes.clone(),
+                    msg_bytes,
                     dummy_peer.clone(),
                     do_log,
+                    &mut out_buffer,
                 ) {
-                    Ok(b) => {
-                        mqtt.publish(topics::VLS_RETURN, QOS, false, &b)
+                    Ok(()) => {
+                        mqtt.publish(topics::VLS_RETURN, QOS, false, &out_buffer)
                             .expect("could not publish VLS response");
                     }
                     Err(e) => {
