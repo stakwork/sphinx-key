@@ -136,7 +136,7 @@ async fn run_main(
                         topics::CONTROL => {
                             match ctrlr.handle(&msg_bytes) {
                                 Ok((_msg, res)) => {
-                                    let res_data = rmp_serde::to_vec(&res)
+                                    let res_data = rmp_serde::to_vec_named(&res)
                                         .expect("could not build control response");
                                     client
                                         .publish(
@@ -199,7 +199,7 @@ async fn run_test(
                         topics::CONTROL => {
                             match ctrlr.handle(&msg_bytes) {
                                 Ok((_msg, res)) => {
-                                    let res_data = rmp_serde::to_vec(&res)
+                                    let res_data = rmp_serde::to_vec_named(&res)
                                         .expect("could not build control response");
                                     client
                                         .publish(

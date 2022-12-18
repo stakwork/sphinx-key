@@ -81,7 +81,8 @@ pub fn make_event_loop(
     let persister: Arc<dyn Persist> = Arc::new(FsPersister::new(&ROOT_STORE, Some(8)));
 
     // initialize the RootHandler
-    let root_handler = sphinx_signer::root::init(seed, network, policy, persister).expect("failed to init signer");
+    let root_handler =
+        sphinx_signer::root::init(seed, network, policy, persister).expect("failed to init signer");
 
     // signing loop
     let dummy_peer = PubKey([0; 33]);
@@ -127,7 +128,7 @@ pub fn make_event_loop(
                     handle_control_response(&root_handler, cres, network, led_tx.clone())
                 {
                     let res_data =
-                        rmp_serde::to_vec(&res).expect("could not publish control response");
+                        rmp_serde::to_vec_named(&res).expect("could not publish control response");
                     mqtt.publish(topics::CONTROL_RETURN, QOS, false, &res_data)
                         .expect("could not publish control response");
                 }
