@@ -9,7 +9,7 @@ use std::time::Duration;
 // must get a reply within this time, or disconnects
 const REPLY_TIMEOUT_MS: u64 = 10000;
 
-pub async fn start_broker(
+pub fn start_broker(
     mut receiver: mpsc::Receiver<ChannelRequest>,
     status_sender: mpsc::Sender<bool>,
     error_sender: broadcast::Sender<Vec<u8>>,
@@ -19,21 +19,24 @@ pub async fn start_broker(
     let conf = config(settings);
     let client_id = expected_client_id.to_string();
 
-    let broker = Broker::new(conf);
+    let mut broker = Broker::new(conf);
     let mut alerts = broker
         .alerts(vec![
             // "/alerts/error/+".to_string(),
             "/alerts/event/connect/+".to_string(),
             "/alerts/event/disconnect/+".to_string(),
-        ])
-        .unwrap();
+        ])?;
+    let (mut link_tx, mut link_rx) = broker.link("localclient")?;
+    std::thread::spawn(move || {
+        broker.start().expect("could not start broker");
+    });
 
     // connected/disconnected status alerts
     let status_sender_ = status_sender.clone();
     let _alerts_handle = tokio::spawn(async move {
         loop {
             let alert = alerts.poll();
-            println!("Alert: {alert:?}");
+            println!("Alert: {:?}", alert);
             match alert.1 {
                 Alert::Event(cid, event) => {
                     if cid == client_id {
@@ -48,12 +51,11 @@ pub async fn start_broker(
                 }
                 _ => (),
             }
-            tokio::time::sleep(Duration::from_millis(333)).await;
+            tokio::time::sleep(Duration::from_millis(40)).await;
         }
     });
 
     // msg forwarding
-    let (mut link_tx, mut link_rx) = broker.link("localclient")?;
     let (msg_tx, mut msg_rx): (mpsc::Sender<Vec<u8>>, mpsc::Receiver<Vec<u8>>) =
         mpsc::channel(1000);
     link_tx.subscribe(topics::VLS_RETURN)?;
@@ -61,14 +63,17 @@ pub async fn start_broker(
     link_tx.subscribe(topics::ERROR)?;
     let _sub_task = tokio::spawn(async move {
         while let Ok(message) = link_rx.recv() {
-            println!("MESG RECEIVED!!!!!! {:?}", message);
+            println!("GOT A MSG ON LINK RX");
             if let Some(n) = message {
                 match n {
                     Notification::Forward(f) => {
+                        println!("GOT A FORWARDED MSG! FORWARD!");
                         if f.publish.topic == topics::ERROR {
                             let _ = error_sender.send(f.publish.topic.to_vec());
                         } else {
-                            let _ = msg_tx.send(f.publish.payload.to_vec()).await;
+                            if let Err(e) = msg_tx.send(f.publish.payload.to_vec()).await {
+                                log::error!("failed to pub to msg_tx! {:?}", e);
+                            }
                         }
                     }
                     _ => (),
@@ -78,9 +83,13 @@ pub async fn start_broker(
     });
     let _relay_task = tokio::spawn(async move {
         while let Some(msg) = receiver.recv().await {
-            let _ = link_tx.publish(msg.topic, msg.message);
+            println!("YO YO YO got a receiver msg! {:?}", msg);
+            if let Err(e) = link_tx.publish(msg.topic, msg.message) {
+                log::error!("failed to pub to link_tx! {:?}", e);
+            }
             match timeout(Duration::from_millis(REPLY_TIMEOUT_MS), msg_rx.recv()).await {
                 Ok(reply) => {
+                    println!("send on channelreply!");
                     if let Err(_) = msg.reply_tx.send(ChannelReply {
                         reply: reply.unwrap(),
                     }) {
@@ -95,9 +104,8 @@ pub async fn start_broker(
         }
     });
 
-    println!("wait...");
-    tokio::time::sleep(Duration::from_secs(2)).await;
-    println!("done waiting");
+    std::thread::sleep(Duration::from_secs(1));
+
     // alerts_handle.await?;
     // sub_task.await?;
     // relay_task.await?;
@@ -130,7 +138,7 @@ fn config(settings: Settings) -> Config {
                 max_inflight_size: 1024,
                 auth: None,
                 sphinx_auth: Some(SphinxLoginCredentials { within: None }),
-                dynamic_filters: false,
+                dynamic_filters: true,
             },
             tls: None,
         },

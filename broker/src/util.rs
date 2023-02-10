@@ -85,6 +85,8 @@ pub fn setup_logging(who: &str, level_arg: &str) {
         .level_for("sled", log::LevelFilter::Info)
         .level_for("rumqttd", log::LevelFilter::Warn)
         .level_for("rocket", log::LevelFilter::Warn)
+        .level_for("tracing", log::LevelFilter::Warn)
+        .level_for("_", log::LevelFilter::Warn)
         .chain(std::io::stdout())
         // .chain(fern::log_file("/tmp/output.log")?)
         .apply()

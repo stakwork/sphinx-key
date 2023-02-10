@@ -174,7 +174,7 @@ async fn run_test(
     loop {
         match eventloop.poll().await {
             Ok(event) => {
-                // println!("{:?}", event);
+                println!("{:?}", event);
                 if let Some((topic, msg_bytes)) = incoming_bytes(event) {
                     match topic.as_str() {
                         topics::VLS => {
