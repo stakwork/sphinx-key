@@ -18,7 +18,7 @@ pub async fn run_test() -> rocket::Rocket<rocket::Build> {
     let settings = Settings::default();
 
     let (tx, rx) = mpsc::channel(1000);
-    let (status_tx, _status_rx) = mpsc::channel(1000);
+    let (status_tx, mut status_rx) = mpsc::channel(1000);
     let (error_tx, error_rx) = broadcast::channel(1000);
     crate::error_log::log_errors(error_rx);
 
@@ -27,6 +27,11 @@ pub async fn run_test() -> rocket::Rocket<rocket::Build> {
     log::info!("BROKER started!");
     // let mut connected = false;
     // let tx_ = tx.clone();
+    tokio::spawn(async move {
+        while let Some(status) = status_rx.recv().await {
+            log::info!("========> CONNECTED! {}", status);
+        }
+    });
     // tokio::spawn(async move {
     //     loop {
     //         tokio::select! {
