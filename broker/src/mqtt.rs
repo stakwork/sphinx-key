@@ -1,6 +1,5 @@
 use crate::util::Settings;
 use crate::{ChannelReply, ChannelRequest};
-use rocket::tokio::task;
 use rocket::tokio::time::timeout;
 use rocket::tokio::{self, sync::broadcast, sync::mpsc};
 use rumqttd::{Alert, AlertEvent, Broker, Config, Notification};
@@ -31,7 +30,7 @@ pub async fn start_broker(
 
     // connected/disconnected status alerts
     let status_sender_ = status_sender.clone();
-    let alerts_handle = tokio::spawn(async move {
+    let _alerts_handle = tokio::spawn(async move {
         loop {
             let alert = alerts.poll();
             println!("Alert: {alert:?}");
@@ -60,8 +59,9 @@ pub async fn start_broker(
     link_tx.subscribe(topics::VLS_RETURN)?;
     link_tx.subscribe(topics::CONTROL_RETURN)?;
     link_tx.subscribe(topics::ERROR)?;
-    let sub_task = tokio::spawn(async move {
+    let _sub_task = tokio::spawn(async move {
         while let Ok(message) = link_rx.recv() {
+            println!("MESG RECEIVED!!!!!! {:?}", message);
             if let Some(n) = message {
                 match n {
                     Notification::Forward(f) => {
@@ -76,9 +76,9 @@ pub async fn start_broker(
             }
         }
     });
-    let relay_task = tokio::spawn(async move {
+    let _relay_task = tokio::spawn(async move {
         while let Some(msg) = receiver.recv().await {
-            link_tx.publish(msg.topic, msg.message);
+            let _ = link_tx.publish(msg.topic, msg.message);
             match timeout(Duration::from_millis(REPLY_TIMEOUT_MS), msg_rx.recv()).await {
                 Ok(reply) => {
                     if let Err(_) = msg.reply_tx.send(ChannelReply {
@@ -95,9 +95,12 @@ pub async fn start_broker(
         }
     });
 
-    alerts_handle.await?;
-    sub_task.await?;
-    relay_task.await?;
+    println!("wait...");
+    tokio::time::sleep(Duration::from_secs(2)).await;
+    println!("done waiting");
+    // alerts_handle.await?;
+    // sub_task.await?;
+    // relay_task.await?;
     Ok(())
 }
 

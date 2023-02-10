@@ -3,9 +3,9 @@ use crate::routes::launch_rocket;
 use crate::util::Settings;
 use crate::ChannelRequest;
 use rocket::tokio::{self, sync::broadcast, sync::mpsc};
+use sphinx_signer::{parser, sphinx_glyph::topics};
 use vls_protocol::serde_bolt::WireString;
 use vls_protocol::{msgs, msgs::Message};
-use sphinx_signer::{parser, sphinx_glyph::topics};
 
 const CLIENT_ID: &str = "test-1";
 
@@ -22,7 +22,10 @@ pub async fn run_test() -> rocket::Rocket<rocket::Build> {
     let (error_tx, error_rx) = broadcast::channel(1000);
     crate::error_log::log_errors(error_rx);
 
-    start_broker(rx, status_tx, error_tx.clone(), CLIENT_ID, settings).await;
+    start_broker(rx, status_tx, error_tx.clone(), CLIENT_ID, settings)
+        .await
+        .expect("FAILED TO START BROKER");
+    log::info!("BROKER started!");
     let mut connected = false;
     let tx_ = tx.clone();
     tokio::spawn(async move {

@@ -83,11 +83,8 @@ pub fn setup_logging(who: &str, level_arg: &str) {
         .level(log::LevelFilter::from_str(&level).expect("level"))
         .level_for("h2", log::LevelFilter::Info)
         .level_for("sled", log::LevelFilter::Info)
-        .level_for("librumqttd::async_locallink", log::LevelFilter::Error)
-        .level_for(
-            "librumqttd::rumqttlog::router::router",
-            log::LevelFilter::Warn,
-        )
+        .level_for("rumqttd", log::LevelFilter::Warn)
+        .level_for("rocket", log::LevelFilter::Warn)
         .chain(std::io::stdout())
         // .chain(fern::log_file("/tmp/output.log")?)
         .apply()

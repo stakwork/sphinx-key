@@ -101,7 +101,9 @@ async fn run_main(parent_fd: i32) -> rocket::Rocket<rocket::Build> {
     error_log::log_errors(error_rx);
 
     log::info!("=> start broker on network: {}", settings.network);
-    start_broker(rx, status_tx, error_tx.clone(), CLIENT_ID, settings).await;
+    start_broker(rx, status_tx, error_tx.clone(), CLIENT_ID, settings)
+        .await
+        .expect("BROKER FAILED TO START");
     log::info!("=> wait for connected status");
     // wait for connection = true
     let status = status_rx.recv().await.expect("couldnt receive");
