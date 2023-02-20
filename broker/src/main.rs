@@ -95,9 +95,9 @@ async fn rocket() -> _ {
 async fn run_main(parent_fd: i32) -> rocket::Rocket<rocket::Build> {
     let settings = read_broker_config(BROKER_CONFIG_PATH);
 
-    let (tx, rx) = mpsc::channel(1000);
-    let (status_tx, mut status_rx) = mpsc::channel(1000);
-    let (error_tx, error_rx) = broadcast::channel(1000);
+    let (tx, rx) = mpsc::channel(10000);
+    let (status_tx, mut status_rx) = mpsc::channel(10000);
+    let (error_tx, error_rx) = broadcast::channel(10000);
     error_log::log_errors(error_rx);
 
     log::info!("=> start broker on network: {}", settings.network);

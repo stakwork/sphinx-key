@@ -25,6 +25,12 @@ pub async fn run_test() -> rocket::Rocket<rocket::Build> {
     start_broker(rx, status_tx, error_tx.clone(), CLIENT_ID, settings)
         .expect("FAILED TO START BROKER");
     log::info!("BROKER started!");
+
+    log::info!("=> wait for connected status");
+    // wait for connection = true
+    let status = status_rx.recv().await.expect("couldnt receive");
+    log::info!("=> connection status: {}", status);
+
     // let mut connected = false;
     // let tx_ = tx.clone();
     tokio::spawn(async move {

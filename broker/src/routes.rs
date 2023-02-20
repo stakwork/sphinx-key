@@ -27,6 +27,7 @@ pub async fn control(sender: &State<Sender<ChannelRequest>>, msg: &str) -> Resul
     let _ = sender.send(request).await.map_err(|_| Error::Fail)?;
     // wait for reply
     let reply = reply_rx.await.map_err(|_| Error::Fail)?;
+
     Ok(hex::encode(reply.reply).to_string())
 }
 
@@ -83,6 +84,7 @@ impl<'r, 'o: 'r> Responder<'r, 'o> for Error {
     fn respond_to(self, req: &'r rocket::Request<'_>) -> response::Result<'o> {
         // log `self` to your favored error tracker, e.g.
         // sentry::capture_error(&self);
+        println!("ERROR {:?}", self);
         match self {
             // in our simplistic example, we're happy to respond with the default 500 responder in all cases
             _ => Status::InternalServerError.respond_to(req),
