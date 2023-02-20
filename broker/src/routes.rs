@@ -22,7 +22,6 @@ pub async fn control(sender: &State<Sender<ChannelRequest>>, msg: &str) -> Resul
     if message.len() < 65 {
         return Err(Error::Fail);
     }
-    println!("/control?<msg> got hit!");
     let (request, reply_rx) = ChannelRequest::new(topics::CONTROL, message);
     // send to ESP
     let _ = sender.send(request).await.map_err(|_| Error::Fail)?;

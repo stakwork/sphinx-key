@@ -108,8 +108,10 @@ async fn run_main(
     loop {
         match eventloop.poll().await {
             Ok(event) => {
+                println!("{:?}", event);
                 let dummy_peer = PubKey([0; 33]);
                 if let Some((topic, msg_bytes)) = incoming_bytes(event) {
+                    println!("MSG BYTES {:}", msg_bytes.len());
                     match topic.as_str() {
                         topics::VLS => {
                             match sphinx_signer::root::handle(
