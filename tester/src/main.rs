@@ -8,7 +8,7 @@ use clap::{App, AppSettings, Arg};
 use dotenv::dotenv;
 use rumqttc::{self, AsyncClient, Event, EventLoop, MqttOptions, Packet, QoS};
 use sphinx_signer::sphinx_glyph::control::Controller;
-use sphinx_signer::vls_protocol::{model::PubKey, msgs};
+use sphinx_signer::vls_protocol::msgs;
 use sphinx_signer::{self};
 use std::convert::TryInto;
 use std::env;
@@ -108,16 +108,12 @@ async fn run_main(
     loop {
         match eventloop.poll().await {
             Ok(event) => {
-                let dummy_peer = PubKey([0; 33]);
+                println!("{:?}", event);
                 if let Some((topic, msg_bytes)) = incoming_bytes(event) {
+                    println!("MSG BYTES {:}", msg_bytes.len());
                     match topic.as_str() {
                         topics::VLS => {
-                            match sphinx_signer::root::handle(
-                                &root_handler,
-                                msg_bytes,
-                                dummy_peer.clone(),
-                                is_log,
-                            ) {
+                            match sphinx_signer::root::handle(&root_handler, msg_bytes, is_log) {
                                 Ok(b) => client
                                     .publish(topics::VLS_RETURN, QoS::AtMostOnce, false, b)
                                     .await
@@ -174,22 +170,21 @@ async fn run_test(
     loop {
         match eventloop.poll().await {
             Ok(event) => {
-                // println!("{:?}", event);
+                println!("{:?}", event);
                 if let Some((topic, msg_bytes)) = incoming_bytes(event) {
                     match topic.as_str() {
                         topics::VLS => {
-                            let (ping, sequence, dbid): (msgs::Ping, u16, u64) =
-                                parser::request_from_bytes(msg_bytes).expect("read ping header");
+                            let (ping, header) =
+                                parser::request_from_bytes::<msgs::Ping>(msg_bytes)
+                                    .expect("read ping header");
                             if is_log {
-                                println!("sequence {}", sequence);
-                                println!("dbid {}", dbid);
                                 println!("INCOMING: {:?}", ping);
                             }
                             let pong = msgs::Pong {
                                 id: ping.id,
                                 message: ping.message,
                             };
-                            let bytes = parser::raw_response_from_msg(pong, sequence)
+                            let bytes = parser::raw_response_from_msg(pong, header.sequence)
                                 .expect("couldnt parse raw response");
                             client
                                 .publish(topics::VLS_RETURN, QoS::AtMostOnce, false, bytes)

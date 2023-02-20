@@ -3,17 +3,17 @@ use crate::routes::launch_rocket;
 use crate::util::Settings;
 use crate::ChannelRequest;
 use rocket::tokio::{self, sync::broadcast, sync::mpsc};
+use sphinx_signer::{parser, sphinx_glyph::topics};
 use vls_protocol::serde_bolt::WireString;
 use vls_protocol::{msgs, msgs::Message};
-use sphinx_signer::{parser, sphinx_glyph::topics};
 
 const CLIENT_ID: &str = "test-1";
 
 pub async fn run_test() -> rocket::Rocket<rocket::Build> {
     log::info!("TEST...");
 
-    let mut id = 0u16;
-    let mut sequence = 1;
+    // let mut id = 0u16;
+    // let mut sequence = 1;
 
     let settings = Settings::default();
 
@@ -22,35 +22,48 @@ pub async fn run_test() -> rocket::Rocket<rocket::Build> {
     let (error_tx, error_rx) = broadcast::channel(1000);
     crate::error_log::log_errors(error_rx);
 
-    start_broker(rx, status_tx, error_tx.clone(), CLIENT_ID, settings).await;
-    let mut connected = false;
-    let tx_ = tx.clone();
+    start_broker(rx, status_tx, error_tx.clone(), CLIENT_ID, settings)
+        .expect("FAILED TO START BROKER");
+    log::info!("BROKER started!");
+
+    log::info!("=> wait for connected status");
+    // wait for connection = true
+    let status = status_rx.recv().await.expect("couldnt receive");
+    log::info!("=> connection status: {}", status);
+
+    // let mut connected = false;
+    // let tx_ = tx.clone();
     tokio::spawn(async move {
-        loop {
-            tokio::select! {
-                status = status_rx.recv() => {
-                    if let Some(connection_status) = status {
-                        connected = connection_status;
-                        id = 0;
-                        sequence = 1;
-                        log::info!("========> CONNECTED! {}", connection_status);
-                    }
-                }
-                res = iteration(id, sequence, tx_.clone(), connected) => {
-                    if let Err(e) = res {
-                        log::warn!("===> iteration failed {:?}", e);
-                        // connected = false;
-                        // id = 0;
-                        // sequence = 1;
-                    } else if connected {
-                        sequence = sequence.wrapping_add(1);
-                        id += 1;
-                    }
-                    tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
-                }
-            };
+        while let Some(status) = status_rx.recv().await {
+            log::info!("========> CONNECTED! {}", status);
         }
     });
+    // tokio::spawn(async move {
+    //     loop {
+    //         tokio::select! {
+    //             status = status_rx.recv() => {
+    //                 if let Some(connection_status) = status {
+    //                     connected = connection_status;
+    //                     id = 0;
+    //                     sequence = 1;
+    //                     log::info!("========> CONNECTED! {}", connection_status);
+    //                 }
+    //             }
+    //             res = iteration(id, sequence, tx_.clone(), connected) => {
+    //                 if let Err(e) = res {
+    //                     log::warn!("===> iteration failed {:?}", e);
+    //                     // connected = false;
+    //                     // id = 0;
+    //                     // sequence = 1;
+    //                 } else if connected {
+    //                     sequence = sequence.wrapping_add(1);
+    //                     id += 1;
+    //                 }
+    //                 tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+    //             }
+    //         };
+    //     }
+    // });
     launch_rocket(tx, error_tx, settings)
 }
 

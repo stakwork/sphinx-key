@@ -6,7 +6,9 @@ edition = "2018"
 
 [dependencies]
 sphinx-signer = { git = "https://github.com/stakwork/sphinx-rs.git" }
+# sphinx-signer = { path = "../../sphinx-rs/signer" }
 sphinx-crypter = { git = "https://github.com/stakwork/sphinx-rs.git" }
+# sphinx-crypter = { path = "../../sphinx-rs/crypter" }
 anyhow = {version = "1", features = ["backtrace"]}
 log = "0.4"
 rumqttc = "0.12.0"

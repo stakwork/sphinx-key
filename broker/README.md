@@ -18,13 +18,13 @@ docker rm -v $cid
 
 ### c-lightning
 
-##### get the version 
+##### get the version
 
 `git describe --tags --long --always --match='v*.*'`
 
 and only take the last 8 chars of the last string
 
-or 
+or
 
 `docker run -it --entrypoint "/bin/bash" sphinx-cln`
 
@@ -41,3 +41,7 @@ docker push sphinxlightning/sphinx-cln-vls:0.1.4
 ##### testing
 
 cargo run --bin sphinx-key-tester -- --log
+
+##### find pid
+
+ps aux | grep -i sphinx-key-broker
