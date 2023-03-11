@@ -10,10 +10,10 @@ strip = "debuginfo"
 [dependencies]
 sphinx-signer = { git = "https://github.com/stakwork/sphinx-rs" }
 # sphinx-key-parser = { path = "../parser" }
-vls-protocol = { git = "https://gitlab.com/lightning-signer/validating-lightning-signer.git" }
-vls-proxy = { git = "https://gitlab.com/lightning-signer/validating-lightning-signer.git" }
-vls-frontend = { git = "https://gitlab.com/lightning-signer/validating-lightning-signer.git" }
-vls-protocol-client = { git = "https://gitlab.com/lightning-signer/validating-lightning-signer.git" }
+vls-protocol = { git = "https://gitlab.com/lightning-signer/validating-lightning-signer.git", rev = "dcd8628893b5504b3ac2d3eb8cc5ed36f36d7625" }
+vls-proxy = { git = "https://gitlab.com/lightning-signer/validating-lightning-signer.git", rev = "dcd8628893b5504b3ac2d3eb8cc5ed36f36d7625" }
+vls-frontend = { git = "https://gitlab.com/lightning-signer/validating-lightning-signer.git", rev = "dcd8628893b5504b3ac2d3eb8cc5ed36f36d7625" }
+vls-protocol-client = { git = "https://gitlab.com/lightning-signer/validating-lightning-signer.git", rev = "dcd8628893b5504b3ac2d3eb8cc5ed36f36d7625" }
 rumqttd = { git = "https://github.com/Evanfeenstra/rumqtt", branch = "sphinx" } 
 pretty_env_logger = "0.4.0"
 confy = "0.4.0"
@@ -22,8 +22,8 @@ anyhow = {version = "1", features = ["backtrace"]}
 log = "0.4"
 fern = { version = "0.6", features = ["colored"] }
 rumqttc = "0.12.0"
-clap = "=3.0.0-beta.2"
-clap_derive = "=3.0.0-beta.5"
+clap = "3.2"
+clap_derive = "3.2"
 chrono = "0.4"
 once_cell = "1.12.0"
 bitcoin = "0.29.0"

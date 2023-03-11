@@ -116,7 +116,12 @@ impl<C: 'static + Client> SignerLoop<C> {
 
     fn handle_message(&mut self, message: Vec<u8>) -> Result<Vec<u8>> {
         let dbid = self.client_id.as_ref().map(|c| c.dbid).unwrap_or(0);
-        let md = parser::raw_request_from_bytes(message, self.chan.sequence, dbid)?;
+        let peer_id = self
+            .client_id
+            .as_ref()
+            .map(|c| c.peer_id.serialize())
+            .unwrap_or([0u8; 33]);
+        let md = parser::raw_request_from_bytes(message, self.chan.sequence, peer_id, dbid)?;
         let reply_rx = self.send_request(md)?;
         let res = self.get_reply(reply_rx)?;
         let reply = parser::raw_response_from_bytes(res, self.chan.sequence)?;

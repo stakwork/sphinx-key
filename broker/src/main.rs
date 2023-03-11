@@ -11,7 +11,7 @@ use crate::chain_tracker::MqttSignerPort;
 use crate::mqtt::start_broker;
 use crate::unix_fd::SignerLoop;
 use crate::util::read_broker_config;
-use clap::{App, AppSettings, Arg};
+use clap::{arg, App};
 use rocket::tokio::{
     self,
     sync::{broadcast, mpsc, oneshot},
@@ -19,10 +19,11 @@ use rocket::tokio::{
 use std::env;
 use std::sync::Arc;
 use url::Url;
-use vls_frontend::Frontend;
+use vls_frontend::{frontend::SourceFactory, Frontend};
 use vls_proxy::client::UnixClient;
 use vls_proxy::connection::{open_parent_fd, UnixConnection};
 use vls_proxy::portfront::SignerPortFront;
+use vls_proxy::util::{add_hsmd_args, handle_hsmd_version};
 
 pub struct Channel {
     pub sequence: u16,
@@ -62,20 +63,15 @@ async fn rocket() -> _ {
     let parent_fd = open_parent_fd();
 
     util::setup_logging("hsmd  ", "info");
-    let app = App::new("signer")
-        .setting(AppSettings::NoAutoVersion)
-        .about("CLN:mqtt - connects to an embedded VLS over a MQTT connection")
-        .arg(
-            Arg::new("--dev-disconnect")
-                .about("ignored dev flag")
-                .long("dev-disconnect")
-                .takes_value(true),
-        )
-        .arg(Arg::from("--log-io ignored dev flag"))
-        .arg(Arg::from("--version show a dummy version"))
-        .arg(Arg::from("--test run a test against the embedded device"));
-
+    let app = make_clap_app();
     let matches = app.get_matches();
+    if matches.is_present("git-desc") {
+        println!("remote_hsmd_socket git_desc={}", vls_proxy::GIT_DESC);
+        panic!("end")
+    }
+    if handle_hsmd_version(&matches) {
+        panic!("end")
+    }
 
     if matches.is_present("version") {
         // Pretend to be the right version, given to us by an env var
@@ -90,6 +86,13 @@ async fn rocket() -> _ {
             run_main(parent_fd).await
         }
     }
+}
+
+fn make_clap_app() -> App<'static> {
+    let app = App::new("signer")
+        .about("CLN:mqtt - connects to a remote signer via MQTT")
+        .arg(arg!(--test "run a test against the embedded device"));
+    add_hsmd_args(app)
 }
 
 async fn run_main(parent_fd: i32) -> rocket::Rocket<rocket::Build> {
@@ -111,11 +114,13 @@ async fn run_main(parent_fd: i32) -> rocket::Rocket<rocket::Build> {
 
     if let Ok(btc_url) = env::var("BITCOIND_RPC_URL") {
         let signer_port = MqttSignerPort::new(tx.clone());
+        let source_factory = Arc::new(SourceFactory::new(".", settings.network));
         let frontend = Frontend::new(
-            Arc::new(SignerPortFront {
-                signer_port: Box::new(signer_port),
-                network: settings.network,
-            }),
+            Arc::new(SignerPortFront::new(
+                Box::new(signer_port),
+                settings.network,
+            )),
+            source_factory,
             Url::parse(&btc_url).expect("malformed btc rpc url"),
         );
         tokio::spawn(async move {

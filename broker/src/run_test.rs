@@ -84,7 +84,8 @@ pub async fn iteration(
         id,
         message: WireString("ping".as_bytes().to_vec()),
     };
-    let ping_bytes = parser::request_from_msg(ping, sequence, 0)?;
+    let peer_id = [0u8; 33];
+    let ping_bytes = parser::request_from_msg(ping, sequence, peer_id, 0)?;
     // Send a request to the MQTT handler to send to signer
     let (request, reply_rx) = ChannelRequest::new(topics::VLS, ping_bytes);
     tx.send(request).await?;
