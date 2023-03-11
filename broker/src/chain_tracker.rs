@@ -3,7 +3,7 @@ use async_trait::async_trait;
 use rocket::tokio::sync::{mpsc, oneshot};
 use sphinx_signer::sphinx_glyph::topics;
 use vls_protocol::{Error, Result};
-use vls_protocol_client::SignerPort;
+use vls_protocol_client::{ClientResult, SignerPort};
 
 pub struct MqttSignerPort {
     sender: mpsc::Sender<ChannelRequest>,
@@ -11,7 +11,7 @@ pub struct MqttSignerPort {
 
 #[async_trait]
 impl SignerPort for MqttSignerPort {
-    async fn handle_message(&self, message: Vec<u8>) -> Result<Vec<u8>> {
+    async fn handle_message(&self, message: Vec<u8>) -> ClientResult<Vec<u8>> {
         let reply_rx = self.send_request(message).await?;
         self.get_reply(reply_rx).await
     }
@@ -34,7 +34,7 @@ impl MqttSignerPort {
         Ok(reply_rx)
     }
 
-    async fn get_reply(&self, reply_rx: oneshot::Receiver<ChannelReply>) -> Result<Vec<u8>> {
+    async fn get_reply(&self, reply_rx: oneshot::Receiver<ChannelReply>) -> ClientResult<Vec<u8>> {
         let reply = reply_rx.await.map_err(|_| Error::Eof)?;
         Ok(reply.reply)
     }
