@@ -2809,7 +2809,7 @@ dependencies = [
 [[package]]
 name = "rumqttd"
 version = "0.12.5"
-source = "git+https://github.com/Evanfeenstra/rumqtt?branch=sphinx#66f52f3f2fe739073a4dcc90530e6095915b15a4"
+source = "git+https://github.com/Evanfeenstra/rumqtt?branch=sphinx#c9e2174c9385ef99b95698c04d5911c991789b3c"
 dependencies = [
  "bytes",
  "clap 4.1.4",

@@ -1,7 +1,7 @@
 use crate::util::Settings;
 use crate::{ChannelReply, ChannelRequest};
 use rocket::tokio::{sync::broadcast, sync::mpsc};
-use rumqttd::{Alert, AlertEvent, Broker, Config, Notification};
+use rumqttd::{protocol::QoS, Alert, AlertEvent, Broker, Config, Notification};
 use sphinx_signer::sphinx_glyph::topics;
 use std::time::Duration;
 
@@ -34,7 +34,7 @@ pub fn start_broker(
     let status_sender_ = status_sender.clone();
     let _alerts_handle = std::thread::spawn(move || loop {
         let alert = alerts.poll();
-        println!("Alert: {:?}", alert);
+        log::info!("Alert: {:?}", alert);
         match alert.1 {
             Alert::Event(cid, event) => {
                 if cid == client_id {
@@ -78,7 +78,8 @@ pub fn start_broker(
 
     let _relay_task = std::thread::spawn(move || {
         while let Some(msg) = receiver.blocking_recv() {
-            if let Err(e) = link_tx.publish(msg.topic, msg.message) {
+            let qos = QoS::AtLeastOnce;
+            if let Err(e) = link_tx.publish_qos(msg.topic, msg.message, qos) {
                 log::error!("failed to pub to link_tx! {:?}", e);
             }
             let rep = msg_rx.blocking_recv();
@@ -92,7 +93,7 @@ pub fn start_broker(
 
     // _sub_task.await.unwrap();
     // _relay_task.await.unwrap();
-    // alerts_handle.await?;
+    // _alerts_handle.await?;
 
     std::thread::sleep(Duration::from_secs(1));
 

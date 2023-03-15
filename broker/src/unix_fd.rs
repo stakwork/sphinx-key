@@ -72,9 +72,9 @@ impl<C: 'static + Client> SignerLoop<C> {
     fn do_loop(&mut self, settings: Option<Settings>) -> Result<()> {
         loop {
             let raw_msg = self.client.read_raw()?;
-            debug!("loop {}: got raw", self.log_prefix);
+            // debug!("loop {}: got raw", self.log_prefix);
             let msg = msgs::from_vec(raw_msg.clone())?;
-            info!("loop {}: got {:x?}", self.log_prefix, msg);
+            // info!("loop {}: got {:x?}", self.log_prefix, msg);
             match msg {
                 Message::ClientHsmFd(m) => {
                     self.client.write(msgs::ClientHsmFdReply {}).unwrap();
@@ -90,6 +90,7 @@ impl<C: 'static + Client> SignerLoop<C> {
                     thread::spawn(move || new_loop.start(None));
                 }
                 Message::Memleak(_) => {
+                    // info!("Memleak");
                     let reply = msgs::MemleakReply { result: false };
                     self.client.write(reply)?;
                 }
@@ -108,7 +109,7 @@ impl<C: 'static + Client> SignerLoop<C> {
                     let reply = self.handle_message(raw_msg)?;
                     // Write the reply to the node
                     self.client.write_vec(reply)?;
-                    info!("replied {}", self.log_prefix);
+                    // info!("replied {}", self.log_prefix);
                 }
             }
         }

@@ -98,13 +98,14 @@ fn make_clap_app() -> App<'static> {
 async fn run_main(parent_fd: i32) -> rocket::Rocket<rocket::Build> {
     let settings = read_broker_config(BROKER_CONFIG_PATH);
 
-    let (tx, rx) = mpsc::channel(10000);
+    let (mqtt_tx, mqtt_rx) = mpsc::channel(10000);
+    // let (unix_tx, mut unix_rx) = mpsc::channel(10000);
     let (status_tx, mut status_rx) = mpsc::channel(10000);
     let (error_tx, error_rx) = broadcast::channel(10000);
     error_log::log_errors(error_rx);
 
     log::info!("=> start broker on network: {}", settings.network);
-    start_broker(rx, status_tx, error_tx.clone(), CLIENT_ID, settings)
+    start_broker(mqtt_rx, status_tx, error_tx.clone(), CLIENT_ID, settings)
         .expect("BROKER FAILED TO START");
     log::info!("=> wait for connected status");
     // wait for connection = true
@@ -112,14 +113,22 @@ async fn run_main(parent_fd: i32) -> rocket::Rocket<rocket::Build> {
     log::info!("=> connection status: {}", status);
     // assert_eq!(status, true, "expected connected = true");
 
+    // let mqtt_tx_ = mqtt_tx.clone();
+    // tokio::spawn(async move {
+    //     while let Some(msg) = unix_rx.recv().await {
+    //         // update LSS here?
+    //         if let Err(e) = mqtt_tx_.send(msg).await {
+    //             log::error!("failed to send on mqtt_tx {:?}", e);
+    //         }
+    //     }
+    // });
+
     if let Ok(btc_url) = env::var("BITCOIND_RPC_URL") {
-        let signer_port = MqttSignerPort::new(tx.clone());
+        let signer_port = Box::new(MqttSignerPort::new(mqtt_tx.clone()));
+        let port_front = SignerPortFront::new(signer_port, settings.network);
         let source_factory = Arc::new(SourceFactory::new(".", settings.network));
         let frontend = Frontend::new(
-            Arc::new(SignerPortFront::new(
-                Box::new(signer_port),
-                settings.network,
-            )),
+            Arc::new(port_front),
             source_factory,
             Url::parse(&btc_url).expect("malformed btc rpc url"),
         );
@@ -130,11 +139,11 @@ async fn run_main(parent_fd: i32) -> rocket::Rocket<rocket::Build> {
     let conn = UnixConnection::new(parent_fd);
     let client = UnixClient::new(conn);
     // TODO pass status_rx into SignerLoop
-    let mut signer_loop = SignerLoop::new(client, tx.clone());
+    let mut signer_loop = SignerLoop::new(client, mqtt_tx.clone());
     // spawn CLN listener on a std thread
     std::thread::spawn(move || {
         signer_loop.start(Some(settings));
     });
 
-    routes::launch_rocket(tx, error_tx, settings)
+    routes::launch_rocket(mqtt_tx, error_tx, settings)
 }
