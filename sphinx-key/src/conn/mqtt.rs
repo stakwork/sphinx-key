@@ -13,7 +13,7 @@ use log::*;
 use std::sync::mpsc;
 use std::thread;
 
-pub const QOS: QoS = QoS::AtMostOnce;
+pub const QOS: QoS = QoS::ExactlyOnce;
 
 pub fn make_client(
     broker: &str,

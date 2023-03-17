@@ -9,7 +9,6 @@ use sphinx_signer::sphinx_glyph::control::{
 };
 use sphinx_signer::sphinx_glyph::error::Error as GlyphError;
 use sphinx_signer::sphinx_glyph::topics;
-use sphinx_signer::vls_protocol::model::PubKey;
 use sphinx_signer::{self, RootHandler};
 use std::sync::mpsc;
 use std::sync::Arc;
@@ -85,7 +84,6 @@ pub fn make_event_loop(
         sphinx_signer::root::init(seed, network, policy, persister).expect("failed to init signer");
 
     // signing loop
-    let dummy_peer = PubKey([0; 33]);
     while let Ok(event) = rx.recv() {
         match event {
             Event::Connected => {
@@ -102,24 +100,20 @@ pub fn make_event_loop(
             }
             Event::VlsMessage(ref msg_bytes) => {
                 led_tx.send(Status::Signing).unwrap();
-                let _ret = match sphinx_signer::root::handle(
-                    &root_handler,
-                    msg_bytes.clone(),
-                    dummy_peer.clone(),
-                    do_log,
-                ) {
-                    Ok(b) => {
-                        mqtt.publish(topics::VLS_RETURN, QOS, false, &b)
-                            .expect("could not publish VLS response");
-                    }
-                    Err(e) => {
-                        let err_msg = GlyphError::new(1, &e.to_string());
-                        log::error!("HANDLE FAILED {:?}", e);
-                        mqtt.publish(topics::ERROR, QOS, false, &err_msg.to_vec()[..])
-                            .expect("could not publish VLS error");
-                        // panic!("HANDLE FAILED {:?}", e);
-                    }
-                };
+                let _ret =
+                    match sphinx_signer::root::handle(&root_handler, msg_bytes.clone(), do_log) {
+                        Ok(b) => {
+                            mqtt.publish(topics::VLS_RETURN, QOS, false, &b)
+                                .expect("could not publish VLS response");
+                        }
+                        Err(e) => {
+                            let err_msg = GlyphError::new(1, &e.to_string());
+                            log::error!("HANDLE FAILED {:?}", e);
+                            mqtt.publish(topics::ERROR, QOS, false, &err_msg.to_vec()[..])
+                                .expect("could not publish VLS error");
+                            // panic!("HANDLE FAILED {:?}", e);
+                        }
+                    };
             }
             Event::Control(ref msg_bytes) => {
                 log::info!("GOT A CONTROL MSG");
