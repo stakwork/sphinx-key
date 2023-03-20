@@ -20,6 +20,7 @@ impl Channel {
         Self {
             sender,
             sequence: 0,
+            pubkey: [0; 33], // init with empty pubkey
         }
     }
 }
@@ -95,7 +96,9 @@ impl<C: 'static + Client> SignerLoop<C> {
                     self.client.write(reply)?;
                 }
                 msg => {
+                    let mut catch_init = false;
                     if let Message::HsmdInit(m) = msg {
+                        catch_init = true;
                         if let Some(set) = settings {
                             if ChainHash::using_genesis_block(set.network).as_bytes()
                                 != &m.chain_params.0
@@ -106,7 +109,7 @@ impl<C: 'static + Client> SignerLoop<C> {
                             panic!("Got HsmdInit without settings - likely because HsmdInit was sent after startup");
                         }
                     }
-                    let reply = self.handle_message(raw_msg)?;
+                    let reply = self.handle_message(raw_msg, catch_init)?;
                     // Write the reply to the node
                     self.client.write_vec(reply)?;
                     // info!("replied {}", self.log_prefix);
@@ -115,7 +118,7 @@ impl<C: 'static + Client> SignerLoop<C> {
         }
     }
 
-    fn handle_message(&mut self, message: Vec<u8>) -> Result<Vec<u8>> {
+    fn handle_message(&mut self, message: Vec<u8>, catch_init: bool) -> Result<Vec<u8>> {
         let dbid = self.client_id.as_ref().map(|c| c.dbid).unwrap_or(0);
         let peer_id = self
             .client_id
@@ -123,11 +126,27 @@ impl<C: 'static + Client> SignerLoop<C> {
             .map(|c| c.peer_id.serialize())
             .unwrap_or([0u8; 33]);
         let md = parser::raw_request_from_bytes(message, self.chan.sequence, peer_id, dbid)?;
+        // send to glyph
         let reply_rx = self.send_request(md)?;
         let res = self.get_reply(reply_rx)?;
         let reply = parser::raw_response_from_bytes(res, self.chan.sequence)?;
+        // add to the sequence
         self.chan.sequence = self.chan.sequence.wrapping_add(1);
+        // catch the pubkey if its the first one connection
+        if catch_init {
+            let _ = self.set_channel_pubkey(reply.clone());
+        }
         Ok(reply)
+    }
+
+    fn set_channel_pubkey(&mut self, raw_msg: Vec<u8>) -> Result<()> {
+        let msg = msgs::from_vec(raw_msg.clone())?;
+        match msg {
+            Message::HsmdInitReplyV2(r) => self.chan.pubkey = r.node_id.0,
+            Message::HsmdInit2Reply(r) => self.chan.pubkey = r.node_id.0,
+            _ => (),
+        };
+        Ok(())
     }
 
     fn send_request(&mut self, message: Vec<u8>) -> Result<oneshot::Receiver<ChannelReply>> {

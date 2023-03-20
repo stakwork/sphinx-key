@@ -8,7 +8,7 @@ mod unix_fd;
 mod util;
 
 use crate::chain_tracker::MqttSignerPort;
-use crate::mqtt::start_broker;
+use crate::mqtt::{check_auth, start_broker};
 use crate::unix_fd::SignerLoop;
 use crate::util::read_broker_config;
 use clap::{arg, App};
@@ -16,6 +16,7 @@ use rocket::tokio::{
     self,
     sync::{broadcast, mpsc, oneshot},
 };
+use rumqttd::AuthMsg;
 use std::env;
 use std::sync::Arc;
 use url::Url;
@@ -25,9 +26,27 @@ use vls_proxy::connection::{open_parent_fd, UnixConnection};
 use vls_proxy::portfront::SignerPortFront;
 use vls_proxy::util::{add_hsmd_args, handle_hsmd_version};
 
+pub struct Connections {
+    pub pubkey: Option<String>,
+    pub clients: Vec<String>,
+}
+
+impl Connections {
+    pub fn new() -> Self {
+        Self {
+            pubkey: None,
+            clients: Vec::new(),
+        }
+    }
+    pub fn set_pubkey(&mut self, pk: &str) {
+        self.pubkey = Some(pk.to_string())
+    }
+}
+
 pub struct Channel {
     pub sequence: u16,
     pub sender: mpsc::Sender<ChannelRequest>,
+    pub pubkey: [u8; 33],
 }
 
 /// Responses are received on the oneshot sender
@@ -55,7 +74,7 @@ pub struct ChannelReply {
     pub reply: Vec<u8>,
 }
 
-const CLIENT_ID: &str = "sphinx-1";
+// const CLIENT_ID: &str = "sphinx-1";
 const BROKER_CONFIG_PATH: &str = "../broker.conf";
 
 #[rocket::launch]
@@ -99,19 +118,28 @@ async fn run_main(parent_fd: i32) -> rocket::Rocket<rocket::Build> {
     let settings = read_broker_config(BROKER_CONFIG_PATH);
 
     let (mqtt_tx, mqtt_rx) = mpsc::channel(10000);
+    let (auth_tx, auth_rx) = std::sync::mpsc::channel::<AuthMsg>();
     // let (unix_tx, mut unix_rx) = mpsc::channel(10000);
     let (status_tx, mut status_rx) = mpsc::channel(10000);
     let (error_tx, error_rx) = broadcast::channel(10000);
     error_log::log_errors(error_rx);
 
+    let mut conns = Connections::new();
+
+    std::thread::spawn(move || {
+        while let Ok(am) = auth_rx.recv() {
+            let ok = check_auth(&am.username, &am.password, &mut conns);
+            let _ = am.reply.send(ok);
+        }
+    });
+
     log::info!("=> start broker on network: {}", settings.network);
-    start_broker(mqtt_rx, status_tx, error_tx.clone(), CLIENT_ID, settings)
+    start_broker(mqtt_rx, status_tx, error_tx.clone(), settings, auth_tx)
         .expect("BROKER FAILED TO START");
     log::info!("=> wait for connected status");
     // wait for connection = true
     let status = status_rx.recv().await.expect("couldnt receive");
-    log::info!("=> connection status: {}", status);
-    // assert_eq!(status, true, "expected connected = true");
+    log::info!("=> connected: {}: {}", status.0, status.1);
 
     // let mqtt_tx_ = mqtt_tx.clone();
     // tokio::spawn(async move {

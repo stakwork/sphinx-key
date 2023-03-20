@@ -14,7 +14,7 @@ vls-protocol = { git = "https://gitlab.com/lightning-signer/validating-lightning
 vls-proxy = { git = "https://gitlab.com/lightning-signer/validating-lightning-signer.git", rev = "dcd8628893b5504b3ac2d3eb8cc5ed36f36d7625" }
 vls-frontend = { git = "https://gitlab.com/lightning-signer/validating-lightning-signer.git", rev = "dcd8628893b5504b3ac2d3eb8cc5ed36f36d7625" }
 vls-protocol-client = { git = "https://gitlab.com/lightning-signer/validating-lightning-signer.git", rev = "dcd8628893b5504b3ac2d3eb8cc5ed36f36d7625" }
-rumqttd = { git = "https://github.com/Evanfeenstra/rumqtt", branch = "sphinx" } 
+rumqttd = { git = "https://github.com/Evanfeenstra/rumqtt", branch = "sphinx-2" } 
 pretty_env_logger = "0.4.0"
 confy = "0.4.0"
 secp256k1 = { version = "0.24.0", features = ["rand-std", "bitcoin_hashes"] }

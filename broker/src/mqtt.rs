@@ -1,7 +1,8 @@
 use crate::util::Settings;
 use crate::{ChannelReply, ChannelRequest};
 use rocket::tokio::{sync::broadcast, sync::mpsc};
-use rumqttd::{protocol::QoS, Alert, AlertEvent, Broker, Config, Notification};
+use rumqttd::{Alert, AlertEvent, AuthMsg, Broker, Config, Notification};
+use sphinx_signer::sphinx_glyph::sphinx_auther::token::Token;
 use sphinx_signer::sphinx_glyph::topics;
 use std::time::Duration;
 
@@ -10,13 +11,13 @@ use std::time::Duration;
 
 pub fn start_broker(
     mut receiver: mpsc::Receiver<ChannelRequest>,
-    status_sender: mpsc::Sender<bool>,
+    status_sender: mpsc::Sender<(String, bool)>,
     error_sender: broadcast::Sender<Vec<u8>>,
-    expected_client_id: &str,
     settings: Settings,
+    auth_sender: std::sync::mpsc::Sender<AuthMsg>,
 ) -> anyhow::Result<()> {
     let conf = config(settings);
-    let client_id = expected_client_id.to_string();
+    // let client_id = expected_client_id.to_string();
 
     let mut broker = Broker::new(conf);
     let mut alerts = broker.alerts(vec![
@@ -26,8 +27,11 @@ pub fn start_broker(
     ])?;
     let (mut link_tx, mut link_rx) = broker.link("localclient")?;
 
+    let auth_sender_ = auth_sender.clone();
     std::thread::spawn(move || {
-        broker.start().expect("could not start broker");
+        broker
+            .start(Some(auth_sender_))
+            .expect("could not start broker");
     });
 
     // connected/disconnected status alerts
@@ -37,13 +41,15 @@ pub fn start_broker(
         log::info!("Alert: {:?}", alert);
         match alert.1 {
             Alert::Event(cid, event) => {
-                if cid == client_id {
+                // dont alert for local connections
+                let locals = vec!["console", "localclient"];
+                if !locals.contains(&cid.as_str()) {
                     if let Some(status) = match event {
                         AlertEvent::Connect => Some(true),
                         AlertEvent::Disconnect => Some(false),
                         _ => None,
                     } {
-                        let _ = status_sender_.blocking_send(status);
+                        let _ = status_sender_.blocking_send((cid, status));
                     }
                 }
             }
@@ -78,8 +84,7 @@ pub fn start_broker(
 
     let _relay_task = std::thread::spawn(move || {
         while let Some(msg) = receiver.blocking_recv() {
-            let qos = QoS::AtLeastOnce;
-            if let Err(e) = link_tx.publish_qos(msg.topic, msg.message, qos) {
+            if let Err(e) = link_tx.publish(msg.topic, msg.message) {
                 log::error!("failed to pub to link_tx! {:?}", e);
             }
             let rep = msg_rx.blocking_recv();
@@ -100,8 +105,30 @@ pub fn start_broker(
     Ok(())
 }
 
+pub fn check_auth(username: &str, password: &str, conns: &mut crate::Connections) -> bool {
+    match Token::from_base64(password) {
+        Ok(t) => match t.recover() {
+            Ok(pubkey) => {
+                if &pubkey.to_string() == username {
+                    if let Some(pk) = &conns.pubkey {
+                        // if there is an existing then it must match it
+                        pk == username
+                    } else {
+                        conns.set_pubkey(username);
+                        true
+                    }
+                } else {
+                    false
+                }
+            }
+            Err(_) => false,
+        },
+        Err(_) => false,
+    }
+}
+
 fn config(settings: Settings) -> Config {
-    use rumqttd::{ConnectionSettings, ConsoleSettings, ServerSettings, SphinxLoginCredentials};
+    use rumqttd::{ConnectionSettings, ConsoleSettings, ServerSettings};
     use std::collections::HashMap;
     use std::net::{Ipv4Addr, SocketAddrV4};
     let router = rumqttd::RouterConfig {
@@ -126,7 +153,6 @@ fn config(settings: Settings) -> Config {
                 max_inflight_count: 200,
                 max_inflight_size: 1024,
                 auth: None,
-                sphinx_auth: Some(SphinxLoginCredentials { within: None }),
                 dynamic_filters: true,
             },
             tls: None,

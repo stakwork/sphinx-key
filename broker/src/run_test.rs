@@ -1,13 +1,15 @@
-use crate::mqtt::start_broker;
+use crate::mqtt::{check_auth, start_broker};
 use crate::routes::launch_rocket;
 use crate::util::Settings;
 use crate::ChannelRequest;
+use crate::Connections;
 use rocket::tokio::{self, sync::broadcast, sync::mpsc};
+use rumqttd::AuthMsg;
 use sphinx_signer::{parser, sphinx_glyph::topics};
 use vls_protocol::serde_bolt::WireString;
 use vls_protocol::{msgs, msgs::Message};
 
-const CLIENT_ID: &str = "test-1";
+// const CLIENT_ID: &str = "test-1";
 
 pub async fn run_test() -> rocket::Rocket<rocket::Build> {
     log::info!("TEST...");
@@ -18,24 +20,29 @@ pub async fn run_test() -> rocket::Rocket<rocket::Build> {
     let settings = Settings::default();
 
     let (tx, rx) = mpsc::channel(1000);
+    let (auth_tx, auth_rx) = std::sync::mpsc::channel::<AuthMsg>();
     let (status_tx, mut status_rx) = mpsc::channel(1000);
     let (error_tx, error_rx) = broadcast::channel(1000);
     crate::error_log::log_errors(error_rx);
 
-    start_broker(rx, status_tx, error_tx.clone(), CLIENT_ID, settings)
+    let mut conns = Connections::new();
+
+    std::thread::spawn(move || {
+        while let Ok(am) = auth_rx.recv() {
+            let ok = check_auth(&am.username, &am.password, &mut conns);
+            let _ = am.reply.send(ok);
+        }
+    });
+
+    start_broker(rx, status_tx, error_tx.clone(), settings, auth_tx)
         .expect("FAILED TO START BROKER");
     log::info!("BROKER started!");
-
-    log::info!("=> wait for connected status");
-    // wait for connection = true
-    let status = status_rx.recv().await.expect("couldnt receive");
-    log::info!("=> connection status: {}", status);
 
     // let mut connected = false;
     // let tx_ = tx.clone();
     tokio::spawn(async move {
         while let Some(status) = status_rx.recv().await {
-            log::info!("========> CONNECTED! {}", status);
+            log::info!("========> CONNECTED! {} {}", status.0, status.1);
         }
     });
     // tokio::spawn(async move {
