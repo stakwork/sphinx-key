@@ -2666,7 +2666,7 @@ dependencies = [
 [[package]]
 name = "rumqttd"
 version = "0.12.6"
-source = "git+https://github.com/Evanfeenstra/rumqtt?branch=sphinx-2#8811257886364ce0d1f09773c3aa5596e457d8c0"
+source = "git+https://github.com/Evanfeenstra/rumqtt?branch=sphinx-2#96af7b82e5d7e97f52547c5c8a868fd55e4661fe"
 dependencies = [
  "axum",
  "bytes",
@@ -3062,6 +3062,8 @@ dependencies = [
  "rumqttc",
  "rumqttd",
  "secp256k1",
+ "serde",
+ "serde_json",
  "sphinx-signer",
  "thiserror",
  "toml",

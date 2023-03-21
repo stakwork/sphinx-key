@@ -1,5 +1,6 @@
 use crate::util::Settings;
 use crate::ChannelRequest;
+use crate::Connections;
 use rocket::fairing::{Fairing, Info, Kind};
 use rocket::http::Header;
 use rocket::response::stream::{Event, EventStream};
@@ -12,17 +13,29 @@ use rocket::*;
 use sphinx_signer::sphinx_glyph::{error::Error as GlyphError, topics};
 use std::net::IpAddr::V4;
 use std::net::Ipv4Addr;
+use std::sync::{Arc, Mutex};
 
 pub type Result<T> = std::result::Result<T, Error>;
 
-#[post("/control?<msg>")]
-pub async fn control(sender: &State<Sender<ChannelRequest>>, msg: &str) -> Result<String> {
+#[get("/clients")]
+pub async fn get_clients(conns: &State<Arc<Mutex<Connections>>>) -> Result<String> {
+    use std::ops::Deref;
+    let cs = conns.lock().unwrap();
+    Ok(serde_json::to_string(&cs.deref())?)
+}
+
+#[post("/control?<msg>&<cid>")]
+pub async fn control(
+    sender: &State<Sender<ChannelRequest>>,
+    msg: &str,
+    cid: &str,
+) -> Result<String> {
     let message = hex::decode(msg)?;
     // FIXME validate?
     if message.len() < 65 {
         return Err(Error::Fail);
     }
-    let (request, reply_rx) = ChannelRequest::new(topics::CONTROL, message);
+    let (request, reply_rx) = ChannelRequest::new_for(cid, topics::CONTROL, message);
     // send to ESP
     let _ = sender.send(request).await.map_err(|_| Error::Fail)?;
     // wait for reply
@@ -54,6 +67,7 @@ pub fn launch_rocket(
     tx: Sender<ChannelRequest>,
     error_tx: broadcast::Sender<Vec<u8>>,
     settings: Settings,
+    conns: Arc<Mutex<Connections>>,
 ) -> Rocket<Build> {
     let config = Config {
         address: V4(Ipv4Addr::UNSPECIFIED),
@@ -62,10 +76,11 @@ pub fn launch_rocket(
     };
     rocket::build()
         .configure(config)
-        .mount("/api/", routes![control, errors])
+        .mount("/api/", routes![control, errors, get_clients])
         .attach(CORS)
         .manage(tx)
         .manage(error_tx)
+        .manage(conns)
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -76,6 +91,8 @@ pub enum Error {
     Io(#[from] std::io::Error),
     #[error("hex error: {0}")]
     Hex(#[from] hex::FromHexError),
+    #[error("serde error: {0}")]
+    Serde(#[from] serde_json::Error),
 }
 
 use rocket::http::Status;

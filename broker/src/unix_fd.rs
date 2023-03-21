@@ -141,11 +141,16 @@ impl<C: 'static + Client> SignerLoop<C> {
 
     fn set_channel_pubkey(&mut self, raw_msg: Vec<u8>) -> Result<()> {
         let msg = msgs::from_vec(raw_msg.clone())?;
-        match msg {
-            Message::HsmdInitReplyV2(r) => self.chan.pubkey = r.node_id.0,
-            Message::HsmdInit2Reply(r) => self.chan.pubkey = r.node_id.0,
-            _ => (),
+        let pk = match msg {
+            Message::HsmdInitReplyV2(r) => Some(r.node_id.0),
+            Message::HsmdInit2Reply(r) => Some(r.node_id.0),
+            _ => None,
         };
+        if let Some(pubkey) = pk {
+            let pks = hex::encode(pubkey);
+            log::info!("PUBKEY received from CLN: {}", pks);
+            self.chan.pubkey = pubkey;
+        }
         Ok(())
     }
 
