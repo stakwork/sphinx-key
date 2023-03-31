@@ -142,8 +142,8 @@ fn make_and_launch_client(
     let token = ctrlr.make_auth_token().expect("couldnt make auth token");
     log::info!("PUBKEY {} TOKEN {}", &pubkey, &token);
 
-    let (mqtt, connection) = conn::mqtt::make_client(&config.broker, CLIENT_ID, &pubkey, &token)?;
-    let mqtt_client = conn::mqtt::start_listening(mqtt, connection, tx)?;
+    let mqtt_client = conn::mqtt::make_client(&config.broker, CLIENT_ID, &pubkey, &token, tx)?;
+    // let mqtt_client = conn::mqtt::start_listening(mqtt, connection, tx)?;
 
     // this blocks forever... the "main thread"
     let do_log = true;

@@ -1,8 +1,8 @@
 use esp_idf_sys as _; // If using the `binstart` feature of `esp-idf-sys`, always keep this module imported
 
 use embedded_svc::storage::StorageBase;
+use esp_idf_svc::nvs::EspNvsStorage;
 use esp_idf_svc::nvs::*;
-use esp_idf_svc::nvs_storage::EspNvsStorage;
 
 use std::sync::Arc;
 

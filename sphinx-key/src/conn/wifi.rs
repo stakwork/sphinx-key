@@ -30,7 +30,7 @@ pub fn start_client(
 
     let sysloop = EspSystemEventLoop::take()?;
 
-    let mut wifi = Box::new(EspWifi::new(modem, sysloop, default_nvs)?);
+    let mut wifi = Box::new(EspWifi::new(modem, sysloop, Some(default_nvs))?);
     let ap_infos = wifi.scan()?;
     let ssid = config.ssid.as_str();
     let pass = config.pass.as_str();
