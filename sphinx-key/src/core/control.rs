@@ -2,9 +2,9 @@ use anyhow::{anyhow, Result};
 use embedded_svc::storage::RawStorage;
 use embedded_svc::storage::StorageBase;
 use esp_idf_svc::nvs::EspDefaultNvs;
-use esp_idf_svc::nvs_storage::EspNvsStorage;
-use sphinx_signer::sphinx_glyph::control::{Config, ControlPersist, Controller, FlashKey, Policy};
+use esp_idf_svc::nvs::EspNvsStorage;
 use sphinx_signer::lightning_signer::bitcoin::Network;
+use sphinx_signer::sphinx_glyph::control::{Config, ControlPersist, Controller, FlashKey, Policy};
 use std::convert::TryInto;
 use std::sync::{Arc, Mutex};
 

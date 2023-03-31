@@ -3,7 +3,8 @@ use sphinx_signer::sphinx_glyph::control::Config;
 use esp_idf_svc::netif::*;
 use esp_idf_svc::nvs::EspDefaultNvs;
 use esp_idf_svc::ping;
-use esp_idf_svc::sysloop::*;
+// use esp_idf_svc::sysloop::*;
+use esp_idf_svc::eventloop::EspSystemEventLoop;
 use esp_idf_svc::wifi::*;
 
 use embedded_svc::httpd::Result;
@@ -12,16 +13,24 @@ use embedded_svc::ping::Ping;
 use embedded_svc::wifi::Wifi;
 use embedded_svc::wifi::*;
 
+use esp_idf_hal::peripheral;
+
 use log::*;
 use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
 
-pub fn start_client(default_nvs: Arc<EspDefaultNvs>, config: &Config) -> Result<Box<EspWifi>> {
-    let netif_stack = Arc::new(EspNetifStack::new()?);
-    let sys_loop_stack = Arc::new(EspSysLoopStack::new()?);
+pub fn start_client(
+    modem: impl peripheral::Peripheral<P = esp_idf_hal::modem::Modem> + 'static,
+    default_nvs: Arc<EspDefaultNvs>,
+    config: &Config,
+) -> Result<Box<EspWifi<'static>>> {
+    // let netif_stack = Arc::new(EspNetifStack::new()?);
+    // let sys_loop_stack = Arc::new(EspSysLoopStack::new()?);
 
-    let mut wifi = Box::new(EspWifi::new(netif_stack, sys_loop_stack, default_nvs)?);
+    let sysloop = EspSystemEventLoop::take()?;
+
+    let mut wifi = Box::new(EspWifi::new(modem, sysloop, default_nvs)?);
     let ap_infos = wifi.scan()?;
     let ssid = config.ssid.as_str();
     let pass = config.pass.as_str();
@@ -79,10 +88,14 @@ pub fn start_client(default_nvs: Arc<EspDefaultNvs>, config: &Config) -> Result<
     Ok(wifi)
 }
 
-pub fn start_access_point(default_nvs: Arc<EspDefaultNvs>) -> Result<Box<EspWifi>> {
-    let netif_stack = Arc::new(EspNetifStack::new()?);
-    let sys_loop_stack = Arc::new(EspSysLoopStack::new()?);
-    let mut wifi = Box::new(EspWifi::new(netif_stack, sys_loop_stack, default_nvs)?);
+pub fn start_access_point(
+    modem: impl peripheral::Peripheral<P = esp_idf_hal::modem::Modem> + 'static,
+    default_nvs: Arc<EspDefaultNvs>,
+) -> Result<Box<EspWifi<'static>>> {
+    let sysloop = EspSystemEventLoop::take()?;
+    // let netif_stack = Arc::new(EspNetifStack::new()?);
+    // let sys_loop_stack = Arc::new(EspSysLoopStack::new()?);
+    let mut wifi = Box::new(EspWifi::new(modem, sysloop, default_nvs)?);
 
     let ssid: &'static str = env!("SSID");
     let password: &'static str = env!("PASS");
@@ -104,7 +117,10 @@ pub fn start_access_point(default_nvs: Arc<EspDefaultNvs>) -> Result<Box<EspWifi
 
     let status = wifi.get_status();
     if let Status(ClientStatus::Stopped, ApStatus::Started(ApIpStatus::Done)) = status {
-        info!("Wifi started!\n \nWIFI NAME: {}\nWIFI PASSWORD: {}\n", ssid, password);
+        info!(
+            "Wifi started!\n \nWIFI NAME: {}\nWIFI PASSWORD: {}\n",
+            ssid, password
+        );
     } else {
         return Err(anyhow::anyhow!("Unexpected AP Wifi status: {:?}", status));
     }

@@ -10,6 +10,8 @@ use embedded_svc::wifi::*;
 use esp_idf_svc::nvs::*;
 use esp_idf_svc::wifi::*;
 
+use esp_idf_hal::peripheral;
+
 use sphinx_crypter::chacha::{decrypt, PAYLOAD_LEN};
 use sphinx_crypter::ecdh::{derive_shared_secret_from_slice, PUBLIC_KEY_LEN};
 use sphinx_crypter::secp256k1::rand::thread_rng;
@@ -39,8 +41,12 @@ pub struct ConfigDTO {
 arp -a
 */
 
-pub fn start_wifi_client(default_nvs: Arc<EspDefaultNvs>, config: &Config) -> Result<Box<EspWifi>> {
-    let wifi = conn::wifi::start_client(default_nvs, config)?;
+pub fn start_wifi_client(
+    modem: impl peripheral::Peripheral<P = esp_idf_hal::modem::Modem> + 'static,
+    default_nvs: Arc<EspDefaultNvs>,
+    config: &Config,
+) -> Result<Box<EspWifi>> {
+    let wifi = conn::wifi::start_client(modem, default_nvs, config)?;
     println!("CLIENT CONNECTED!!!!!! {:?}", wifi.get_status());
     Ok(wifi)
 }
@@ -71,13 +77,14 @@ pub fn decrypt_seed(dto: ConfigDTO, sk1: SecretKey) -> Result<(Config, [u8; 32])
 }
 
 pub fn start_config_server_and_wait(
+    modem: impl peripheral::Peripheral<P = esp_idf_hal::modem::Modem> + 'static,
     default_nvs: Arc<EspDefaultNvs>,
-) -> Result<(Box<EspWifi>, Config, [u8; 32])> {
+) -> Result<(Box<EspWifi<'static>>, Config, [u8; 32])> {
     let mutex = Arc::new((Mutex::new(None), Condvar::new()));
 
     #[allow(clippy::redundant_clone)]
     #[allow(unused_mut)]
-    let mut wifi = conn::wifi::start_access_point(default_nvs.clone())?;
+    let mut wifi = conn::wifi::start_access_point(modem, default_nvs.clone())?;
 
     let httpd = conn::http::config_server(mutex.clone());
     let mut wait = mutex.0.lock().unwrap();

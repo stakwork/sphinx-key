@@ -20,14 +20,14 @@ pingpong = []
 no_persist = []
 
 [dependencies]
-bitflags = "1.3.2"
-esp-idf-sys = { version = "0.31.6", features = ["binstart"] }
 sphinx-signer = { git = "https://github.com/stakwork/sphinx-rs.git", optional = true }
 sphinx-crypter = { git = "https://github.com/stakwork/sphinx-rs.git" }
-embedded-svc = "0.22.1"
-esp-idf-svc = { version = "0.42.1", features = ["experimental", "alloc"] }
-esp-idf-hal = "0.38.0"
-embedded-hal = "=1.0.0-alpha.8"
+bitflags = "1.3.2"
+esp-idf-sys = { version = "0.32.1", features = ["binstart"] }
+embedded-svc = "0.24.0"
+esp-idf-svc = { version = "0.45.0", features = ["experimental", "alloc"] }
+esp-idf-hal = "0.40.1"
+embedded-hal = "=1.0.0-alpha.9"
 anyhow = {version = "1", features = ["backtrace"]}
 log = "0.4"
 url = "2"

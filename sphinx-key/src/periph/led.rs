@@ -32,11 +32,7 @@ fn states() -> BTreeMap<Status, (Color, Time)> {
     s
 }
 
-pub fn led_control_loop(
-    gpio0: gpio::Gpio0<gpio::Unknown>,
-    channel0: rmt::CHANNEL0,
-    rx: mpsc::Receiver<Status>,
-) {
+pub fn led_control_loop(gpio0: gpio::Gpio0, channel0: rmt::CHANNEL0, rx: mpsc::Receiver<Status>) {
     let led = gpio0.into_output().unwrap();
     let config = TransmitConfig::new().clock_divider(1);
     let transmit = Arc::new(Mutex::new(Transmit::new(led, channel0, &config).unwrap()));

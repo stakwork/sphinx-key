@@ -6,8 +6,9 @@ use embedded_svc::http::client::Response;
 use embedded_svc::http::Status as HttpStatus;
 use embedded_svc::io::Read;
 use embedded_svc::ota::Ota;
-use esp_idf_svc::http::client::EspHttpClient;
-use esp_idf_svc::http::client::EspHttpClientConfiguration;
+
+use esp_idf_svc::http::client::Configuration as EspHttpClientConfiguration;
+use esp_idf_svc::http::client::EspHttpConnection;
 use esp_idf_svc::http::client::FollowRedirectsPolicy::FollowNone;
 use esp_idf_svc::ota::EspOta;
 use log::{error, info};
@@ -41,7 +42,7 @@ fn get_update(params: OtaParams, led_tx: mpsc::Sender<Status>) -> Result<()> {
         use_global_ca_store: true,
         crt_bundle_attach: None,
     };
-    let mut client = EspHttpClient::new(&configuration)?;
+    let mut client = EspHttpConnection::new(&configuration)?;
     let full_url = params_to_url(params);
     let mut response = client.get(&full_url)?.submit()?;
     let mut reader = response.reader();
@@ -91,7 +92,7 @@ pub fn validate_ota_message(params: OtaParams) -> Result<()> {
         use_global_ca_store: true,
         crt_bundle_attach: None,
     };
-    let mut client = EspHttpClient::new(&configuration)?;
+    let mut client = EspHttpConnection::new(&configuration)?;
     let full_url = params_to_url(params);
     info!("Pinging this url for an update: {}", full_url);
     let response = client.get(&full_url)?.submit()?;

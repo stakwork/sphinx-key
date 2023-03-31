@@ -5,12 +5,12 @@ use anyhow::Result;
 use embedded_svc::mqtt::client::utils::ConnState;
 use embedded_svc::mqtt::client::utils::Connection as MqttConnection;
 use embedded_svc::mqtt::client::{Connection, Event, Message as MqttMessage, MessageImpl, QoS};
-use esp_idf_hal::mutex::Condvar;
 use esp_idf_svc::mqtt::client::*;
 use esp_idf_sys::EspError;
 use esp_idf_sys::{self};
 use log::*;
 use std::sync::mpsc;
+use std::sync::Condvar;
 use std::thread;
 
 pub const QOS: QoS = QoS::ExactlyOnce;
