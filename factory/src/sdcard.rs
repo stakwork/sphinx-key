@@ -1,5 +1,5 @@
 use bitflags::bitflags;
-use esp_idf_sys::c_types::c_char;
+use core::ffi::c_char;
 use esp_idf_sys::{
     esp, esp_vfs_fat_sdmmc_mount_config_t, esp_vfs_fat_sdspi_mount, gpio_num_t, sdmmc_card_t,
     sdmmc_host_t, sdspi_device_config_t, spi_bus_config_t, spi_bus_initialize, spi_host_device_t,
