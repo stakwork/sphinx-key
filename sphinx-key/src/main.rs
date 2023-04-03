@@ -39,9 +39,9 @@ fn main() -> Result<()> {
     thread::sleep(Duration::from_secs(1));
 
     let peripherals = Peripherals::take().unwrap();
-    let pins = peripherals.pins;
+    let _pins = peripherals.pins;
 
-    let (led_tx, led_rx) = mpsc::channel();
+    let (led_tx, _led_rx) = mpsc::channel();
     // LED control thread
     // led_control_loop(pins.gpio0, peripherals.rmt.channel0, led_rx);
 
@@ -53,7 +53,9 @@ fn main() -> Result<()> {
     }
     println!("SD card mounted!");
 
-    let default_nvs = Arc::new(EspDefaultNvs::new("sphinx", "sphinx", true)?);
+    // let default_nav_partition = EspDefaultNvs.take().unwrap();
+    let default_nvs = EspDefaultNvsPartition::take()?;
+    // let default_nvs = Arc::new();
     let mut flash = FlashPersister::new(default_nvs.clone());
     if let Ok(exist) = flash.read_config() {
         let seed = flash.read_seed().expect("no seed...");
@@ -63,15 +65,16 @@ fn main() -> Result<()> {
             exist
         );
         led_tx.send(Status::ConnectingToWifi).unwrap();
-        let _wifi = loop {
-            if let Ok(wifi) = start_wifi_client(peripherals.modem, default_nvs.clone(), &exist) {
-                println!("Wifi connected!");
-                break wifi;
-            } else {
-                println!("Failed to connect to wifi. Make sure the details are correct, trying again in 5 seconds...");
-                thread::sleep(Duration::from_secs(5));
-            }
-        };
+        let wifi_ = start_wifi_client(peripherals.modem, default_nvs.clone(), &exist)?;
+        // let _wifi = loop {
+        //     if let Ok(wifi) = start_wifi_client(peripherals.modem, default_nvs.clone(), &exist) {
+        //         println!("Wifi connected!");
+        //         break wifi;
+        //     } else {
+        //         println!("Failed to connect to wifi. Make sure the details are correct, trying again in 5 seconds...");
+        //         thread::sleep(Duration::from_secs(5));
+        //     }
+        // };
 
         led_tx.send(Status::SyncingTime).unwrap();
         conn::sntp::sync_time();

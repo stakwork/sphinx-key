@@ -5,7 +5,8 @@ use serde::Deserialize;
 use std::sync::{Arc, Condvar, Mutex};
 
 // use embedded_svc::http::server::registry::Registry;
-use embedded_svc::http::server::*;
+// use embedded_svc::http::server::*;
+#[allow(deprecated)]
 use embedded_svc::httpd::registry::Registry;
 use embedded_svc::httpd::Result;
 
@@ -20,7 +21,7 @@ pub struct Params {
     pub config: String,
 }
 
-#[allow(unused_variables)]
+#[allow(unused_variables, deprecated)]
 pub fn config_server(
     mutex: Arc<(Mutex<Option<(Config, [u8; 32])>>, Condvar)>,
 ) -> Result<idf::Server> {

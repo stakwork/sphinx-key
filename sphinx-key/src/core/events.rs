@@ -15,8 +15,8 @@ use std::sync::Arc;
 use std::thread;
 
 use embedded_svc::httpd::Result;
-use embedded_svc::mqtt::client::Client;
-use embedded_svc::mqtt::client::{MessageImpl, Publish};
+// use embedded_svc::mqtt::client::Client;
+use embedded_svc::mqtt::client::MessageImpl;
 use embedded_svc::utils::mqtt::client::ConnState;
 use esp_idf_svc::mqtt::client::*;
 use esp_idf_sys;

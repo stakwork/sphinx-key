@@ -8,6 +8,14 @@ A Lightning Hardware Wallet based on [Validating Lightning Signer](https://gitla
 
 `cargo build --release`
 
+Find your port (`ls /dev/tty.*`)
+
+`PORT=/dev/tty.usbserial-1420`
+
+`espflash $PORT target/riscv32imc-esp-espidf/release/sphinx-key-factory`
+
+`esptool.py --chip esp32c3 elf2image target/riscv32imc-esp-espidf/release/sphinx-key-factory`
+
 ### build
 
 `cd ../sphinx-key`
@@ -24,10 +32,6 @@ The wifi SSID and password needs to be in env to build the firmware. SSID must b
 
 `esptool.py --chip esp32c3 elf2image target/riscv32imc-esp-espidf/release/sphinx-key`
 
-Find your port (`ls /dev/tty.*`)
-
-`PORT=/dev/tty.usbserial-1420`
-
 `esptool.py --chip esp32c3 -p $PORT -b 460800 --before=default_reset --after=hard_reset write_flash --flash_mode dio --flash_freq 40m --flash_size 4MB 0x10000 target/riscv32imc-esp-espidf/release/sphinx-key.bin`
 
 ### monitor
@@ -36,7 +40,7 @@ Find your port (`ls /dev/tty.*`)
 
 ### configure the hardware
 
-make a seed: `./newseed.sh` 
+make a seed: `./newseed.sh`
 
 make a `.env` file like:
 

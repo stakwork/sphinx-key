@@ -2,10 +2,10 @@ use crate::core::events::Event as CoreEvent;
 use sphinx_signer::sphinx_glyph::topics;
 
 use anyhow::Result;
-use embedded_svc::mqtt::client::utils::ConnState;
 use embedded_svc::mqtt::client::{Connection, Event, Message as MqttMessage, MessageImpl, QoS};
-use embedded_svc::utils::mqtt::client::Connection as MqttConnection;
-use embedded_svc::utils::mutex::Condvar;
+use embedded_svc::utils::mqtt::client::ConnState;
+// use embedded_svc::utils::mqtt::client::Connection as MqttConnection;
+// use embedded_svc::utils::mutex::Condvar;
 use esp_idf_svc::mqtt::client::*;
 use esp_idf_sys::EspError;
 use esp_idf_sys::{self};
@@ -35,7 +35,7 @@ pub fn make_client(
     };
 
     let b = format!("mqtt://{}", broker);
-    let (mut client, mut connection) = EspMqttClient::new_with_conn(b, &conf)?;
+    let (client, mut connection) = EspMqttClient::new_with_conn(b, &conf)?;
     // let cc = EspMqttClient::new_with_conn(b, &conf)?;
 
     info!("MQTT client started");
@@ -91,7 +91,7 @@ pub fn make_client(
         //info!("MQTT connection loop exit");
     });
 
-    Ok(cc)
+    Ok(client)
 }
 
 // pub fn start_listening(

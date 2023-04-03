@@ -1,13 +1,11 @@
 use crate::core::events::Status;
 use anyhow::{anyhow, Result};
 use embedded_svc::http::client::Client;
-use embedded_svc::http::client::Request;
-use embedded_svc::http::client::Response;
 use embedded_svc::http::Status as HttpStatus;
 use embedded_svc::io::Read;
-use embedded_svc::ota::Ota;
+// use embedded_svc::ota::Ota;
 
-use esp_idf_svc::http::client::Configuration as EspHttpClientConfiguration;
+use esp_idf_svc::http::client::Configuration;
 use esp_idf_svc::http::client::EspHttpConnection;
 use esp_idf_svc::http::client::FollowRedirectsPolicy::FollowNone;
 use esp_idf_svc::ota::EspOta;
@@ -35,17 +33,17 @@ fn factory_reset() -> Result<()> {
 }
 
 fn get_update(params: OtaParams, led_tx: mpsc::Sender<Status>) -> Result<()> {
-    let configuration = EspHttpClientConfiguration {
+    let configuration = Configuration {
         buffer_size: Some(BUFFER_LEN),
         buffer_size_tx: Some(BUFFER_LEN / 3),
         follow_redirects_policy: FollowNone,
         use_global_ca_store: true,
-        crt_bundle_attach: None,
+        ..Default::default()
     };
-    let mut client = EspHttpConnection::new(&configuration)?;
+    let mut client = Client::wrap(EspHttpConnection::new(&configuration)?);
     let full_url = params_to_url(params);
-    let mut response = client.get(&full_url)?.submit()?;
-    let mut reader = response.reader();
+    let mut reader = client.get(&full_url)?.submit()?;
+    // let mut reader = response.reader();
 
     let _ = remove_file(UPDATE_BIN_PATH);
     let file = File::create(UPDATE_BIN_PATH)?;
@@ -85,14 +83,14 @@ pub fn update_sphinx_key(params: OtaParams, led_tx: mpsc::Sender<Status>) -> Res
 }
 
 pub fn validate_ota_message(params: OtaParams) -> Result<()> {
-    let configuration = EspHttpClientConfiguration {
+    let configuration = Configuration {
         buffer_size: Some(BUFFER_LEN / 3),
         buffer_size_tx: Some(BUFFER_LEN / 3),
         follow_redirects_policy: FollowNone,
         use_global_ca_store: true,
-        crt_bundle_attach: None,
+        ..Default::default()
     };
-    let mut client = EspHttpConnection::new(&configuration)?;
+    let mut client = Client::wrap(EspHttpConnection::new(&configuration)?);
     let full_url = params_to_url(params);
     info!("Pinging this url for an update: {}", full_url);
     let response = client.get(&full_url)?.submit()?;

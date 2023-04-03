@@ -1,8 +1,8 @@
 use crate::core::events::Status;
-use embedded_hal::delay::blocking::DelayUs;
-use esp_idf_hal::delay::Ets;
+// use embedded_hal::delay::blocking::DelayUs;
+use esp_idf_hal::delay::FreeRtos;
 use esp_idf_hal::rmt::config::TransmitConfig;
-use esp_idf_hal::rmt::{FixedLengthSignal, PinState, Pulse, Transmit};
+use esp_idf_hal::rmt::{FixedLengthSignal, PinState, Pulse, TxRmtDriver};
 use esp_idf_hal::{gpio, rmt};
 use std::collections::BTreeMap;
 use std::sync::{mpsc, Arc, Mutex};
@@ -33,9 +33,11 @@ fn states() -> BTreeMap<Status, (Color, Time)> {
 }
 
 pub fn led_control_loop(gpio0: gpio::Gpio0, channel0: rmt::CHANNEL0, rx: mpsc::Receiver<Status>) {
-    let led = gpio0.into_output().unwrap();
+    let led = gpio0;
     let config = TransmitConfig::new().clock_divider(1);
-    let transmit = Arc::new(Mutex::new(Transmit::new(led, channel0, &config).unwrap()));
+    let transmit = Arc::new(Mutex::new(
+        TxRmtDriver::new(channel0, led, &config).unwrap(),
+    ));
     thread::spawn(move || {
         let mut led = Led::new(0x000001, 100);
         let states = states();
@@ -65,10 +67,7 @@ impl Led {
         self.blink_length = blink_length;
     }
 
-    pub fn blink(
-        &mut self,
-        transmit: Arc<Mutex<Transmit<gpio::Gpio0<gpio::Output>, rmt::CHANNEL0>>>,
-    ) {
+    pub fn blink(&mut self, transmit: Arc<Mutex<TxRmtDriver>>) {
         // Prepare signal
         let mut tx = transmit.lock().unwrap();
         let ticks_hz = tx.counter_clock().unwrap();
@@ -85,7 +84,7 @@ impl Led {
         }
         // Set high and wait
         tx.start_blocking(&signal).unwrap();
-        Ets.delay_ms(self.blink_length).unwrap();
+        FreeRtos::delay_ms(self.blink_length);
         // Set low
         let mut signal = FixedLengthSignal::<24>::new();
         for i in 0..24 {

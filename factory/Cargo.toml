@@ -8,11 +8,11 @@ edition = "2021"
 pio = ["esp-idf-sys/pio"]
 
 [dependencies]
-esp-idf-sys = { version = "0.31.8", features = ["binstart"] }
-esp-idf-svc = { version = "0.42.3", features = ["experimental", "alloc"] }
-esp-idf-hal = "0.38.1"
+esp-idf-sys = { version = "0.32.1", features = ["binstart"] }
+esp-idf-svc = { version = "0.45.0", features = ["experimental", "alloc"] }
+esp-idf-hal = "0.40.1"
+embedded-svc = "0.24.0"
 embedded-hal = "0.2.7"
-embedded-svc = "0.22.1"
 anyhow = { version = "1.0.65", features = ["backtrace"] }
 rand = "0.8.5"
 log = "0.4.17"

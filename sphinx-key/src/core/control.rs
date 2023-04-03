@@ -1,8 +1,6 @@
 use anyhow::{anyhow, Result};
 use embedded_svc::storage::RawStorage;
-use embedded_svc::storage::StorageBase;
-use esp_idf_svc::nvs::EspDefaultNvs;
-use esp_idf_svc::nvs::EspNvsStorage;
+use esp_idf_svc::nvs::{EspDefaultNvs, EspDefaultNvsPartition};
 use sphinx_signer::lightning_signer::bitcoin::Network;
 use sphinx_signer::sphinx_glyph::control::{Config, ControlPersist, Controller, FlashKey, Policy};
 use std::convert::TryInto;
@@ -18,11 +16,12 @@ pub fn controller_from_seed(
     Controller::new_with_persister(sk, pk, flash)
 }
 
-pub struct FlashPersister(pub EspNvsStorage);
+// EspDefaultNvsPartition
+pub struct FlashPersister(pub EspDefaultNvs);
 
 impl FlashPersister {
-    pub fn new(nvs: Arc<EspDefaultNvs>) -> Self {
-        let store = EspNvsStorage::new_default(nvs, "sphinx", true).expect("no storage");
+    pub fn new(nvs: EspDefaultNvsPartition) -> Self {
+        let store = EspDefaultNvs::new(nvs, "sphinx", true).expect("no storage");
         Self(store)
     }
 }
@@ -34,12 +33,12 @@ impl ControlPersist for FlashPersister {
         if let None = existing {
             return Err(anyhow!("no existing nonce"));
         }
-        let r: [u8; 8] = existing.unwrap().0.try_into()?;
+        let r: [u8; 8] = existing.unwrap().try_into()?;
         Ok(u64::from_be_bytes(r))
     }
     fn set_nonce(&mut self, nonce: u64) -> Result<()> {
         let n = nonce.to_be_bytes();
-        self.0.put_raw(FlashKey::Nonce.as_str(), &n[..])?;
+        self.0.set_raw(FlashKey::Nonce.as_str(), &n[..])?;
         Ok(())
     }
     fn read_config(&self) -> Result<Config> {
@@ -48,11 +47,11 @@ impl ControlPersist for FlashPersister {
         if let None = existing {
             return Err(anyhow!("no existing config"));
         }
-        Ok(rmp_serde::from_slice(existing.unwrap().0)?)
+        Ok(rmp_serde::from_slice(existing.unwrap())?)
     }
     fn write_config(&mut self, conf: Config) -> Result<()> {
         let conf1 = rmp_serde::to_vec(&conf)?;
-        self.0.put_raw(FlashKey::Config.as_str(), &conf1[..])?;
+        self.0.set_raw(FlashKey::Config.as_str(), &conf1[..])?;
         Ok(())
     }
     fn remove_config(&mut self) -> Result<()> {
@@ -65,11 +64,11 @@ impl ControlPersist for FlashPersister {
         if let None = s {
             return Err(anyhow!("no existing seed"));
         }
-        let r: [u8; 32] = s.unwrap().0.try_into()?;
+        let r: [u8; 32] = s.unwrap().try_into()?;
         Ok(r)
     }
     fn write_seed(&mut self, s: [u8; 32]) -> Result<()> {
-        self.0.put_raw(FlashKey::Seed.as_str(), &s[..])?;
+        self.0.set_raw(FlashKey::Seed.as_str(), &s[..])?;
         Ok(())
     }
     fn remove_seed(&mut self) -> Result<()> {
@@ -82,11 +81,11 @@ impl ControlPersist for FlashPersister {
         if let None = existing {
             return Err(anyhow!("no existing config"));
         }
-        Ok(rmp_serde::from_slice(existing.unwrap().0)?)
+        Ok(rmp_serde::from_slice(existing.unwrap())?)
     }
     fn write_policy(&mut self, pol: Policy) -> Result<()> {
         let pol1 = rmp_serde::to_vec(&pol)?;
-        self.0.put_raw(FlashKey::Policy.as_str(), &pol1[..])?;
+        self.0.set_raw(FlashKey::Policy.as_str(), &pol1[..])?;
         Ok(())
     }
     fn remove_policy(&mut self) -> Result<()> {
