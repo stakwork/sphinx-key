@@ -10,7 +10,7 @@ A Lightning Hardware Wallet based on [Validating Lightning Signer](https://gitla
 
 Find your port (`ls /dev/tty.*`)
 
-`PORT=/dev/tty.usbserial-1420`
+`PORT=/dev/tty.usbserial-1410`
 
 `espflash $PORT target/riscv32imc-esp-espidf/release/sphinx-key-factory`
 
