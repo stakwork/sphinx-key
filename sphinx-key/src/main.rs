@@ -164,6 +164,7 @@ fn make_and_launch_client(
         seed,
         policy,
         ctrlr,
+        CLIENT_ID,
     )?;
     Ok(())
 }

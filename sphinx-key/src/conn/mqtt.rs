@@ -69,15 +69,15 @@ pub fn make_client(
                         Event::Received(msg) => {
                             let topic_opt = msg.topic();
                             if let Some(topic) = topic_opt {
-                                match topic {
-                                    topics::VLS => tx
-                                        .send(CoreEvent::VlsMessage(msg.data().to_vec()))
-                                        .expect("couldnt send Event::VlsMessage"),
-                                    topics::CONTROL => tx
-                                        .send(CoreEvent::Control(msg.data().to_vec()))
-                                        .expect("couldnt send Event::Control"),
-                                    _ => log::warn!("unrecognized topic {}", topic),
-                                };
+                                if topic.ends_with(topics::VLS) {
+                                    tx.send(CoreEvent::VlsMessage(msg.data().to_vec()))
+                                        .expect("couldnt send Event::VlsMessage");
+                                } else if topic.ends_with(topics::CONTROL) {
+                                    tx.send(CoreEvent::Control(msg.data().to_vec()))
+                                        .expect("couldnt send Event::Control");
+                                } else {
+                                    log::warn!("unrecognized topic {}", topic);
+                                }
                             } else {
                                 log::warn!("empty topic in msg!!!");
                             }
