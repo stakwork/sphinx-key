@@ -1,5 +1,7 @@
 # sphinx-key
 
+![Glyph](https://pbs.twimg.com/media/FdWygDJVUAYk9rs?format=jpg&name=4096x4096)
+
 A Lightning Hardware Wallet based on [Validating Lightning Signer](https://gitlab.com/lightning-signer/validating-lightning-signer)
 
 ### build factory
@@ -10,7 +12,7 @@ A Lightning Hardware Wallet based on [Validating Lightning Signer](https://gitla
 
 Find your port (`ls /dev/tty.*`)
 
-`PORT=/dev/tty.usbserial-1410`
+`PORT=/dev/tty.usbserial-1420`
 
 `espflash $PORT target/riscv32imc-esp-espidf/release/sphinx-key-factory`
 
