@@ -30,7 +30,7 @@ pub fn make_client(
         username: Some(username),
         password: Some(password),
         // FIXME - mqtts
-        // crt_bundle_attach: Some(esp_idf_sys::esp_crt_bundle_attach),
+        crt_bundle_attach: Some(esp_idf_sys::esp_crt_bundle_attach),
         ..Default::default()
     };
 
