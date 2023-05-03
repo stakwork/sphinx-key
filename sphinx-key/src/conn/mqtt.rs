@@ -30,12 +30,21 @@ pub fn make_client(
         username: Some(username),
         password: Some(password),
         // FIXME - mqtts
-        // crt_bundle_attach: Some(esp_idf_sys::esp_crt_bundle_attach),
+        crt_bundle_attach: Some(esp_idf_sys::esp_crt_bundle_attach),
         ..Default::default()
     };
 
-    let b = format!("mqtt://{}", broker);
-    let (client, mut connection) = EspMqttClient::new_with_conn(b, &conf)?;
+    let mut mqtturl = broker.to_string();
+    if !(mqtturl.starts_with("mqtt://") || mqtturl.starts_with("mqtts://")) {
+        let scheme = if mqtturl.contains("8883") {
+            "mqtts"
+        } else {
+            "mqtt"
+        };
+        mqtturl = format!("{}://{}", scheme, mqtturl);
+    }
+    info!("=> connect to MQTT at {}", mqtturl);
+    let (client, mut connection) = EspMqttClient::new_with_conn(&mqtturl, &conf)?;
     // let cc = EspMqttClient::new_with_conn(b, &conf)?;
 
     info!("MQTT client started");
