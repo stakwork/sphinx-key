@@ -49,6 +49,8 @@ fn main() -> Result<()> {
     // BUTTON thread
     button_loop(pins.gpio8, led_tx.clone());
 
+    // thread::sleep(Duration::from_secs(100));
+
     led_tx.send(Status::MountingSDCard).unwrap();
     println!("About to mount the sdcard...");
     while let Err(_e) = mount_sd_card() {
