@@ -12,7 +12,7 @@ const PAUSE: u16 = 15;
 pub fn button_loop(gpio8: gpio::Gpio8, tx: mpsc::Sender<Status>) {
     thread::spawn(move || {
         let mut button = PinDriver::input(gpio8).unwrap();
-        button.set_pull(Pull::Down).unwrap();
+        button.set_pull(Pull::Up).unwrap();
         let mut high = false;
         let mut high_times = 0;
         let mut low_times = 0;
