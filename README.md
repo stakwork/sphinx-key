@@ -4,6 +4,8 @@
 
 A Lightning Hardware Wallet based on [Validating Lightning Signer](https://gitlab.com/lightning-signer/validating-lightning-signer)
 
+# build and flash firmware
+
 ### build factory
 
 `cd factory`
@@ -40,7 +42,7 @@ The wifi SSID and password needs to be in env to build the firmware. SSID must b
 
 `espmonitor $PORT`
 
-### configure the hardware
+### configure the hardware (or you can use your Sphinx app)
 
 make a seed: `./newseed.sh`
 
@@ -59,6 +61,8 @@ connect to the `sphinxkey` network on your computer
 `cargo run --bin config`
 
 This will encrypt your seed and send to the hardware, along with your home wifi information and broker address
+
+# other utils
 
 ### clear NVS storage
 
