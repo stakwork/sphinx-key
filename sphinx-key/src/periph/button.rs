@@ -28,20 +28,20 @@ pub fn button_loop(gpio8: gpio::Gpio8, tx: mpsc::Sender<Status>) {
                 if high {
                     high_times = high_times + 1;
                     if PAUSE * high_times > MILLIS {
-                        // stayed held down?
+                        // stayed not held down
                     }
                 }
             } else {
                 if high {
                     high = false;
                     log::info!("=> GPIO8 LOW!");
-                    tx.send(Status::Reset1).unwrap();
                     low_times = 0;
                 }
                 if !high {
                     low_times = low_times + 1;
                     if PAUSE * low_times > MILLIS {
-                        // stayed not held down?
+                        // stayed held down
+                        tx.send(Status::Reset1).unwrap();
                     }
                 }
             }
