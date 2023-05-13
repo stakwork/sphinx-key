@@ -41,6 +41,9 @@ pub enum Status {
     Connected,
     Signing,
     Ota,
+    Reset1,
+    Reset2,
+    Reset3,
 }
 
 pub const ROOT_STORE: &str = "/sdcard/store";

@@ -1,6 +1,4 @@
 use crate::core::events::Status;
-// use embedded_hal::delay::blocking::DelayUs;
-use esp_idf_hal::delay::FreeRtos;
 use esp_idf_hal::rmt::config::TransmitConfig;
 use esp_idf_hal::rmt::{FixedLengthSignal, PinState, Pulse, TxRmtDriver};
 use esp_idf_hal::{gpio, rmt};
@@ -84,7 +82,8 @@ impl Led {
         }
         // Set high and wait
         tx.start_blocking(&signal).unwrap();
-        FreeRtos::delay_ms(self.blink_length);
+        // FreeRtos::delay_ms(self.blink_length);
+        thread::sleep(Duration::from_millis(self.blink_length.into()));
         // Set low
         let mut signal = FixedLengthSignal::<24>::new();
         for i in 0..24 {

@@ -7,6 +7,7 @@ mod periph;
 use crate::core::control::{controller_from_seed, FlashPersister};
 use crate::core::{config::*, events::*};
 // use crate::periph::led::led_control_loop;
+use crate::periph::button::button_loop;
 #[allow(unused_imports)]
 use crate::periph::sd::{mount_sd_card, simple_fs_test};
 
@@ -39,11 +40,16 @@ fn main() -> Result<()> {
     thread::sleep(Duration::from_secs(1));
 
     let peripherals = Peripherals::take().unwrap();
-    let _pins = peripherals.pins;
+    let pins = peripherals.pins;
 
     let (led_tx, _led_rx) = mpsc::channel();
     // LED control thread
     // led_control_loop(pins.gpio0, peripherals.rmt.channel0, led_rx);
+
+    // BUTTON thread
+    // button_loop(pins.gpio8, led_tx.clone());
+
+    // thread::sleep(Duration::from_secs(100));
 
     led_tx.send(Status::MountingSDCard).unwrap();
     println!("About to mount the sdcard...");
