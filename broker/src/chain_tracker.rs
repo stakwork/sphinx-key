@@ -21,6 +21,10 @@ impl SignerPort for MqttSignerPort {
             sender: self.sender.clone(),
         })
     }
+
+    fn is_ready(&self) -> bool {
+        true
+    }
 }
 
 impl MqttSignerPort {
