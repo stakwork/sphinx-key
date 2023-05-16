@@ -37,6 +37,7 @@
 ##### broker
 
 - store the muts using the LssClient (client.put(muts, &client_hmac))
+- init the Unix Fd connection finally, so the hsmd_init message comes
 
 ### VLS
 
