@@ -3021,7 +3021,7 @@ dependencies = [
 [[package]]
 name = "sphinx-auther"
 version = "0.1.12"
-source = "git+https://github.com/stakwork/sphinx-rs#82712f0be41eb460827e8db8e136a482cd595cff"
+source = "git+https://github.com/stakwork/sphinx-rs#763533b57dd72d18bec13c54760090c7cf302f43"
 dependencies = [
  "anyhow",
  "base64",
@@ -3033,7 +3033,7 @@ dependencies = [
 [[package]]
 name = "sphinx-glyph"
 version = "0.1.2"
-source = "git+https://github.com/stakwork/sphinx-rs#82712f0be41eb460827e8db8e136a482cd595cff"
+source = "git+https://github.com/stakwork/sphinx-rs#763533b57dd72d18bec13c54760090c7cf302f43"
 dependencies = [
  "anyhow",
  "hex",
@@ -3078,7 +3078,7 @@ dependencies = [
 [[package]]
 name = "sphinx-signer"
 version = "0.1.0"
-source = "git+https://github.com/stakwork/sphinx-rs#82712f0be41eb460827e8db8e136a482cd595cff"
+source = "git+https://github.com/stakwork/sphinx-rs#763533b57dd72d18bec13c54760090c7cf302f43"
 dependencies = [
  "anyhow",
  "bip39",

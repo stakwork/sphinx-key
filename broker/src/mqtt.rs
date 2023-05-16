@@ -143,6 +143,9 @@ pub fn start_broker(
                         let topic = topic_res.unwrap();
                         if topic.ends_with(topics::ERROR) {
                             let _ = error_sender.send(f.publish.payload.to_vec());
+                        } else if topics.ends_with(topics::LSS_PUB) {
+                            // send to LSS client here
+                            // get the hmac back, pub to the device
                         } else {
                             let ts: Vec<&str> = topic.split("/").collect();
                             if ts.len() != 2 {
@@ -175,6 +178,8 @@ fn subs(cid: &str, mut ltx: LinkTx) {
     ltx.subscribe(format!("{}/{}", cid, topics::CONTROL_RETURN))
         .unwrap();
     ltx.subscribe(format!("{}/{}", cid, topics::ERROR)).unwrap();
+    ltx.subscribe(format!("{}/{}", cid, topics::LSS_PUB))
+        .unwrap();
 }
 
 fn unsubs(cid: &str, mut ltx: LinkTx) {
