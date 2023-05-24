@@ -1,6 +1,6 @@
+use crate::conn::Connections;
+use crate::conn::{ChannelReply, ChannelRequest};
 use crate::util::Settings;
-use crate::Connections;
-use crate::{ChannelReply, ChannelRequest};
 use rocket::tokio::{sync::broadcast, sync::mpsc};
 use rumqttd::{local::LinkTx, Alert, AlertEvent, AuthMsg, Broker, Config, Notification};
 use sphinx_signer::sphinx_glyph::sphinx_auther::token::Token;
@@ -76,6 +76,7 @@ pub fn start_broker(
 
     // String is the client id
     let (msg_tx, msg_rx) = std::sync::mpsc::channel::<(String, Vec<u8>)>();
+    let (lss_tx, lss_rx) = std::sync::mpsc::channel::<Vec<u8>>();
 
     // receive from CLN, Frontend, or Controller
     let conns_ = connections.clone();
@@ -143,9 +144,12 @@ pub fn start_broker(
                         let topic = topic_res.unwrap();
                         if topic.ends_with(topics::ERROR) {
                             let _ = error_sender.send(f.publish.payload.to_vec());
-                        } else if topics.ends_with(topics::LSS_PUB) {
+                        } else if topic.ends_with(topics::LSS_PUB) {
                             // send to LSS client here
                             // get the hmac back, pub to the device
+                            if let Err(e) = lss_tx.send(f.publish.payload.to_vec()) {
+                                log::error!("failed to pub to lss_tx! {:?}", e);
+                            }
                         } else {
                             let ts: Vec<&str> = topic.split("/").collect();
                             if ts.len() != 2 {

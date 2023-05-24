@@ -1,4 +1,4 @@
-use crate::{ChannelReply, ChannelRequest};
+use crate::conn::{ChannelReply, ChannelRequest};
 use async_trait::async_trait;
 use rocket::tokio::sync::{mpsc, oneshot};
 use sphinx_signer::sphinx_glyph::topics;

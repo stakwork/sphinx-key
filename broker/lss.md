@@ -50,10 +50,11 @@
 ##### broker
 
 - client.put(muts, &client_hmac).await?
-- send some kind of confirmation back to signer
+- server hmac sent back to signer
 
 ##### signer
 
+- verify server hmac
 - finally, send the VLS reply back to broker
 
 ##### broker

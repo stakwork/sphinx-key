@@ -1,5 +1,5 @@
+use crate::conn::{Channel, ChannelReply, ChannelRequest};
 use crate::util::Settings;
-use crate::{Channel, ChannelReply, ChannelRequest};
 use bitcoin::blockdata::constants::ChainHash;
 use log::*;
 use rocket::tokio::sync::{mpsc, oneshot};

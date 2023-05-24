@@ -1,6 +1,6 @@
 use crate::util::Settings;
-use crate::ChannelRequest;
-use crate::Connections;
+use crate::conn::ChannelRequest;
+use crate::conn::Connections;
 use rocket::fairing::{Fairing, Info, Kind};
 use rocket::http::Header;
 use rocket::response::stream::{Event, EventStream};
