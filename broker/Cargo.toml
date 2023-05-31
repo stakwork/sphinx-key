@@ -9,8 +9,8 @@ strip = "debuginfo"
 
 [dependencies]
 sphinx-signer = { git = "https://github.com/stakwork/sphinx-rs" }
-lss-connector = { git = "https://github.com/stakwork/sphinx-rs" }
-# lss-connector = { path = "../../sphinx-rs/lss-connector" }
+# lss-connector = { git = "https://github.com/stakwork/sphinx-rs" }
+lss-connector = { path = "../../sphinx-rs/lss-connector" }
 # sphinx-key-parser = { path = "../parser" }
 vls-protocol = { git = "https://gitlab.com/lightning-signer/validating-lightning-signer.git", rev = "e13c8cd994b310f598c0b2902741d89ad5472382" }
 vls-proxy = { git = "https://gitlab.com/lightning-signer/validating-lightning-signer.git", rev = "e13c8cd994b310f598c0b2902741d89ad5472382" }

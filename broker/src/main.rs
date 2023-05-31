@@ -4,15 +4,16 @@ mod error_log;
 mod mqtt;
 mod routes;
 mod run_test;
-mod unix_fd;
+mod looper;
 mod util;
 mod conn;
 
-use crate::conn::{Connections, ChannelRequest};
+use crate::conn::{Connections, ChannelRequest, LssReq};
 use crate::chain_tracker::MqttSignerPort;
 use crate::mqtt::{check_auth, start_broker};
-use crate::unix_fd::SignerLoop;
+use crate::looper::SignerLoop;
 use crate::util::{read_broker_config, Settings};
+use anyhow::Result;
 use clap::{arg, App};
 use rocket::tokio::{
     self,
@@ -27,7 +28,9 @@ use vls_proxy::client::UnixClient;
 use vls_proxy::connection::{open_parent_fd, UnixConnection};
 use vls_proxy::portfront::SignerPortFront;
 use vls_proxy::util::{add_hsmd_args, handle_hsmd_version};
-use lss_connector::LssBroker;
+use lss_connector::{LssBroker, Response, lss_handle};
+use sphinx_signer::sphinx_glyph::topics;
+
 
 #[rocket::launch]
 async fn rocket() -> _ {
@@ -73,7 +76,19 @@ async fn run_main(parent_fd: i32) -> rocket::Rocket<rocket::Build> {
     let (error_tx, error_rx) = broadcast::channel(10000);
     error_log::log_errors(error_rx);
 
+    // waits until first connection
     let conns = broker_setup(settings, mqtt_rx, error_tx.clone()).await;
+
+    let (lss_tx, lss_rx) = mpsc::channel(10000);
+    let _lss_broker = if let Ok(lss_uri) = env::var("VLS_LSS") {
+        // waits until LSS confirmation from signer
+        let lss_broker = lss_setup(&lss_uri, lss_rx, mqtt_tx.clone()).await.unwrap();
+        log::info!("=> lss broker connection created!");
+        Some(lss_broker)
+    } else {
+        log::warn!("running without LSS");
+        None
+    };
 
     if let Ok(btc_url) = env::var("BITCOIND_RPC_URL") {
         let signer_port = Box::new(MqttSignerPort::new(mqtt_tx.clone()));
@@ -90,15 +105,48 @@ async fn run_main(parent_fd: i32) -> rocket::Rocket<rocket::Build> {
     } else {
         log::warn!("Running without a frontend")
     }
+
+    // test sleep FIXME
+    // tokio::time::sleep(std::time::Duration::from_secs(10)).await;
+
     let cln_client = UnixClient::new(UnixConnection::new(parent_fd));
     // TODO pass status_rx into SignerLoop?
-    let mut signer_loop = SignerLoop::new(cln_client, mqtt_tx.clone());
+    let mut signer_loop = SignerLoop::new(cln_client, lss_tx.clone(), mqtt_tx.clone());
     // spawn CLN listener
     std::thread::spawn(move || {
         signer_loop.start(Some(settings));
     });
 
     routes::launch_rocket(mqtt_tx, error_tx, settings, conns)
+}
+
+pub async fn lss_setup(uri: &str, mut lss_rx: mpsc::Receiver<LssReq>, mqtt_tx: mpsc::Sender<ChannelRequest>) -> Result<LssBroker> {
+    
+    // LSS required
+    let (spk, msg_bytes) = LssBroker::get_server_pubkey(uri).await?;
+    let (req1, reply_rx) = ChannelRequest::new(topics::LSS_MSG, msg_bytes);
+    let _ = mqtt_tx.send(req1).await;
+    let first_lss_response = reply_rx.await?;
+
+    let ir = Response::from_slice(&first_lss_response.reply)?.as_init()?;
+
+    let (lss_conn, msg_bytes2) = LssBroker::new(uri, ir, spk).await?;
+    let (req2, reply_rx2) = ChannelRequest::new(topics::LSS_MSG, msg_bytes2);
+    let _ = mqtt_tx.send(req2).await;
+    let created_res = reply_rx2.await?;
+    let cr = Response::from_slice(&created_res.reply)?.as_created()?;
+
+    lss_conn.handle(Response::Created(cr)).await?;
+
+    let persister = lss_conn.persister();
+    tokio::task::spawn(async move{
+        while let Some(req) = lss_rx.recv().await {
+            let msg = lss_handle(&persister, &req.message).await.unwrap();
+            let _ = req.reply_tx.send(msg);
+        }
+    });
+
+    Ok(lss_conn)
 }
 
 // blocks until a connection received
@@ -123,14 +171,6 @@ pub async fn broker_setup(
         }
     });
     
-    // LSS
-    let lss_client = if let Ok(uri) = env::var("VLS_LSS") {
-        let lss_conn = LssBroker::new(uri.clone()).await.unwrap();
-        Some(lss_conn)
-    } else {
-        None
-    };
-
     // broker
     log::info!("=> start broker on network: {}", settings.network);
     start_broker(

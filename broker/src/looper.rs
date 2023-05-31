@@ -1,8 +1,8 @@
-use crate::conn::{Channel, ChannelReply, ChannelRequest};
+use crate::conn::{Channel, ChannelRequest, LssReq};
 use crate::util::Settings;
 use bitcoin::blockdata::constants::ChainHash;
 use log::*;
-use rocket::tokio::sync::{mpsc, oneshot};
+use rocket::tokio::sync::mpsc;
 use secp256k1::PublicKey;
 use sphinx_signer::{parser, sphinx_glyph::topics};
 use std::thread;
@@ -31,23 +31,30 @@ pub struct SignerLoop<C: 'static + Client> {
     log_prefix: String,
     chan: Channel,
     client_id: Option<ClientId>,
+    lss_tx: mpsc::Sender<LssReq>,
 }
 
 impl<C: 'static + Client> SignerLoop<C> {
     /// Create a loop for the root (lightningd) connection, but doesn't start it yet
-    pub fn new(client: C, sender: mpsc::Sender<ChannelRequest>) -> Self {
+    pub fn new(
+        client: C,
+        lss_tx: mpsc::Sender<LssReq>,
+        sender: mpsc::Sender<ChannelRequest>,
+    ) -> Self {
         let log_prefix = format!("{}/{}", std::process::id(), client.id());
         Self {
             client,
             log_prefix,
             chan: Channel::new(sender),
             client_id: None,
+            lss_tx,
         }
     }
 
     // Create a loop for a non-root connection
     fn new_for_client(
         client: C,
+        lss_tx: mpsc::Sender<LssReq>,
         sender: mpsc::Sender<ChannelRequest>,
         client_id: ClientId,
     ) -> Self {
@@ -57,6 +64,7 @@ impl<C: 'static + Client> SignerLoop<C> {
             log_prefix,
             chan: Channel::new(sender),
             client_id: Some(client_id),
+            lss_tx,
         }
     }
 
@@ -86,8 +94,12 @@ impl<C: 'static + Client> SignerLoop<C> {
                         peer_id,
                         dbid: m.dbid,
                     };
-                    let mut new_loop =
-                        SignerLoop::new_for_client(new_client, self.chan.sender.clone(), client_id);
+                    let mut new_loop = SignerLoop::new_for_client(
+                        new_client,
+                        self.lss_tx.clone(),
+                        self.chan.sender.clone(),
+                        client_id,
+                    );
                     thread::spawn(move || new_loop.start(None));
                 }
                 Message::Memleak(_) => {
@@ -110,9 +122,8 @@ impl<C: 'static + Client> SignerLoop<C> {
                         }
                     }
                     let reply = self.handle_message(raw_msg, catch_init)?;
-                    // Write the reply to the node
+                    // Write the reply to CLN
                     self.client.write_vec(reply)?;
-                    // info!("replied {}", self.log_prefix);
                 }
             }
         }
@@ -126,10 +137,18 @@ impl<C: 'static + Client> SignerLoop<C> {
             .map(|c| c.peer_id.serialize())
             .unwrap_or([0u8; 33]);
         let md = parser::raw_request_from_bytes(message, self.chan.sequence, peer_id, dbid)?;
-        // send to glyph
-        let reply_rx = self.send_request(md)?;
-        let res = self.get_reply(reply_rx)?;
-        let reply = parser::raw_response_from_bytes(res, self.chan.sequence)?;
+        // send to signer
+        log::info!("SEND ON {}", topics::VLS);
+        let (_res_topic, res) = self.send_request_and_get_reply(topics::VLS, md)?;
+        // send reply to LSS to store muts
+        log::info!("GOT ON {}", _res_topic);
+        let lss_reply = self.send_lss_and_get_reply(res)?;
+        // send to signer for HMAC validation, and get final reply
+        log::info!("SEND ON {}", topics::LSS_MSG);
+        let (_res_topic, res2) = self.send_request_and_get_reply(topics::LSS_MSG, lss_reply)?;
+        // create reply for CLN
+        log::info!("GOT ON {}, send to CLN", _res_topic);
+        let reply = parser::raw_response_from_bytes(res2, self.chan.sequence)?;
         // add to the sequence
         self.chan.sequence = self.chan.sequence.wrapping_add(1);
         // catch the pubkey if its the first one connection
@@ -154,21 +173,31 @@ impl<C: 'static + Client> SignerLoop<C> {
         Ok(())
     }
 
-    fn send_request(&mut self, message: Vec<u8>) -> Result<oneshot::Receiver<ChannelReply>> {
+    // returns (topic, payload)
+    // might halt if signer is offline
+    fn send_request_and_get_reply(
+        &mut self,
+        topic: &str,
+        message: Vec<u8>,
+    ) -> Result<(String, Vec<u8>)> {
         // Send a request to the MQTT handler to send to signer
-        let (request, reply_rx) = ChannelRequest::new(topics::VLS, message);
+        let (request, reply_rx) = ChannelRequest::new(topic, message);
         // This can fail if MQTT shuts down
         self.chan
             .sender
             .blocking_send(request)
             .map_err(|_| Error::Eof)?;
-        Ok(reply_rx)
+        let reply = reply_rx.blocking_recv().map_err(|_| Error::Eof)?;
+
+        Ok((reply.topic, reply.reply))
     }
 
-    fn get_reply(&mut self, reply_rx: oneshot::Receiver<ChannelReply>) -> Result<Vec<u8>> {
-        // Wait for the signer reply
-        // Can fail if MQTT shuts down
-        let reply = reply_rx.blocking_recv().map_err(|_| Error::Eof)?;
-        Ok(reply.reply)
+    fn send_lss_and_get_reply(&mut self, message: Vec<u8>) -> Result<Vec<u8>> {
+        // Send a request to the MQTT handler to send to signer
+        let (request, reply_rx) = LssReq::new(message);
+        // This can fail if MQTT shuts down
+        self.lss_tx.blocking_send(request).map_err(|_| Error::Eof)?;
+        let res = reply_rx.blocking_recv().map_err(|_| Error::Eof)?;
+        Ok(res)
     }
 }

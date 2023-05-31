@@ -21,6 +21,7 @@
 
 - create Auth
 - LssClient::new
+- get ALL muts from cloud
 - let (muts, server_hmac) = client.get("".to_string(), &nonce)
 - send the muts and server_hmac to signer
 
@@ -37,7 +38,12 @@
 ##### broker
 
 - store the muts using the LssClient (client.put(muts, &client_hmac))
+- send server_hmac back to signer???
 - init the Unix Fd connection finally, so the hsmd_init message comes
+
+##### signer
+
+- need to verify server hmac here???
 
 ### VLS
 

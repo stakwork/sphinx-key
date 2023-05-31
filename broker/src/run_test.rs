@@ -17,6 +17,7 @@ pub async fn run_test() -> rocket::Rocket<rocket::Build> {
     let settings = Settings::default();
     let (mqtt_tx, mqtt_rx) = mpsc::channel(10000);
     let (error_tx, error_rx) = broadcast::channel(10000);
+
     crate::error_log::log_errors(error_rx);
 
     // block until connection

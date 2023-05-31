@@ -80,5 +80,21 @@ impl ChannelRequest {
 // mpsc reply
 #[derive(Debug)]
 pub struct ChannelReply {
+    // the return topic
+    pub topic: String,
     pub reply: Vec<u8>,
+}
+
+/// Responses are received on the oneshot sender
+#[derive(Debug)]
+pub struct LssReq {
+    pub message: Vec<u8>,
+    pub reply_tx: oneshot::Sender<Vec<u8>>,
+}
+impl LssReq {
+    pub fn new(message: Vec<u8>) -> (Self, oneshot::Receiver<Vec<u8>>) {
+        let (reply_tx, reply_rx) = oneshot::channel();
+        let cr = Self { message, reply_tx };
+        (cr, reply_rx)
+    }
 }

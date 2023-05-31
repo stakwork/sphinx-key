@@ -105,8 +105,9 @@ async fn run_main(
     let seed32: [u8; 32] = seed.try_into().expect("wrong seed");
     let persister: Arc<dyn Persist> = Arc::new(FsPersister::new(&store_path, None));
     let policy = types::Policy::default();
-    let root_handler = sphinx_signer::root::init(seed32, network, &policy, persister)
+    let handler_builder = sphinx_signer::root::builder(seed32, network, &policy, persister)
         .expect("Could not initialize root_handler");
+    let (root_handler, _muts) = handler_builder.build();
     // the actual handler loop
     loop {
         match eventloop.poll().await {
