@@ -82,7 +82,13 @@ async fn run_main(parent_fd: i32) -> rocket::Rocket<rocket::Build> {
     let (lss_tx, lss_rx) = mpsc::channel(10000);
     let _lss_broker = if let Ok(lss_uri) = env::var("VLS_LSS") {
         // waits until LSS confirmation from signer
-        let lss_broker = lss_setup(&lss_uri, lss_rx, mqtt_tx.clone()).await.unwrap();
+        let lss_broker = match lss_setup(&lss_uri, lss_rx, mqtt_tx.clone()).await{
+            Ok(l) => l,
+            Err(e) => {
+                let _ = error_tx.send(e.to_string().as_bytes().to_vec());
+                panic!("{:?}", e);
+            }
+        };
         log::info!("=> lss broker connection created!");
         Some(lss_broker)
     } else {
@@ -141,8 +147,14 @@ pub async fn lss_setup(uri: &str, mut lss_rx: mpsc::Receiver<LssReq>, mqtt_tx: m
     let persister = lss_conn.persister();
     tokio::task::spawn(async move{
         while let Some(req) = lss_rx.recv().await {
-            let msg = lss_handle(&persister, &req.message).await.unwrap();
-            let _ = req.reply_tx.send(msg);
+            match lss_handle(&persister, &req.message).await {
+                Ok(msg) => {
+                    let _ = req.reply_tx.send(msg);
+                }, 
+                Err(e) => {
+                    log::error!("failed lss_handle {:?}", e);
+                }
+            }
         }
     });
 
