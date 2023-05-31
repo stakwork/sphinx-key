@@ -1713,7 +1713,7 @@ dependencies = [
 [[package]]
 name = "lss-connector"
 version = "0.1.0"
-source = "git+https://github.com/stakwork/sphinx-rs#2f25ab4dcb70c1372dce866d028158c7a346e679"
+source = "git+https://github.com/stakwork/sphinx-rs#7242f58f734281111c1d3597cc4d47e9a26b6499"
 dependencies = [
  "anyhow",
  "lightning-storage-server",
@@ -3173,7 +3173,7 @@ dependencies = [
 [[package]]
 name = "sphinx-auther"
 version = "0.1.12"
-source = "git+https://github.com/stakwork/sphinx-rs#2f25ab4dcb70c1372dce866d028158c7a346e679"
+source = "git+https://github.com/stakwork/sphinx-rs#7242f58f734281111c1d3597cc4d47e9a26b6499"
 dependencies = [
  "anyhow",
  "base64 0.13.1",
@@ -3185,7 +3185,7 @@ dependencies = [
 [[package]]
 name = "sphinx-glyph"
 version = "0.1.2"
-source = "git+https://github.com/stakwork/sphinx-rs#2f25ab4dcb70c1372dce866d028158c7a346e679"
+source = "git+https://github.com/stakwork/sphinx-rs#7242f58f734281111c1d3597cc4d47e9a26b6499"
 dependencies = [
  "anyhow",
  "hex",
@@ -3231,7 +3231,7 @@ dependencies = [
 [[package]]
 name = "sphinx-signer"
 version = "0.1.0"
-source = "git+https://github.com/stakwork/sphinx-rs#2f25ab4dcb70c1372dce866d028158c7a346e679"
+source = "git+https://github.com/stakwork/sphinx-rs#7242f58f734281111c1d3597cc4d47e9a26b6499"
 dependencies = [
  "anyhow",
  "bip39",

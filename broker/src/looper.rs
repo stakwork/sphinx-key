@@ -143,6 +143,7 @@ impl<C: 'static + Client> SignerLoop<C> {
         // send reply to LSS to store muts
         log::info!("GOT ON {}", _res_topic);
         let lss_reply = self.send_lss_and_get_reply(res)?;
+        log::info!("LSS REPLY LEN {}", &lss_reply.len());
         // send to signer for HMAC validation, and get final reply
         log::info!("SEND ON {}", topics::LSS_MSG);
         let (_res_topic, res2) = self.send_request_and_get_reply(topics::LSS_MSG, lss_reply)?;

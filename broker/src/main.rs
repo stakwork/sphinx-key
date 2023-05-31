@@ -149,6 +149,7 @@ pub async fn lss_setup(uri: &str, mut lss_rx: mpsc::Receiver<LssReq>, mqtt_tx: m
         while let Some(req) = lss_rx.recv().await {
             match lss_handle(&persister, &req.message).await {
                 Ok(msg) => {
+                    log::info!("payload to send {:?}", &msg);
                     let _ = req.reply_tx.send(msg);
                 }, 
                 Err(e) => {
