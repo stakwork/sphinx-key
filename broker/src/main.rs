@@ -115,7 +115,7 @@ async fn run_main(parent_fd: i32) -> rocket::Rocket<rocket::Build> {
     }
 
     // test sleep FIXME
-    // tokio::time::sleep(std::time::Duration::from_secs(10)).await;
+    tokio::time::sleep(std::time::Duration::from_secs(1)).await;
 
     let cln_client = UnixClient::new(UnixConnection::new(parent_fd));
     // TODO pass status_rx into SignerLoop?
