@@ -33,7 +33,6 @@ pub fn lss_tasks(lss_conn: LssBroker, mut lss_rx: mpsc::Receiver<LssReq>, mut re
         while let Some(req) = lss_rx.recv().await {
             match lss_conn_.handle_bytes(&req.message).await {
                 Ok(msg) => {
-                    log::info!("payload to send {:?}", &msg);
                     let _ = req.reply_tx.send(msg);
                 }, 
                 Err(e) => {
