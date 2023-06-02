@@ -14,7 +14,10 @@ pub async fn lss_setup(uri: &str, mqtt_tx: mpsc::Sender<ChannelRequest>) -> Resu
     let reply = ChannelRequest::send(topics::LSS_MSG, msg_bytes, &mqtt_tx).await?;
     let ir = Response::from_slice(&reply)?.as_init()?;
 
-    let (lss_conn, msg_bytes2) = LssBroker::new(uri, ir, spk).await?;
+    let lss_conn = LssBroker::new(uri, ir.clone(), spk).await?;
+    // this only returns the initial state if it was requested by signer
+    let msg_bytes2 = lss_conn.get_created_state_msg(&ir).await?;
+
     let reply2 = ChannelRequest::send(topics::LSS_MSG, msg_bytes2, &mqtt_tx).await?;
     let cr = Response::from_slice(&reply2)?.as_created()?;
 
@@ -58,7 +61,8 @@ pub fn lss_tasks(lss_conn: LssBroker, mut lss_rx: mpsc::Receiver<LssReq>, mut re
 async fn reconnect_dance(cid: &str, lss_conn: &LssBroker, mqtt_tx: &mpsc::Sender<ChannelRequest>) -> Result<()> {
     let init_bytes = lss_conn.make_init_msg().await?;
     let reply = ChannelRequest::send_for(cid, topics::LSS_MSG, init_bytes, mqtt_tx).await?;
-    let state_bytes = lss_conn.get_initial_state_msg(&reply).await?;
+    let ir = Response::from_slice(&reply)?.as_init()?;
+    let state_bytes = lss_conn.get_created_state_msg(&ir).await?;
     let reply2 = ChannelRequest::send_for(cid, topics::LSS_MSG, state_bytes, mqtt_tx).await?;
     let cr = Response::from_slice(&reply2)?.as_created()?;
     lss_conn.handle(Response::Created(cr)).await?;
