@@ -1,5 +1,6 @@
 use rocket::tokio::sync::{mpsc, oneshot};
 use serde::{Deserialize, Serialize};
+use anyhow::Result;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Connections {
@@ -62,6 +63,30 @@ impl ChannelRequest {
             cid: None,
         };
         (cr, reply_rx)
+    }
+    pub async fn send(topic: &str, message: Vec<u8>, sender: &mpsc::Sender<ChannelRequest>) -> Result<Vec<u8>> {
+        let (reply_tx, reply_rx) = oneshot::channel();
+        let req = ChannelRequest {
+            topic: topic.to_string(),
+            message,
+            reply_tx,
+            cid: None,
+        };
+        let _ = sender.send(req).await;
+        let reply = reply_rx.await?;
+        Ok(reply.reply)
+    }
+    pub async fn send_for(cid: &str, topic: &str, message: Vec<u8>, sender: &mpsc::Sender<ChannelRequest>) -> Result<Vec<u8>> {
+        let (reply_tx, reply_rx) = oneshot::channel();
+        let req = ChannelRequest {
+            topic: topic.to_string(),
+            message,
+            reply_tx,
+            cid: Some(cid.to_string()),
+        };
+        let _ = sender.send(req).await;
+        let reply = reply_rx.await?;
+        Ok(reply.reply)
     }
     pub fn for_cid(&mut self, cid: &str) {
         self.cid = Some(cid.to_string())
