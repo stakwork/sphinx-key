@@ -105,8 +105,8 @@ impl ChannelRequest {
 // mpsc reply
 #[derive(Debug)]
 pub struct ChannelReply {
-    // the return topic
-    pub topic: String,
+    // the return topic end part (after last "/")
+    pub topic_end: String,
     pub reply: Vec<u8>,
 }
 

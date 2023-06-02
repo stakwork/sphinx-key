@@ -160,17 +160,24 @@ impl<C: 'static + Client> SignerLoop<C> {
         let md = parser::raw_request_from_bytes(message, self.chan.sequence, peer_id, dbid)?;
         // send to signer
         log::info!("SEND ON {}", topics::VLS);
-        let (_res_topic, res) = self.send_request_and_get_reply(topics::VLS, md)?;
-        // send reply to LSS to store muts
-        log::info!("GOT ON {}", _res_topic);
-        let lss_reply = self.send_lss_and_get_reply(res)?;
-        log::info!("LSS REPLY LEN {}", &lss_reply.len());
-        // send to signer for HMAC validation, and get final reply
-        log::info!("SEND ON {}", topics::LSS_MSG);
-        let (_res_topic, res2) = self.send_request_and_get_reply(topics::LSS_MSG, lss_reply)?;
-        // create reply for CLN
-        log::info!("GOT ON {}, send to CLN", _res_topic);
-        let reply = parser::raw_response_from_bytes(res2, self.chan.sequence)?;
+        let (res_topic, res) = self.send_request_and_get_reply(topics::VLS, md)?;
+        log::info!("GOT ON {}", res_topic);
+        let mut the_res = res.clone();
+        if res_topic == topics::LSS_RES {
+            // send reply to LSS to store muts
+            let lss_reply = self.send_lss_and_get_reply(res)?;
+            log::info!("LSS REPLY LEN {}", &lss_reply.len());
+            // send to signer for HMAC validation, and get final reply
+            log::info!("SEND ON {}", topics::LSS_MSG);
+            let (res_topic2, res2) = self.send_request_and_get_reply(topics::LSS_MSG, lss_reply)?;
+            log::info!("GOT ON {}, send to CLN", res_topic2);
+            if res_topic2 != topics::VLS_RETURN {
+                log::warn!("got a topic NOT on {}", topics::VLS_RETURN);
+            }
+            the_res = res2;
+        }
+        // create reply bytes for CLN
+        let reply = parser::raw_response_from_bytes(the_res, self.chan.sequence)?;
         // add to the sequence
         self.chan.sequence = self.chan.sequence.wrapping_add(1);
         // catch the pubkey if its the first one connection
@@ -213,7 +220,7 @@ impl<C: 'static + Client> SignerLoop<C> {
             .map_err(|_| Error::Eof)?;
         let reply = reply_rx.blocking_recv().map_err(|_| Error::Eof)?;
 
-        Ok((reply.topic, reply.reply))
+        Ok((reply.topic_end, reply.reply))
     }
 
     fn send_lss_and_get_reply(&mut self, message: Vec<u8>) -> Result<Vec<u8>> {
