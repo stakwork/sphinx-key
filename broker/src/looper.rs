@@ -140,17 +140,15 @@ impl<C: 'static + Client> SignerLoop<C> {
     }
 
     fn handle_message(&mut self, message: Vec<u8>, catch_init: bool) -> Result<Vec<u8>> {
-        // let l = self.lock.lock().unwrap();
+        // wait until not busy
         loop {
-            let is_busy = self.busy.load(Ordering::Relaxed);
-            if !is_busy {
-                // busy now!
-                self.busy.store(true, Ordering::Relaxed);
-                break;
-            } else {
-                // wait 5 ms
-                thread::sleep(Duration::from_millis(5));
-            }
+            match self
+                .busy
+                .compare_exchange(false, true, Ordering::Acquire, Ordering::Relaxed)
+            {
+                Ok(_) => break,
+                Err(_) => thread::sleep(Duration::from_millis(5)),
+            };
         }
 
         let dbid = self.client_id.as_ref().map(|c| c.dbid).unwrap_or(0);
