@@ -86,8 +86,9 @@ pub fn make_event_loop(
     let persister: Arc<dyn Persist> = Arc::new(FsPersister::new(&ROOT_STORE, Some(8)));
 
     // initialize the RootHandler
-    let root_handler =
-        sphinx_signer::root::init(seed, network, policy, persister).expect("failed to init signer");
+    let handler_builder =
+        sphinx_signer::root::builder(seed, network, policy, persister).expect("failed to init signer");
+    let (root_handler, _) = handler_builder.build();
 
     // signing loop
     log::info!("=> starting the main signing loop...");
