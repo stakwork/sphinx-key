@@ -1322,6 +1322,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "lss-connector"
+version = "0.1.0"
+source = "git+https://github.com/stakwork/sphinx-rs.git#56d64d2341880063c3668d616548bc8f4abc0b74"
+dependencies = [
+ "anyhow",
+ "log",
+ "rmp-serde",
+ "secp256k1",
+ "serde",
+ "serde-big-array",
+ "vls-protocol-signer",
+]
+
+[[package]]
 name = "matches"
 version = "0.1.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1842,6 +1856,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "serde-big-array"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "11fc7cc2c76d73e0f27ee52abbd64eec84d46f370c88371120433196934e4b7f"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "serde_bolt"
 version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1960,7 +1983,7 @@ dependencies = [
 [[package]]
 name = "sphinx-auther"
 version = "0.1.12"
-source = "git+https://github.com/stakwork/sphinx-rs.git#82712f0be41eb460827e8db8e136a482cd595cff"
+source = "git+https://github.com/stakwork/sphinx-rs.git#56d64d2341880063c3668d616548bc8f4abc0b74"
 dependencies = [
  "anyhow",
  "base64",
@@ -1972,7 +1995,7 @@ dependencies = [
 [[package]]
 name = "sphinx-crypter"
 version = "0.1.0"
-source = "git+https://github.com/stakwork/sphinx-rs.git#82712f0be41eb460827e8db8e136a482cd595cff"
+source = "git+https://github.com/stakwork/sphinx-rs.git#56d64d2341880063c3668d616548bc8f4abc0b74"
 dependencies = [
  "anyhow",
  "chacha20poly1305",
@@ -1983,7 +2006,7 @@ dependencies = [
 [[package]]
 name = "sphinx-glyph"
 version = "0.1.2"
-source = "git+https://github.com/stakwork/sphinx-rs.git#82712f0be41eb460827e8db8e136a482cd595cff"
+source = "git+https://github.com/stakwork/sphinx-rs.git#56d64d2341880063c3668d616548bc8f4abc0b74"
 dependencies = [
  "anyhow",
  "hex",
@@ -2019,13 +2042,14 @@ dependencies = [
 [[package]]
 name = "sphinx-signer"
 version = "0.1.0"
-source = "git+https://github.com/stakwork/sphinx-rs.git#82712f0be41eb460827e8db8e136a482cd595cff"
+source = "git+https://github.com/stakwork/sphinx-rs.git#56d64d2341880063c3668d616548bc8f4abc0b74"
 dependencies = [
  "anyhow",
  "bip39",
  "fsdb",
  "hex",
  "log",
+ "lss-connector",
  "rand",
  "serde",
  "sphinx-glyph",

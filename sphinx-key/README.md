@@ -5,6 +5,8 @@
 - On macOS, make sure you have the Apple Command Line Developer tools installed on your machine.
 - Install rust. You can grab the installation command at https://www.rust-lang.org/tools/install
 - Install python3.
+> **Warning**
+> python3.11 currently breaks this build.
 - Run the following commands (the last one will take a while, go for a walk or something 😀):
 ```
 pip install esptool

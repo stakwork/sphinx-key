@@ -88,13 +88,7 @@ pub fn make_event_loop(
     // initialize the RootHandler
     let handler_builder = sphinx_signer::root::builder(seed, network, policy, persister)
         .expect("failed to init signer");
-    log::info!("create root handler now");
-    let (root_handler, _muts) = handler_builder.build();
-    log::info!("root_handler created");
-    // TODO
-    // wait for an Event::LssMessage of type Init
-    // get server_pubkey out
-    // and init the LSS
+    let (root_handler, _) = handler_builder.build();
 
     // signing loop
     log::info!("=> starting the main signing loop...");

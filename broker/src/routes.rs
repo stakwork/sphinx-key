@@ -31,7 +31,7 @@ pub async fn control(
     cid: &str,
 ) -> Result<String> {
     let message = hex::decode(msg)?;
-    // FIXME validate?
+    // FIXME validate? and auth here?
     if message.len() < 65 {
         return Err(Error::Fail);
     }
