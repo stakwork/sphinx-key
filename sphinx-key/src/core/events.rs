@@ -95,11 +95,11 @@ pub fn make_event_loop(
     let persister: Arc<dyn Persist> = Arc::new(FsPersister::new(&ROOT_STORE, Some(8)));
 
     // initialize the RootHandler
-    let hb = sphinx_signer::root::builder(seed, network, policy, persister)
+    let rhb = sphinx_signer::root::builder(seed, network, policy, persister)
         .expect("failed to init signer");
 
     // FIXME it right to restart here?
-    let (root_handler, lss_signer) = match lss::init_lss(client_id, &rx, hb, &mut mqtt) {
+    let (root_handler, lss_signer) = match lss::init_lss(client_id, &rx, rhb, &mut mqtt) {
         Ok(rl) => rl,
         Err(e) => {
             log::error!("failed to init lss {:?}", e);
@@ -125,22 +125,26 @@ pub fn make_event_loop(
             }
             Event::VlsMessage(ref msg_bytes) => {
                 led_tx.send(Status::Signing).unwrap();
-                let _ret =
-                    match sphinx_signer::root::handle(&root_handler, msg_bytes.clone(), do_log) {
-                        Ok(b) => {
-                            let vls_return_topic = format!("{}/{}", client_id, topics::VLS_RETURN);
-                            mqtt.publish(&vls_return_topic, QOS, false, &b)
-                                .expect("could not publish VLS response");
-                        }
-                        Err(e) => {
-                            let err_msg = GlyphError::new(1, &e.to_string());
-                            log::error!("HANDLE FAILED {:?}", e);
-                            let error_topic = format!("{}/{}", client_id, topics::ERROR);
-                            mqtt.publish(&error_topic, QOS, false, &err_msg.to_vec()[..])
-                                .expect("could not publish VLS error");
-                            // panic!("HANDLE FAILED {:?}", e);
-                        }
-                    };
+                let _ret = match sphinx_signer::root::handle_with_lss(
+                    &root_handler,
+                    &lss_signer,
+                    msg_bytes.clone(),
+                    do_log,
+                ) {
+                    Ok((b, _)) => {
+                        let vls_return_topic = format!("{}/{}", client_id, topics::VLS_RETURN);
+                        mqtt.publish(&vls_return_topic, QOS, false, &b)
+                            .expect("could not publish VLS response");
+                    }
+                    Err(e) => {
+                        let err_msg = GlyphError::new(1, &e.to_string());
+                        log::error!("HANDLE FAILED {:?}", e);
+                        let error_topic = format!("{}/{}", client_id, topics::ERROR);
+                        mqtt.publish(&error_topic, QOS, false, &err_msg.to_vec()[..])
+                            .expect("could not publish VLS error");
+                        // panic!("HANDLE FAILED {:?}", e);
+                    }
+                };
             }
             Event::LssMessage(ref msg_bytes) => {
                 //
