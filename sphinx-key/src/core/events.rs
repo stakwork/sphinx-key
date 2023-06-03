@@ -1,4 +1,5 @@
 use crate::conn::mqtt::QOS;
+use crate::core::lss;
 use crate::ota::{update_sphinx_key, validate_ota_message};
 
 use sphinx_signer::lightning_signer::bitcoin::Network;
@@ -94,9 +95,20 @@ pub fn make_event_loop(
     let persister: Arc<dyn Persist> = Arc::new(FsPersister::new(&ROOT_STORE, Some(8)));
 
     // initialize the RootHandler
-    let handler_builder = sphinx_signer::root::builder(seed, network, policy, persister)
+    let hb = sphinx_signer::root::builder(seed, network, policy, persister)
         .expect("failed to init signer");
-    let (root_handler, _) = handler_builder.build();
+
+    // FIXME it right to restart here?
+    let (root_handler, lss_signer) = match lss::init_lss(client_id, &rx, hb, &mut mqtt) {
+        Ok(rl) => rl,
+        Err(e) => {
+            log::error!("failed to init lss {:?}", e);
+            unsafe { esp_idf_sys::esp_restart() };
+            panic!("faild to init lss");
+        }
+    };
+
+    // let (root_handler, _) = handler_builder.build();
 
     // signing loop
     log::info!("=> starting the main signing loop...");
