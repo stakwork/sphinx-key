@@ -80,6 +80,9 @@ pub fn make_client(
                                 if topic.ends_with(topics::VLS) {
                                     tx.send(CoreEvent::VlsMessage(msg.data().to_vec()))
                                         .expect("couldnt send Event::VlsMessage");
+                                } else if topic.ends_with(topics::LSS_MSG) {
+                                    tx.send(CoreEvent::LssMessage(msg.data().to_vec()))
+                                        .expect("couldnt send Event::LssMessage");
                                 } else if topic.ends_with(topics::CONTROL) {
                                     tx.send(CoreEvent::Control(msg.data().to_vec()))
                                         .expect("couldnt send Event::Control");

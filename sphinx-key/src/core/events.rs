@@ -26,6 +26,7 @@ pub enum Event {
     Connected,
     Disconnected,
     VlsMessage(Vec<u8>),
+    LssMessage(Vec<u8>),
     Control(Vec<u8>),
 }
 
@@ -48,6 +49,19 @@ pub enum Status {
 
 pub const ROOT_STORE: &str = "/sdcard/store";
 
+fn mqtt_sub(
+    mqtt: &mut EspMqttClient<ConnState<MessageImpl, EspError>>,
+    client_id: &str,
+    topics: &[&str],
+) {
+    for top in topics {
+        let topic = format!("{}/{}", client_id, top);
+        log::info!("SUBSCRIBE to {}", topic);
+        mqtt.subscribe(&topic, QOS)
+            .expect("could not MQTT subscribe");
+    }
+}
+
 // the main event loop
 #[cfg(not(feature = "pingpong"))]
 pub fn make_event_loop(
@@ -67,14 +81,8 @@ pub fn make_event_loop(
         // wait for a Connection first.
         match event {
             Event::Connected => {
-                let vls_topic = format!("{}/{}", client_id, topics::VLS);
-                log::info!("SUBSCRIBE to {}", vls_topic);
-                mqtt.subscribe(&vls_topic, QOS)
-                    .expect("could not MQTT subscribe");
-                let control_topic = format!("{}/{}", client_id, topics::CONTROL);
-                mqtt.subscribe(&control_topic, QOS)
-                    .expect("could not MQTT subscribe");
-                led_tx.send(Status::Connected).unwrap();
+                let ts = &[topics::VLS, topics::LSS_MSG, topics::CONTROL];
+                mqtt_sub(&mut mqtt, client_id, ts);
                 break;
             }
             _ => (),
@@ -95,13 +103,8 @@ pub fn make_event_loop(
     while let Ok(event) = rx.recv() {
         match event {
             Event::Connected => {
-                let vls_topic = format!("{}/{}", client_id, topics::VLS);
-                mqtt.subscribe(&vls_topic, QOS)
-                    .expect("could not MQTT subscribe");
-                log::info!("SUBSCRIBE TO {}", vls_topic);
-                let control_topic = format!("{}/{}", client_id, topics::CONTROL);
-                mqtt.subscribe(&control_topic, QOS)
-                    .expect("could not MQTT subscribe");
+                let ts = &[topics::VLS, topics::LSS_MSG, topics::CONTROL];
+                mqtt_sub(&mut mqtt, client_id, ts);
                 led_tx.send(Status::Connected).unwrap();
             }
             Event::Disconnected => {
@@ -126,6 +129,9 @@ pub fn make_event_loop(
                             // panic!("HANDLE FAILED {:?}", e);
                         }
                     };
+            }
+            Event::LssMessage(ref msg_bytes) => {
+                //
             }
             Event::Control(ref msg_bytes) => {
                 log::info!("GOT A CONTROL MSG");
@@ -230,10 +236,8 @@ pub fn make_event_loop(
         match event {
             Event::Connected => {
                 led_tx.send(Status::ConnectedToMqtt).unwrap();
-                let vls_topic = format!("{}/{}", client_id, topics::VLS);
-                log::info!("SUBSCRIBE TO {}", vls_topic);
-                mqtt.subscribe(&vls_topic, QOS)
-                    .expect("could not MQTT subscribe");
+                let ts = &[topics::VLS];
+                mqtt_sub(&mut mqtt, client_id, ts);
             }
             Event::VlsMessage(msg_bytes) => {
                 led_tx.send(Status::Signing).unwrap();
@@ -245,6 +249,7 @@ pub fn make_event_loop(
                 mqtt.publish(&vls_return_topic, QOS, false, b)
                     .expect("could not publish ping response");
             }
+            Event::LssMessage(_) => (),
             Event::Disconnected => {
                 led_tx.send(Status::ConnectingToMqtt).unwrap();
                 log::info!("GOT A Event::Disconnected msg!");

@@ -16,12 +16,6 @@ impl SignerPort for MqttSignerPort {
         self.get_reply(reply_rx).await
     }
 
-    fn clone(&self) -> Box<dyn SignerPort> {
-        Box::new(Self {
-            sender: self.sender.clone(),
-        })
-    }
-
     fn is_ready(&self) -> bool {
         true
     }

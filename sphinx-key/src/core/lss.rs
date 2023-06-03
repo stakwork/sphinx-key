@@ -1,25 +1,8 @@
-use sphinx_signer::lightning_signer::persist::{ExternalPersistHelper, SimpleEntropy};
-use std::collections::BTreeMap;
-use std::sync::{Arc, Mutex};
+use anyhow::{anyhow, Result};
+use lss_connector::{secp256k1::PublicKey, LssSigner, Msg as LssMsg, Response as LssRes};
+use sphinx_signer::{self, RootHandler, RootHandlerBuilder};
 
-#[derive(Clone)]
-pub struct ExternalPersistWithHelper {
-    pub state: Arc<Mutex<BTreeMap<String, (u64, Vec<u8>)>>>,
-    pub helper: ExternalPersistHelper,
-}
-
-impl ExternalPersistWithHelper {
-    pub async fn init_state(&self) {
-        // let client = self.persist_client.lock().await;
-        let entropy = SimpleEntropy::new();
-        let mut helper = self.helper.clone();
-        let nonce = helper.new_nonce(&entropy);
-        // let (muts, server_hmac) = client.get("".to_string(), &nonce).await.unwrap();
-        // let success = helper.check_hmac(&muts, server_hmac);
-        // assert!(success, "server hmac mismatch on get");
-        // let mut local = self.state.lock().unwrap();
-        // for (key, version_value) in muts.into_iter() {
-        //     local.insert(key, version_value);
-        // }
-    }
+pub fn init_lss() -> Result<(RootHandler, LssSigner)> {
+    let init = LssMsg::from_slice(&[0])?.as_init()?;
+    Err(anyhow!("test"))
 }

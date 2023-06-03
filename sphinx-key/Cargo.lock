@@ -2030,6 +2030,7 @@ dependencies = [
  "esp-idf-sys",
  "hex",
  "log",
+ "lss-connector",
  "rmp-serde",
  "serde",
  "serde_json",
