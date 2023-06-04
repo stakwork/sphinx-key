@@ -5,10 +5,12 @@ use embedded_svc::mqtt::client::MessageImpl;
 use embedded_svc::utils::mqtt::client::ConnState;
 use esp_idf_svc::mqtt::client::EspMqttClient;
 use esp_idf_sys::EspError;
-use lss_connector::{secp256k1::PublicKey, LssSigner, Msg as LssMsg, Response as LssRes};
+use lss_connector::{secp256k1::PublicKey, LssSigner, Msg as LssMsg};
 use sphinx_signer::sphinx_glyph::topics;
 use sphinx_signer::{self, RootHandler, RootHandlerBuilder};
 use std::sync::mpsc;
+
+pub use lss_connector::handle_lss_msg;
 
 pub fn init_lss(
     client_id: &str,

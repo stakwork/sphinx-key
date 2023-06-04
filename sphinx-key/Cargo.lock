@@ -181,7 +181,6 @@ checksum = "0694ea59225b0c5f3cb405ff3f670e4828358ed26aec49dc352f730f0cb1a8a3"
 dependencies = [
  "bech32",
  "bitcoin_hashes",
- "bitcoinconsensus",
  "secp256k1",
  "serde",
 ]
@@ -193,16 +192,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "90064b8dee6815a6470d60bad07bbbaee885c0e12d04177138fa3291a01b7bc4"
 dependencies = [
  "serde",
-]
-
-[[package]]
-name = "bitcoinconsensus"
-version = "0.20.2-0.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "54505558b77e0aa21b2491a7b39cbae9db22ac8b1bc543ef4600edb762306f9c"
-dependencies = [
- "cc",
- "libc",
 ]
 
 [[package]]
@@ -1271,8 +1260,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e009e1c0c21f66378b491bb40f548682138c63e09db6f3a05af59f8804bb9f4a"
 dependencies = [
  "bitcoin",
- "hex",
- "regex",
 ]
 
 [[package]]
@@ -1326,7 +1313,7 @@ dependencies = [
 [[package]]
 name = "lss-connector"
 version = "0.1.0"
-source = "git+https://github.com/stakwork/sphinx-rs.git#e128e6cc4a7d8b2ac8bab60f7d5c76adfd6d2db1"
+source = "git+https://github.com/stakwork/sphinx-rs.git#2a90ef961230299510d1f5e0bd70812523ce7ce3"
 dependencies = [
  "anyhow",
  "log",
@@ -1978,7 +1965,7 @@ dependencies = [
 [[package]]
 name = "sphinx-auther"
 version = "0.1.12"
-source = "git+https://github.com/stakwork/sphinx-rs.git#e128e6cc4a7d8b2ac8bab60f7d5c76adfd6d2db1"
+source = "git+https://github.com/stakwork/sphinx-rs.git#2a90ef961230299510d1f5e0bd70812523ce7ce3"
 dependencies = [
  "anyhow",
  "base64",
@@ -1990,7 +1977,7 @@ dependencies = [
 [[package]]
 name = "sphinx-crypter"
 version = "0.1.0"
-source = "git+https://github.com/stakwork/sphinx-rs.git#e128e6cc4a7d8b2ac8bab60f7d5c76adfd6d2db1"
+source = "git+https://github.com/stakwork/sphinx-rs.git#2a90ef961230299510d1f5e0bd70812523ce7ce3"
 dependencies = [
  "anyhow",
  "chacha20poly1305",
@@ -2001,7 +1988,7 @@ dependencies = [
 [[package]]
 name = "sphinx-glyph"
 version = "0.1.2"
-source = "git+https://github.com/stakwork/sphinx-rs.git#e128e6cc4a7d8b2ac8bab60f7d5c76adfd6d2db1"
+source = "git+https://github.com/stakwork/sphinx-rs.git#2a90ef961230299510d1f5e0bd70812523ce7ce3"
 dependencies = [
  "anyhow",
  "hex",
@@ -2038,7 +2025,7 @@ dependencies = [
 [[package]]
 name = "sphinx-signer"
 version = "0.1.0"
-source = "git+https://github.com/stakwork/sphinx-rs.git#e128e6cc4a7d8b2ac8bab60f7d5c76adfd6d2db1"
+source = "git+https://github.com/stakwork/sphinx-rs.git#2a90ef961230299510d1f5e0bd70812523ce7ce3"
 dependencies = [
  "anyhow",
  "bip39",
@@ -2401,7 +2388,6 @@ version = "0.9.0"
 source = "git+https://gitlab.com/lightning-signer/validating-lightning-signer.git?rev=0c8c4474af62c4a13e2a32d34b569e8092ed414a#0c8c4474af62c4a13e2a32d34b569e8092ed414a"
 dependencies = [
  "anyhow",
- "backtrace",
  "bitcoin",
  "bolt-derive",
  "hashbrown 0.8.2",

@@ -104,7 +104,6 @@ pub fn make_event_loop(
         Err(e) => {
             log::error!("failed to init lss {:?}", e);
             unsafe { esp_idf_sys::esp_restart() };
-            panic!("faild to init lss");
         }
     };
 
@@ -147,7 +146,20 @@ pub fn make_event_loop(
                 };
             }
             Event::LssMessage(ref msg_bytes) => {
-                //
+                // FIXME: the "None" needs to previous VLS message and LSS message bytes
+                match lss::handle_lss_msg(msg_bytes, &None, &lss_signer) {
+                    Ok((ret_topic, bytes)) => {
+                        let return_topic = format!("{}/{}", client_id, &ret_topic);
+                        mqtt.publish(&return_topic, QOS, false, &bytes)
+                            .expect("could not publish response");
+                    }
+                    Err(e) => {
+                        let err_msg = GlyphError::new(1, &e.to_string());
+                        let error_topic = format!("{}/{}", client_id, topics::ERROR);
+                        mqtt.publish(&error_topic, QOS, false, &err_msg.to_vec()[..])
+                            .expect("could not publish error");
+                    }
+                }
             }
             Event::Control(ref msg_bytes) => {
                 log::info!("GOT A CONTROL MSG");
