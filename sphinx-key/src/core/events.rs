@@ -63,6 +63,17 @@ fn mqtt_sub(
     }
 }
 
+fn mqtt_pub(
+    mqtt: &mut EspMqttClient<ConnState<MessageImpl, EspError>>,
+    client_id: &str,
+    top: &str,
+    payload: &[u8],
+) {
+    let topic = format!("{}/{}", client_id, top);
+    mqtt.publish(&topic, QOS, false, payload)
+        .expect("could not MQTT publish");
+}
+
 // the main event loop
 #[cfg(not(feature = "pingpong"))]
 pub fn make_event_loop(
@@ -107,7 +118,8 @@ pub fn make_event_loop(
         }
     };
 
-    // let (root_handler, _) = handler_builder.build();
+    // store the previous msgs processed, for LSS last step
+    let mut msgs: Option<(Vec<u8>, Vec<u8>)> = None;
 
     // signing loop
     log::info!("=> starting the main signing loop...");
@@ -130,18 +142,20 @@ pub fn make_event_loop(
                     msg_bytes.clone(),
                     do_log,
                 ) {
-                    Ok((b, _)) => {
-                        let vls_return_topic = format!("{}/{}", client_id, topics::VLS_RETURN);
-                        mqtt.publish(&vls_return_topic, QOS, false, &b)
-                            .expect("could not publish VLS response");
+                    Ok((vls_b, lss_b)) => {
+                        if lss_b.len() == 0 {
+                            // no muts, respond directly back!
+                            mqtt_pub(&mut mqtt, client_id, topics::VLS_RETURN, &vls_b);
+                        } else {
+                            // muts! send LSS first!
+                            msgs = Some((vls_b, lss_b.clone()));
+                            mqtt_pub(&mut mqtt, client_id, topics::LSS_RES, &lss_b);
+                        }
                     }
                     Err(e) => {
                         let err_msg = GlyphError::new(1, &e.to_string());
                         log::error!("HANDLE FAILED {:?}", e);
-                        let error_topic = format!("{}/{}", client_id, topics::ERROR);
-                        mqtt.publish(&error_topic, QOS, false, &err_msg.to_vec()[..])
-                            .expect("could not publish VLS error");
-                        // panic!("HANDLE FAILED {:?}", e);
+                        mqtt_pub(&mut mqtt, client_id, topics::ERROR, &err_msg.to_vec()[..]);
                     }
                 };
             }
@@ -149,15 +163,13 @@ pub fn make_event_loop(
                 // FIXME: the "None" needs to previous VLS message and LSS message bytes
                 match lss::handle_lss_msg(msg_bytes, &None, &lss_signer) {
                     Ok((ret_topic, bytes)) => {
-                        let return_topic = format!("{}/{}", client_id, &ret_topic);
-                        mqtt.publish(&return_topic, QOS, false, &bytes)
-                            .expect("could not publish response");
+                        // set msgs back to None
+                        msgs = None;
+                        mqtt_pub(&mut mqtt, client_id, &ret_topic, &bytes);
                     }
                     Err(e) => {
                         let err_msg = GlyphError::new(1, &e.to_string());
-                        let error_topic = format!("{}/{}", client_id, topics::ERROR);
-                        mqtt.publish(&error_topic, QOS, false, &err_msg.to_vec()[..])
-                            .expect("could not publish error");
+                        mqtt_pub(&mut mqtt, client_id, topics::ERROR, &err_msg.to_vec()[..]);
                     }
                 }
             }
@@ -169,9 +181,7 @@ pub fn make_event_loop(
                 {
                     let res_data =
                         rmp_serde::to_vec_named(&res).expect("could not publish control response");
-                    let control_return_topic = format!("{}/{}", client_id, topics::CONTROL_RETURN);
-                    mqtt.publish(&control_return_topic, QOS, false, &res_data)
-                        .expect("could not publish control response");
+                    mqtt_pub(&mut mqtt, client_id, topics::CONTROL_RETURN, &res_data);
                 }
             }
         }
@@ -273,9 +283,7 @@ pub fn make_event_loop(
                 if do_log {
                     log::info!("GOT A PING MESSAGE! returning pong now...");
                 }
-                let vls_return_topic = format!("{}/{}", client_id, topics::VLS_RETURN);
-                mqtt.publish(&vls_return_topic, QOS, false, b)
-                    .expect("could not publish ping response");
+                mqtt_pub(&mut mqtt, client_id, topics::VLS_RETURN, &b);
             }
             Event::LssMessage(_) => (),
             Event::Disconnected => {
