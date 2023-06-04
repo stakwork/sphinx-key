@@ -160,8 +160,7 @@ pub fn make_event_loop(
                 };
             }
             Event::LssMessage(ref msg_bytes) => {
-                // FIXME: the "None" needs to previous VLS message and LSS message bytes
-                match lss::handle_lss_msg(msg_bytes, &None, &lss_signer) {
+                match lss::handle_lss_msg(msg_bytes, &msgs, &lss_signer) {
                     Ok((ret_topic, bytes)) => {
                         // set msgs back to None
                         msgs = None;
