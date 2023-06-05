@@ -76,6 +76,7 @@ pub fn make_client(
                         Event::Published(_mes_id) => info!("RECEIVED Published MESSAGE"),
                         Event::Received(msg) => {
                             let topic_opt = msg.topic();
+                            log::info!("received msg details {:?}", msg.details());
                             if let Some(topic) = topic_opt {
                                 if topic.ends_with(topics::VLS) {
                                     tx.send(CoreEvent::VlsMessage(msg.data().to_vec()))
