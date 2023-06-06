@@ -4,7 +4,7 @@ use crate::conn::ChannelRequest;
 use rocket::tokio::{self, sync::broadcast, sync::mpsc};
 use sphinx_signer::{parser, sphinx_glyph::topics};
 use vls_protocol::serde_bolt::WireString;
-use vls_protocol::{msgs, msgs::Message};
+use sphinx_signer::vls_protocol::{msgs, msgs::Message};
 
 // const CLIENT_ID: &str = "test-1";
 
