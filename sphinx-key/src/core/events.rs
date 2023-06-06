@@ -4,7 +4,7 @@ use crate::ota::{update_sphinx_key, validate_ota_message};
 
 use sphinx_signer::lightning_signer::bitcoin::Network;
 use sphinx_signer::lightning_signer::persist::Persist;
-use sphinx_signer::persist::FsPersister;
+use sphinx_signer::persist::{FsPersister, ThreadMemoPersister};
 use sphinx_signer::sphinx_glyph::control::{
     Config, ControlMessage, ControlResponse, Controller, Policy,
 };
@@ -103,7 +103,8 @@ pub fn make_event_loop(
 
     // create the fs persister
     // 8 character max file names
-    let persister: Arc<dyn Persist> = Arc::new(FsPersister::new(&ROOT_STORE, Some(8)));
+    // let persister: Arc<dyn Persist> = Arc::new(FsPersister::new(&ROOT_STORE, Some(8)));
+    let persister = Arc::new(ThreadMemoPersister {});
 
     // initialize the RootHandler
     let rhb = sphinx_signer::root::builder(seed, network, policy, persister)
