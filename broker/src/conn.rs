@@ -21,7 +21,8 @@ impl Connections {
     pub fn add_client(&mut self, cid: &str) {
         let cids = cid.to_string();
         if !self.clients.contains(&cids) {
-            self.clients.push(cids)
+            // new client is added to beginning of Vec
+            self.clients.insert(0, cids);
         }
     }
     pub fn remove_client(&mut self, cid: &str) {
