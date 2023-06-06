@@ -147,11 +147,14 @@ fn make_and_launch_client(
 
     // make the controller to validate Control messages
     let ctrlr = controller_from_seed(&network, &seed[..], flash);
-    let pubkey = hex::encode(ctrlr.pubkey().serialize());
-    let token = ctrlr.make_auth_token().expect("couldnt make auth token");
-    log::info!("PUBKEY {} TOKEN {}", &pubkey, &token);
 
-    let mqtt_client = conn::mqtt::make_client(&config.broker, CLIENT_ID, &pubkey, &token, tx)?;
+    let pubkey = ctrlr.pubkey();
+    let pubkey_str = hex::encode(&pubkey.serialize());
+    let token = ctrlr.make_auth_token().expect("couldnt make auth token");
+    log::info!("PUBKEY {} TOKEN {}", &pubkey_str, &token);
+
+    let client_id = random_word(8);
+    let mqtt_client = conn::mqtt::make_client(&config.broker, &client_id, &pubkey_str, &token, tx)?;
     // let mqtt_client = conn::mqtt::start_listening(mqtt, connection, tx)?;
 
     // this blocks forever... the "main thread"
@@ -170,7 +173,17 @@ fn make_and_launch_client(
         seed,
         policy,
         ctrlr,
-        CLIENT_ID,
+        &client_id,
+        &pubkey,
     )?;
     Ok(())
+}
+
+pub fn random_word(n: usize) -> String {
+    use sphinx_crypter::secp256k1::rand::{self, distributions::Alphanumeric, Rng};
+    rand::thread_rng()
+        .sample_iter(&Alphanumeric)
+        .take(n)
+        .map(char::from)
+        .collect()
 }

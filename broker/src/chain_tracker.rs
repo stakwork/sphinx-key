@@ -1,4 +1,4 @@
-use crate::{ChannelReply, ChannelRequest};
+use crate::conn::{ChannelReply, ChannelRequest};
 use async_trait::async_trait;
 use rocket::tokio::sync::{mpsc, oneshot};
 use sphinx_signer::sphinx_glyph::topics;
@@ -16,10 +16,8 @@ impl SignerPort for MqttSignerPort {
         self.get_reply(reply_rx).await
     }
 
-    fn clone(&self) -> Box<dyn SignerPort> {
-        Box::new(Self {
-            sender: self.sender.clone(),
-        })
+    fn is_ready(&self) -> bool {
+        true
     }
 }
 

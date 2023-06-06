@@ -2,7 +2,7 @@ CFLAGS=-fno-pic
 
 CC=$PWD/.embuild/espressif/tools/riscv32-esp-elf/esp-2021r2-patch3-8.4.0/riscv32-esp-elf/bin/riscv32-esp-elf-gcc
 
-cargo +nightly build --release
+SSID=sphinx-1 PASS=sphinx-1234 cargo build --release
 
 esptool.py --chip esp32c3 elf2image target/riscv32imc-esp-espidf/release/sphinx-key
 

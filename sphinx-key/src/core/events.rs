@@ -1,9 +1,11 @@
 use crate::conn::mqtt::QOS;
+use crate::core::lss;
 use crate::ota::{update_sphinx_key, validate_ota_message};
 
+use lss_connector::secp256k1::PublicKey;
 use sphinx_signer::lightning_signer::bitcoin::Network;
 use sphinx_signer::lightning_signer::persist::Persist;
-use sphinx_signer::persist::FsPersister;
+use sphinx_signer::persist::{FsPersister, ThreadMemoPersister};
 use sphinx_signer::sphinx_glyph::control::{
     Config, ControlMessage, ControlResponse, Controller, Policy,
 };
@@ -26,6 +28,7 @@ pub enum Event {
     Connected,
     Disconnected,
     VlsMessage(Vec<u8>),
+    LssMessage(Vec<u8>),
     Control(Vec<u8>),
 }
 
@@ -48,6 +51,32 @@ pub enum Status {
 
 pub const ROOT_STORE: &str = "/sdcard/store";
 
+pub const SUB_TOPICS: &[&str] = &[topics::VLS, topics::LSS_MSG, topics::CONTROL];
+
+fn mqtt_sub(
+    mqtt: &mut EspMqttClient<ConnState<MessageImpl, EspError>>,
+    client_id: &str,
+    topics: &[&str],
+) {
+    for top in topics {
+        let topic = format!("{}/{}", client_id, top);
+        log::info!("SUBSCRIBE to {}", topic);
+        mqtt.subscribe(&topic, QOS)
+            .expect("could not MQTT subscribe");
+    }
+}
+
+fn mqtt_pub(
+    mqtt: &mut EspMqttClient<ConnState<MessageImpl, EspError>>,
+    client_id: &str,
+    top: &str,
+    payload: &[u8],
+) {
+    let topic = format!("{}/{}", client_id, top);
+    mqtt.publish(&topic, QOS, false, payload)
+        .expect("could not MQTT publish");
+}
+
 // the main event loop
 #[cfg(not(feature = "pingpong"))]
 pub fn make_event_loop(
@@ -61,20 +90,14 @@ pub fn make_event_loop(
     policy: &Policy,
     mut ctrlr: Controller,
     client_id: &str,
+    node_id: &PublicKey,
 ) -> Result<()> {
     while let Ok(event) = rx.recv() {
         log::info!("BROKER IP AND PORT: {}", config.broker);
         // wait for a Connection first.
         match event {
             Event::Connected => {
-                let vls_topic = format!("{}/{}", client_id, topics::VLS);
-                log::info!("SUBSCRIBE to {}", vls_topic);
-                mqtt.subscribe(&vls_topic, QOS)
-                    .expect("could not MQTT subscribe");
-                let control_topic = format!("{}/{}", client_id, topics::CONTROL);
-                mqtt.subscribe(&control_topic, QOS)
-                    .expect("could not MQTT subscribe");
-                led_tx.send(Status::Connected).unwrap();
+                mqtt_sub(&mut mqtt, client_id, SUB_TOPICS);
                 break;
             }
             _ => (),
@@ -83,25 +106,31 @@ pub fn make_event_loop(
 
     // create the fs persister
     // 8 character max file names
-    let persister: Arc<dyn Persist> = Arc::new(FsPersister::new(&ROOT_STORE, Some(8)));
+    // let persister: Arc<dyn Persist> = Arc::new(FsPersister::new(&ROOT_STORE, Some(8)));
+    let persister = Arc::new(ThreadMemoPersister {});
 
     // initialize the RootHandler
-    let handler_builder =
-        sphinx_signer::root::builder(seed, network, policy, persister).expect("failed to init signer");
-    let (root_handler, _) = handler_builder.build();
+    let rhb = sphinx_signer::root::builder(seed, network, policy, persister, node_id)
+        .expect("failed to init signer");
+
+    // FIXME it right to restart here?
+    let (root_handler, lss_signer) = match lss::init_lss(client_id, &rx, rhb, &mut mqtt) {
+        Ok(rl) => rl,
+        Err(e) => {
+            log::error!("failed to init lss {:?}", e);
+            unsafe { esp_idf_sys::esp_restart() };
+        }
+    };
+
+    // store the previous msgs processed, for LSS last step
+    let mut msgs: Option<(Vec<u8>, Vec<u8>)> = None;
 
     // signing loop
     log::info!("=> starting the main signing loop...");
     while let Ok(event) = rx.recv() {
         match event {
             Event::Connected => {
-                let vls_topic = format!("{}/{}", client_id, topics::VLS);
-                mqtt.subscribe(&vls_topic, QOS)
-                    .expect("could not MQTT subscribe");
-                log::info!("SUBSCRIBE TO {}", vls_topic);
-                let control_topic = format!("{}/{}", client_id, topics::CONTROL);
-                mqtt.subscribe(&control_topic, QOS)
-                    .expect("could not MQTT subscribe");
+                mqtt_sub(&mut mqtt, client_id, SUB_TOPICS);
                 led_tx.send(Status::Connected).unwrap();
             }
             Event::Disconnected => {
@@ -110,22 +139,41 @@ pub fn make_event_loop(
             }
             Event::VlsMessage(ref msg_bytes) => {
                 led_tx.send(Status::Signing).unwrap();
-                let _ret =
-                    match sphinx_signer::root::handle(&root_handler, msg_bytes.clone(), do_log) {
-                        Ok(b) => {
-                            let vls_return_topic = format!("{}/{}", client_id, topics::VLS_RETURN);
-                            mqtt.publish(&vls_return_topic, QOS, false, &b)
-                                .expect("could not publish VLS response");
+                let _ret = match sphinx_signer::root::handle_with_lss(
+                    &root_handler,
+                    &lss_signer,
+                    msg_bytes.clone(),
+                    do_log,
+                ) {
+                    Ok((vls_b, lss_b)) => {
+                        if lss_b.len() == 0 {
+                            // no muts, respond directly back!
+                            mqtt_pub(&mut mqtt, client_id, topics::VLS_RETURN, &vls_b);
+                        } else {
+                            // muts! send LSS first!
+                            msgs = Some((vls_b, lss_b.clone()));
+                            mqtt_pub(&mut mqtt, client_id, topics::LSS_RES, &lss_b);
                         }
-                        Err(e) => {
-                            let err_msg = GlyphError::new(1, &e.to_string());
-                            log::error!("HANDLE FAILED {:?}", e);
-                            let error_topic = format!("{}/{}", client_id, topics::ERROR);
-                            mqtt.publish(&error_topic, QOS, false, &err_msg.to_vec()[..])
-                                .expect("could not publish VLS error");
-                            // panic!("HANDLE FAILED {:?}", e);
-                        }
-                    };
+                    }
+                    Err(e) => {
+                        let err_msg = GlyphError::new(1, &e.to_string());
+                        log::error!("HANDLE FAILED {:?}", e);
+                        mqtt_pub(&mut mqtt, client_id, topics::ERROR, &err_msg.to_vec()[..]);
+                    }
+                };
+            }
+            Event::LssMessage(ref msg_bytes) => {
+                match lss::handle_lss_msg(msg_bytes, &msgs, &lss_signer) {
+                    Ok((ret_topic, bytes)) => {
+                        // set msgs back to None
+                        msgs = None;
+                        mqtt_pub(&mut mqtt, client_id, &ret_topic, &bytes);
+                    }
+                    Err(e) => {
+                        let err_msg = GlyphError::new(1, &e.to_string());
+                        mqtt_pub(&mut mqtt, client_id, topics::ERROR, &err_msg.to_vec()[..]);
+                    }
+                }
             }
             Event::Control(ref msg_bytes) => {
                 log::info!("GOT A CONTROL MSG");
@@ -135,9 +183,7 @@ pub fn make_event_loop(
                 {
                     let res_data =
                         rmp_serde::to_vec_named(&res).expect("could not publish control response");
-                    let control_return_topic = format!("{}/{}", client_id, topics::CONTROL_RETURN);
-                    mqtt.publish(&control_return_topic, QOS, false, &res_data)
-                        .expect("could not publish control response");
+                    mqtt_pub(&mut mqtt, client_id, topics::CONTROL_RETURN, &res_data);
                 }
             }
         }
@@ -224,16 +270,14 @@ pub fn make_event_loop(
     _policy: &Policy,
     mut _ctrlr: Controller,
     client_id: &str,
+    _node_id: &PublicKey,
 ) -> Result<()> {
     log::info!("About to subscribe to the mpsc channel");
     while let Ok(event) = rx.recv() {
         match event {
             Event::Connected => {
                 led_tx.send(Status::ConnectedToMqtt).unwrap();
-                let vls_topic = format!("{}/{}", client_id, topics::VLS);
-                log::info!("SUBSCRIBE TO {}", vls_topic);
-                mqtt.subscribe(&vls_topic, QOS)
-                    .expect("could not MQTT subscribe");
+                mqtt_sub(&mut mqtt, client_id, &[topics::VLS]);
             }
             Event::VlsMessage(msg_bytes) => {
                 led_tx.send(Status::Signing).unwrap();
@@ -241,10 +285,9 @@ pub fn make_event_loop(
                 if do_log {
                     log::info!("GOT A PING MESSAGE! returning pong now...");
                 }
-                let vls_return_topic = format!("{}/{}", client_id, topics::VLS_RETURN);
-                mqtt.publish(&vls_return_topic, QOS, false, b)
-                    .expect("could not publish ping response");
+                mqtt_pub(&mut mqtt, client_id, topics::VLS_RETURN, &b);
             }
+            Event::LssMessage(_) => (),
             Event::Disconnected => {
                 led_tx.send(Status::ConnectingToMqtt).unwrap();
                 log::info!("GOT A Event::Disconnected msg!");

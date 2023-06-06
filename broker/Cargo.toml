@@ -9,11 +9,12 @@ strip = "debuginfo"
 
 [dependencies]
 sphinx-signer = { git = "https://github.com/stakwork/sphinx-rs" }
-# sphinx-key-parser = { path = "../parser" }
-vls-protocol = { git = "https://gitlab.com/lightning-signer/validating-lightning-signer.git", rev = "dcd8628893b5504b3ac2d3eb8cc5ed36f36d7625" }
-vls-proxy = { git = "https://gitlab.com/lightning-signer/validating-lightning-signer.git", rev = "dcd8628893b5504b3ac2d3eb8cc5ed36f36d7625" }
-vls-frontend = { git = "https://gitlab.com/lightning-signer/validating-lightning-signer.git", rev = "dcd8628893b5504b3ac2d3eb8cc5ed36f36d7625" }
-vls-protocol-client = { git = "https://gitlab.com/lightning-signer/validating-lightning-signer.git", rev = "dcd8628893b5504b3ac2d3eb8cc5ed36f36d7625" }
+lss-connector = { git = "https://github.com/stakwork/sphinx-rs" }
+# lss-connector = { path = "../../sphinx-rs/lss-connector" }
+vls-protocol = { git = "https://gitlab.com/lightning-signer/validating-lightning-signer.git", rev = "0c8c4474af62c4a13e2a32d34b569e8092ed414a" }
+vls-proxy = { git = "https://gitlab.com/lightning-signer/validating-lightning-signer.git", rev = "0c8c4474af62c4a13e2a32d34b569e8092ed414a" }
+vls-frontend = { git = "https://gitlab.com/lightning-signer/validating-lightning-signer.git", rev = "0c8c4474af62c4a13e2a32d34b569e8092ed414a" }
+vls-protocol-client = { git = "https://gitlab.com/lightning-signer/validating-lightning-signer.git", rev = "0c8c4474af62c4a13e2a32d34b569e8092ed414a" }
 rumqttd = { git = "https://github.com/Evanfeenstra/rumqtt", branch = "sphinx-2" } 
 pretty_env_logger = "0.4.0"
 confy = "0.4.0"

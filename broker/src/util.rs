@@ -22,7 +22,10 @@ impl Default for Settings {
     }
 }
 
-pub fn read_broker_config(config_path: &str) -> Settings {
+const BROKER_CONFIG_PATH: &str = "../broker.conf";
+
+pub fn read_broker_config() -> Settings {
+    let config_path = BROKER_CONFIG_PATH;
     let mut settings = Settings::default();
     if let Ok(set) = fs::read_to_string(config_path) {
         let table = Value::from_str(&set)

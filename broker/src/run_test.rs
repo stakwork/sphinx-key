@@ -1,6 +1,6 @@
 use crate::routes::launch_rocket;
 use crate::util::Settings;
-use crate::ChannelRequest;
+use crate::conn::ChannelRequest;
 use rocket::tokio::{self, sync::broadcast, sync::mpsc};
 use sphinx_signer::{parser, sphinx_glyph::topics};
 use vls_protocol::serde_bolt::WireString;
@@ -8,7 +8,7 @@ use vls_protocol::{msgs, msgs::Message};
 
 // const CLIENT_ID: &str = "test-1";
 
-pub fn run_test() -> rocket::Rocket<rocket::Build> {
+pub async fn run_test() -> rocket::Rocket<rocket::Build> {
     log::info!("TEST...");
 
     // let mut id = 0u16;
@@ -17,10 +17,12 @@ pub fn run_test() -> rocket::Rocket<rocket::Build> {
     let settings = Settings::default();
     let (mqtt_tx, mqtt_rx) = mpsc::channel(10000);
     let (error_tx, error_rx) = broadcast::channel(10000);
+    let (conn_tx, _conn_rx) = mpsc::channel(10000);
+
     crate::error_log::log_errors(error_rx);
 
     // block until connection
-    let conns = crate::main_setup(settings, mqtt_rx, error_tx.clone());
+    let conns = crate::broker_setup(settings, mqtt_rx, conn_tx.clone(), error_tx.clone()).await;
     log::info!("=> off to the races!");
 
     let tx_ = mqtt_tx.clone();
