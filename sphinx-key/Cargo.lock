@@ -203,7 +203,7 @@ checksum = "bef38d45163c2f1dde094a7dfd33ccf595c92905c8f8f4fdc18d06fb1037718a"
 [[package]]
 name = "bolt-derive"
 version = "0.1.0"
-source = "git+https://gitlab.com/lightning-signer/validating-lightning-signer.git?rev=0c8c4474af62c4a13e2a32d34b569e8092ed414a#0c8c4474af62c4a13e2a32d34b569e8092ed414a"
+source = "git+https://gitlab.com/lightning-signer/validating-lightning-signer.git?rev=53e6c4beac81f6b450af0bde3d8e1ad6883aa0a4#53e6c4beac81f6b450af0bde3d8e1ad6883aa0a4"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1313,7 +1313,7 @@ dependencies = [
 [[package]]
 name = "lss-connector"
 version = "0.1.0"
-source = "git+https://github.com/stakwork/sphinx-rs.git#2a90ef961230299510d1f5e0bd70812523ce7ce3"
+source = "git+https://github.com/stakwork/sphinx-rs.git#24b96a3375989f7f083fabf62b60f1e1e878a390"
 dependencies = [
  "anyhow",
  "log",
@@ -1965,7 +1965,7 @@ dependencies = [
 [[package]]
 name = "sphinx-auther"
 version = "0.1.12"
-source = "git+https://github.com/stakwork/sphinx-rs.git#2a90ef961230299510d1f5e0bd70812523ce7ce3"
+source = "git+https://github.com/stakwork/sphinx-rs.git#24b96a3375989f7f083fabf62b60f1e1e878a390"
 dependencies = [
  "anyhow",
  "base64",
@@ -1977,7 +1977,7 @@ dependencies = [
 [[package]]
 name = "sphinx-crypter"
 version = "0.1.0"
-source = "git+https://github.com/stakwork/sphinx-rs.git#2a90ef961230299510d1f5e0bd70812523ce7ce3"
+source = "git+https://github.com/stakwork/sphinx-rs.git#24b96a3375989f7f083fabf62b60f1e1e878a390"
 dependencies = [
  "anyhow",
  "chacha20poly1305",
@@ -1988,7 +1988,7 @@ dependencies = [
 [[package]]
 name = "sphinx-glyph"
 version = "0.1.2"
-source = "git+https://github.com/stakwork/sphinx-rs.git#2a90ef961230299510d1f5e0bd70812523ce7ce3"
+source = "git+https://github.com/stakwork/sphinx-rs.git#24b96a3375989f7f083fabf62b60f1e1e878a390"
 dependencies = [
  "anyhow",
  "hex",
@@ -2025,7 +2025,7 @@ dependencies = [
 [[package]]
 name = "sphinx-signer"
 version = "0.1.0"
-source = "git+https://github.com/stakwork/sphinx-rs.git#2a90ef961230299510d1f5e0bd70812523ce7ce3"
+source = "git+https://github.com/stakwork/sphinx-rs.git#24b96a3375989f7f083fabf62b60f1e1e878a390"
 dependencies = [
  "anyhow",
  "bip39",
@@ -2385,7 +2385,7 @@ checksum = "49874b5167b65d7193b8aba1567f5c7d93d001cafc34600cee003eda787e483f"
 [[package]]
 name = "vls-core"
 version = "0.9.0"
-source = "git+https://gitlab.com/lightning-signer/validating-lightning-signer.git?rev=0c8c4474af62c4a13e2a32d34b569e8092ed414a#0c8c4474af62c4a13e2a32d34b569e8092ed414a"
+source = "git+https://gitlab.com/lightning-signer/validating-lightning-signer.git?rev=53e6c4beac81f6b450af0bde3d8e1ad6883aa0a4#53e6c4beac81f6b450af0bde3d8e1ad6883aa0a4"
 dependencies = [
  "anyhow",
  "bitcoin",
@@ -2407,7 +2407,7 @@ dependencies = [
 [[package]]
 name = "vls-persist"
 version = "0.9.0"
-source = "git+https://gitlab.com/lightning-signer/validating-lightning-signer.git?rev=0c8c4474af62c4a13e2a32d34b569e8092ed414a#0c8c4474af62c4a13e2a32d34b569e8092ed414a"
+source = "git+https://gitlab.com/lightning-signer/validating-lightning-signer.git?rev=53e6c4beac81f6b450af0bde3d8e1ad6883aa0a4#53e6c4beac81f6b450af0bde3d8e1ad6883aa0a4"
 dependencies = [
  "hex",
  "log",
@@ -2420,7 +2420,7 @@ dependencies = [
 [[package]]
 name = "vls-protocol"
 version = "0.9.0"
-source = "git+https://gitlab.com/lightning-signer/validating-lightning-signer.git?rev=0c8c4474af62c4a13e2a32d34b569e8092ed414a#0c8c4474af62c4a13e2a32d34b569e8092ed414a"
+source = "git+https://gitlab.com/lightning-signer/validating-lightning-signer.git?rev=53e6c4beac81f6b450af0bde3d8e1ad6883aa0a4#53e6c4beac81f6b450af0bde3d8e1ad6883aa0a4"
 dependencies = [
  "as-any",
  "bolt-derive",
@@ -2434,7 +2434,7 @@ dependencies = [
 [[package]]
 name = "vls-protocol-signer"
 version = "0.9.0"
-source = "git+https://gitlab.com/lightning-signer/validating-lightning-signer.git?rev=0c8c4474af62c4a13e2a32d34b569e8092ed414a#0c8c4474af62c4a13e2a32d34b569e8092ed414a"
+source = "git+https://gitlab.com/lightning-signer/validating-lightning-signer.git?rev=53e6c4beac81f6b450af0bde3d8e1ad6883aa0a4#53e6c4beac81f6b450af0bde3d8e1ad6883aa0a4"
 dependencies = [
  "bit-vec",
  "log",

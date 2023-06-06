@@ -2,6 +2,7 @@ use crate::conn::mqtt::QOS;
 use crate::core::lss;
 use crate::ota::{update_sphinx_key, validate_ota_message};
 
+use lss_connector::secp256k1::PublicKey;
 use sphinx_signer::lightning_signer::bitcoin::Network;
 use sphinx_signer::lightning_signer::persist::Persist;
 use sphinx_signer::persist::{FsPersister, ThreadMemoPersister};
@@ -89,6 +90,7 @@ pub fn make_event_loop(
     policy: &Policy,
     mut ctrlr: Controller,
     client_id: &str,
+    node_id: &PublicKey,
 ) -> Result<()> {
     while let Ok(event) = rx.recv() {
         log::info!("BROKER IP AND PORT: {}", config.broker);
@@ -108,7 +110,7 @@ pub fn make_event_loop(
     let persister = Arc::new(ThreadMemoPersister {});
 
     // initialize the RootHandler
-    let rhb = sphinx_signer::root::builder(seed, network, policy, persister)
+    let rhb = sphinx_signer::root::builder(seed, network, policy, persister, node_id)
         .expect("failed to init signer");
 
     // FIXME it right to restart here?
@@ -268,6 +270,7 @@ pub fn make_event_loop(
     _policy: &Policy,
     mut _ctrlr: Controller,
     client_id: &str,
+    _node_id: &PublicKey,
 ) -> Result<()> {
     log::info!("About to subscribe to the mpsc channel");
     while let Ok(event) = rx.recv() {
