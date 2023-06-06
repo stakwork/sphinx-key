@@ -24,9 +24,6 @@ use esp_idf_svc::nvs::*;
 use sphinx_signer::lightning_signer::bitcoin::Network;
 use sphinx_signer::sphinx_glyph::control::{Config, ControlPersist, Policy};
 
-use rand::distributions::Alphanumeric;
-use rand::Rng;
-
 #[cfg(not(feature = "pingpong"))]
 const CLIENT_ID: &str = "sphinx-1";
 
@@ -180,6 +177,7 @@ fn make_and_launch_client(
 }
 
 pub fn random_word(n: usize) -> String {
+    use sphinx_crypter::secp256k1::rand::{self, distributions::Alphanumeric, Rng};
     rand::thread_rng()
         .sample_iter(&Alphanumeric)
         .take(n)
