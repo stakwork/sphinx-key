@@ -50,6 +50,8 @@ pub enum Status {
 
 pub const ROOT_STORE: &str = "/sdcard/store";
 
+pub const SUB_TOPICS: &[&str] = &[topics::VLS, topics::LSS_MSG, topics::CONTROL];
+
 fn mqtt_sub(
     mqtt: &mut EspMqttClient<ConnState<MessageImpl, EspError>>,
     client_id: &str,
@@ -93,8 +95,7 @@ pub fn make_event_loop(
         // wait for a Connection first.
         match event {
             Event::Connected => {
-                let ts = &[topics::VLS, topics::LSS_MSG, topics::CONTROL];
-                mqtt_sub(&mut mqtt, client_id, ts);
+                mqtt_sub(&mut mqtt, client_id, SUB_TOPICS);
                 break;
             }
             _ => (),
@@ -127,8 +128,7 @@ pub fn make_event_loop(
     while let Ok(event) = rx.recv() {
         match event {
             Event::Connected => {
-                let ts = &[topics::VLS, topics::LSS_MSG, topics::CONTROL];
-                mqtt_sub(&mut mqtt, client_id, ts);
+                mqtt_sub(&mut mqtt, client_id, SUB_TOPICS);
                 led_tx.send(Status::Connected).unwrap();
             }
             Event::Disconnected => {
@@ -274,8 +274,7 @@ pub fn make_event_loop(
         match event {
             Event::Connected => {
                 led_tx.send(Status::ConnectedToMqtt).unwrap();
-                let ts = &[topics::VLS];
-                mqtt_sub(&mut mqtt, client_id, ts);
+                mqtt_sub(&mut mqtt, client_id, &[topics::VLS]);
             }
             Event::VlsMessage(msg_bytes) => {
                 led_tx.send(Status::Signing).unwrap();

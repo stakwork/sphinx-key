@@ -20,7 +20,7 @@ use rocket::tokio::{
     sync::{broadcast, mpsc},
 };
 use rumqttd::{oneshot as std_oneshot, AuthMsg};
-use std::env;
+use std::{env, time::Duration};
 use std::sync::{Arc, Mutex};
 use url::Url;
 use vls_frontend::{frontend::SourceFactory, Frontend};
@@ -78,6 +78,8 @@ async fn run_main(parent_fd: i32) -> rocket::Rocket<rocket::Build> {
     // waits until first connection
     let conns = broker_setup(settings, mqtt_rx, reconn_tx.clone(), error_tx.clone()).await;
 
+    tokio::time::sleep(Duration::from_secs(1)).await;
+
     let (lss_tx, lss_rx) = mpsc::channel::<LssReq>(10000);
     let _lss_broker = if let Ok(lss_uri) = env::var("VLS_LSS") {
         // waits until LSS confirmation from signer
@@ -89,7 +91,7 @@ async fn run_main(parent_fd: i32) -> rocket::Rocket<rocket::Build> {
                 Err(e) => {
                     let _ = error_tx.send(e.to_string().as_bytes().to_vec());
                     log::error!("failed LSS setup, trying again...");
-                    tokio::time::sleep(std::time::Duration::from_secs(3)).await;
+                    tokio::time::sleep(Duration::from_secs(3)).await;
                 }
             }
         };

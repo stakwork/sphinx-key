@@ -3,6 +3,7 @@ use rocket::tokio::{
     self,
     sync::{mpsc},
 };
+use std::time::Duration;
 use crate::conn::{ChannelRequest, LssReq};
 use lss_connector::{LssBroker, Response};
 use sphinx_signer::sphinx_glyph::topics;
@@ -58,6 +59,8 @@ pub fn lss_tasks(lss_conn: LssBroker, mut lss_rx: mpsc::Receiver<LssReq>, mut re
 }
 
 async fn reconnect_dance(cid: &str, lss_conn: &LssBroker, mqtt_tx: &mpsc::Sender<ChannelRequest>) -> Result<()> {
+    // sleep 3 seconds to make sure ESP32 subscription is active
+    tokio::time::sleep(Duration::from_secs(3)).await;
     let init_bytes = lss_conn.make_init_msg().await?;
     let reply = ChannelRequest::send_for(cid, topics::LSS_MSG, init_bytes, mqtt_tx).await?;
     let ir = Response::from_slice(&reply)?.as_init()?;
