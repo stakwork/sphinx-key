@@ -182,10 +182,11 @@ pub async fn broker_setup(
         log::info!("=> connected: {}: {}", cid, connected);
         let _ = startup_tx.send(true);
         while let Ok((cid, connected)) = status_rx.recv() {
+            log::info!("=> reconnected: {}: {}", cid, connected);
             let mut cs = conns_.lock().unwrap();
             cs.client_action(&cid, connected);
+            drop(cs);
             let _ = reconn_tx_.blocking_send((cid, connected));
-            drop(cs)
         }
     });
     let _ = startup_rx.recv();
