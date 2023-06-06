@@ -2013,6 +2013,7 @@ dependencies = [
  "hex",
  "log",
  "lss-connector",
+ "rand",
  "rmp-serde",
  "serde",
  "serde_json",

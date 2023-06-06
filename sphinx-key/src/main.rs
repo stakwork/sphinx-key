@@ -24,6 +24,9 @@ use esp_idf_svc::nvs::*;
 use sphinx_signer::lightning_signer::bitcoin::Network;
 use sphinx_signer::sphinx_glyph::control::{Config, ControlPersist, Policy};
 
+use rand::distributions::Alphanumeric;
+use rand::Rng;
+
 #[cfg(not(feature = "pingpong"))]
 const CLIENT_ID: &str = "sphinx-1";
 
@@ -151,7 +154,8 @@ fn make_and_launch_client(
     let token = ctrlr.make_auth_token().expect("couldnt make auth token");
     log::info!("PUBKEY {} TOKEN {}", &pubkey, &token);
 
-    let mqtt_client = conn::mqtt::make_client(&config.broker, CLIENT_ID, &pubkey, &token, tx)?;
+    let client_id = random_word(8);
+    let mqtt_client = conn::mqtt::make_client(&config.broker, &client_id, &pubkey, &token, tx)?;
     // let mqtt_client = conn::mqtt::start_listening(mqtt, connection, tx)?;
 
     // this blocks forever... the "main thread"
@@ -170,7 +174,15 @@ fn make_and_launch_client(
         seed,
         policy,
         ctrlr,
-        CLIENT_ID,
+        &client_id,
     )?;
     Ok(())
+}
+
+pub fn random_word(n: usize) -> String {
+    rand::thread_rng()
+        .sample_iter(&Alphanumeric)
+        .take(n)
+        .map(char::from)
+        .collect()
 }
