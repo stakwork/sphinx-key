@@ -114,7 +114,7 @@ pub fn make_event_loop(
     let persister = Arc::new(BackupPersister::new(sd_persister, lss_persister));
 
     // initialize the RootHandler
-    let rhb = sphinx_signer::root::builder(seed, network, policy, persister, node_id)
+    let (rhb, approver) = sphinx_signer::root::builder(seed, network, policy, persister, node_id)
         .expect("failed to init signer");
 
     // FIXME it right to restart here?
