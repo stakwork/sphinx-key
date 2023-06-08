@@ -45,3 +45,6 @@ cargo run --bin sphinx-key-tester -- --log
 ##### find pid
 
 ps aux | grep -i sphinx-key-broker
+
+### Run against LSS
+export VLS_LSS=http://127.0.0.1:55551
