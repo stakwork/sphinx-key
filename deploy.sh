@@ -1,4 +1,5 @@
 MODE=debug
+# MODE=release
 check_exists() {
     command -v "$1" > /dev/null
 }
