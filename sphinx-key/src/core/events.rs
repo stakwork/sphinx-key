@@ -7,7 +7,7 @@ use sphinx_signer::lightning_signer::bitcoin::Network;
 use sphinx_signer::lightning_signer::persist::Persist;
 use sphinx_signer::persist::{BackupPersister, FsPersister, ThreadMemoPersister};
 use sphinx_signer::sphinx_glyph::control::{
-    Config, ControlMessage, ControlResponse, Controller, Policy,
+    Config, ControlMessage, ControlResponse, Controller, Policy, Velocity,
 };
 use sphinx_signer::sphinx_glyph::error::Error as GlyphError;
 use sphinx_signer::sphinx_glyph::topics;
@@ -88,6 +88,7 @@ pub fn make_event_loop(
     config: Config,
     seed: [u8; 32],
     policy: &Policy,
+    velocity: &Velocity,
     mut ctrlr: Controller,
     client_id: &str,
     node_id: &PublicKey,
@@ -114,8 +115,9 @@ pub fn make_event_loop(
     let persister = Arc::new(BackupPersister::new(sd_persister, lss_persister));
 
     // initialize the RootHandler
-    let (rhb, approver) = sphinx_signer::root::builder(seed, network, policy, persister, node_id)
-        .expect("failed to init signer");
+    let (rhb, approver) =
+        sphinx_signer::root::builder(seed, network, policy, velocity, persister, node_id)
+            .expect("failed to init signer");
 
     // FIXME it right to restart here?
     let (root_handler, lss_signer) = match lss::init_lss(client_id, &rx, rhb, &mut mqtt) {
@@ -131,6 +133,7 @@ pub fn make_event_loop(
 
     // signing loop
     log::info!("=> starting the main signing loop...");
+    let flash_db = ctrlr.persister();
     while let Ok(event) = rx.recv() {
         match event {
             Event::Connected => {
@@ -143,6 +146,7 @@ pub fn make_event_loop(
             }
             Event::VlsMessage(ref msg_bytes) => {
                 led_tx.send(Status::Signing).unwrap();
+                let state1 = approver.control().get_state();
                 let _ret = match sphinx_signer::root::handle_with_lss(
                     &root_handler,
                     &lss_signer,
@@ -165,6 +169,15 @@ pub fn make_event_loop(
                         mqtt_pub(&mut mqtt, client_id, topics::ERROR, &err_msg.to_vec()[..]);
                     }
                 };
+                let state2 = approver.control().get_state();
+                if state1 != state2 {
+                    // save the velocity state in case of crash or restart
+                    let mut flash_db = flash_db.lock().unwrap();
+                    if let Err(e) = flash_db.write_velocity(state2) {
+                        log::error!("failed to set velocity state {:?}", e);
+                    }
+                    drop(flash_db);
+                }
             }
             Event::LssMessage(ref msg_bytes) => {
                 match lss::handle_lss_msg(msg_bytes, &msgs, &lss_signer) {
@@ -272,6 +285,7 @@ pub fn make_event_loop(
     _config: Config,
     _seed: [u8; 32],
     _policy: &Policy,
+    _velocity: &Velocity,
     mut _ctrlr: Controller,
     client_id: &str,
     _node_id: &PublicKey,

@@ -22,7 +22,7 @@ use esp_idf_hal::peripherals::Peripherals;
 use esp_idf_svc::nvs::*;
 
 use sphinx_signer::lightning_signer::bitcoin::Network;
-use sphinx_signer::sphinx_glyph::control::{Config, ControlPersist, Policy};
+use sphinx_signer::sphinx_glyph::control::{Config, ControlPersist, Policy, Velocity};
 
 #[cfg(not(feature = "pingpong"))]
 const CLIENT_ID: &str = "sphinx-1";
@@ -66,6 +66,7 @@ fn main() -> Result<()> {
     if let Ok(exist) = flash.read_config() {
         let seed = flash.read_seed().expect("no seed...");
         let policy = flash.read_policy().unwrap_or_default();
+        let velocity = flash.read_velocity().unwrap_or_default();
         println!(
             "=============> START CLIENT NOW <============== {:?}",
             exist
@@ -100,6 +101,7 @@ fn main() -> Result<()> {
                 exist.clone(),
                 seed,
                 &policy,
+                &velocity,
                 led_tx.clone(),
                 flash_arc.clone(),
             ) {
@@ -131,6 +133,7 @@ fn make_and_launch_client(
     config: Config,
     seed: [u8; 32],
     policy: &Policy,
+    velocity: &Velocity,
     led_tx: mpsc::Sender<Status>,
     flash: Arc<Mutex<FlashPersister>>,
 ) -> anyhow::Result<()> {
@@ -172,6 +175,7 @@ fn make_and_launch_client(
         config,
         seed,
         policy,
+        velocity,
         ctrlr,
         &client_id,
         &pubkey,

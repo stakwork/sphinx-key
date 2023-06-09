@@ -20,9 +20,11 @@ pingpong = []
 no_persist = []
 
 [dependencies]
+# sphinx-signer = { path = "../../sphinx-rs/signer", optional = true }
 sphinx-signer = { git = "https://github.com/stakwork/sphinx-rs.git", optional = true }
-sphinx-crypter = { git = "https://github.com/stakwork/sphinx-rs.git" }
+# lss-connector = { path = "../../sphinx-rs/lss-connector", default-features = false }
 lss-connector = { git = "https://github.com/stakwork/sphinx-rs.git", default-features = false }
+sphinx-crypter = { git = "https://github.com/stakwork/sphinx-rs.git" }
 bitflags = "1.3.2"
 esp-idf-sys = { version = "0.32.1", features = ["binstart"] }
 embedded-svc = "0.24.0"

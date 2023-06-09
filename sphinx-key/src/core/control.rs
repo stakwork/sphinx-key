@@ -2,7 +2,9 @@ use anyhow::{anyhow, Result};
 use embedded_svc::storage::RawStorage;
 use esp_idf_svc::nvs::{EspDefaultNvs, EspDefaultNvsPartition};
 use sphinx_signer::lightning_signer::bitcoin::Network;
-use sphinx_signer::sphinx_glyph::control::{Config, ControlPersist, Controller, FlashKey, Policy};
+use sphinx_signer::sphinx_glyph::control::{
+    Config, ControlPersist, Controller, FlashKey, Policy, Velocity,
+};
 use std::convert::TryInto;
 use std::sync::{Arc, Mutex};
 
@@ -79,7 +81,7 @@ impl ControlPersist for FlashPersister {
         let mut buf = [0u8; 250];
         let existing = self.0.get_raw(FlashKey::Policy.as_str(), &mut buf)?;
         if let None = existing {
-            return Err(anyhow!("no existing config"));
+            return Err(anyhow!("no existing policy"));
         }
         Ok(rmp_serde::from_slice(existing.unwrap())?)
     }
@@ -90,6 +92,22 @@ impl ControlPersist for FlashPersister {
     }
     fn remove_policy(&mut self) -> Result<()> {
         self.0.remove(FlashKey::Policy.as_str())?;
+        Ok(())
+    }
+    fn read_velocity(&self) -> Result<Velocity> {
+        let mut buf = [0u8; 250];
+        let existing = self
+            .0
+            .get_raw(FlashKey::Velocity.as_str(), &mut buf)?
+            .ok_or(anyhow!("no existing velocity"))?;
+        // if let None = existing {
+        //     return Err(anyhow!("no existing velocity"));
+        // }
+        Ok(rmp_serde::from_slice(existing)?)
+    }
+    fn write_velocity(&mut self, vel: Velocity) -> Result<()> {
+        let vel1 = rmp_serde::to_vec(&vel)?;
+        self.0.set_raw(FlashKey::Velocity.as_str(), &vel1[..])?;
         Ok(())
     }
 }
