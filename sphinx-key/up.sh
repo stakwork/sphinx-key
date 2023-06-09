@@ -1,3 +1,7 @@
+MODE=debug
+# MODE=release
+SSID=sphinx
+PASS=sphinxkey
 check_exists() {
     command -v "$1" > /dev/null
 }
@@ -60,7 +64,12 @@ then
     echo "Make sure the ESP is connected with a data USB cable, and try again."
     exit 1
 fi
-cargo build --release &&
-esptool.py --chip esp32c3 elf2image target/riscv32imc-esp-espidf/release/sphinx-key && 
-esptool.py --chip esp32c3 -p $PORT -b 460800 --before=default_reset --after=hard_reset write_flash --flash_mode dio --flash_freq 40m --flash_size 4MB 0x10000 target/riscv32imc-esp-espidf/release/sphinx-key.bin &&
-espmonitor $PORT
+if [ $MODE = "release" ]
+then
+    cargo build --release
+else
+    cargo build
+fi &&
+esptool.py --chip esp32-c3 elf2image target/riscv32imc-esp-espidf/$MODE/sphinx-key &&
+esptool.py --chip esp32c3 -b 460800 --before=default_reset --after=hard_reset write_flash --flash_mode dio --flash_freq 40m --flash_size 4MB 0x80000 target/riscv32imc-esp-espidf/$MODE/sphinx-key.bin &&
+cargo espflash serial-monitor $PORT
