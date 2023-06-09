@@ -31,11 +31,11 @@ impl FlashPersister {
 impl ControlPersist for FlashPersister {
     fn read_nonce(&self) -> Result<u64> {
         let mut buf = [0u8; 8];
-        let existing = self.0.get_raw(FlashKey::Nonce.as_str(), &mut buf)?;
-        if let None = existing {
-            return Err(anyhow!("no existing nonce"));
-        }
-        let r: [u8; 8] = existing.unwrap().try_into()?;
+        let existing = self
+            .0
+            .get_raw(FlashKey::Nonce.as_str(), &mut buf)?
+            .ok_or(anyhow!("no existing nonce"))?;
+        let r: [u8; 8] = existing.try_into()?;
         Ok(u64::from_be_bytes(r))
     }
     fn set_nonce(&mut self, nonce: u64) -> Result<()> {
@@ -45,11 +45,11 @@ impl ControlPersist for FlashPersister {
     }
     fn read_config(&self) -> Result<Config> {
         let mut buf = [0u8; 250];
-        let existing = self.0.get_raw(FlashKey::Config.as_str(), &mut buf)?;
-        if let None = existing {
-            return Err(anyhow!("no existing config"));
-        }
-        Ok(rmp_serde::from_slice(existing.unwrap())?)
+        let existing = self
+            .0
+            .get_raw(FlashKey::Config.as_str(), &mut buf)?
+            .ok_or(anyhow!("no existing config"))?;
+        Ok(rmp_serde::from_slice(existing)?)
     }
     fn write_config(&mut self, conf: Config) -> Result<()> {
         let conf1 = rmp_serde::to_vec(&conf)?;
@@ -62,11 +62,11 @@ impl ControlPersist for FlashPersister {
     }
     fn read_seed(&self) -> Result<[u8; 32]> {
         let mut buf = [0u8; 32];
-        let s = self.0.get_raw(FlashKey::Seed.as_str(), &mut buf)?;
-        if let None = s {
-            return Err(anyhow!("no existing seed"));
-        }
-        let r: [u8; 32] = s.unwrap().try_into()?;
+        let s = self
+            .0
+            .get_raw(FlashKey::Seed.as_str(), &mut buf)?
+            .ok_or(anyhow!("no existing seed"))?;
+        let r: [u8; 32] = s.try_into()?;
         Ok(r)
     }
     fn write_seed(&mut self, s: [u8; 32]) -> Result<()> {
@@ -79,11 +79,11 @@ impl ControlPersist for FlashPersister {
     }
     fn read_policy(&self) -> Result<Policy> {
         let mut buf = [0u8; 250];
-        let existing = self.0.get_raw(FlashKey::Policy.as_str(), &mut buf)?;
-        if let None = existing {
-            return Err(anyhow!("no existing policy"));
-        }
-        Ok(rmp_serde::from_slice(existing.unwrap())?)
+        let existing = self
+            .0
+            .get_raw(FlashKey::Policy.as_str(), &mut buf)?
+            .ok_or(anyhow!("no existing policy"))?;
+        Ok(rmp_serde::from_slice(existing)?)
     }
     fn write_policy(&mut self, pol: Policy) -> Result<()> {
         let pol1 = rmp_serde::to_vec(&pol)?;
@@ -100,9 +100,6 @@ impl ControlPersist for FlashPersister {
             .0
             .get_raw(FlashKey::Velocity.as_str(), &mut buf)?
             .ok_or(anyhow!("no existing velocity"))?;
-        // if let None = existing {
-        //     return Err(anyhow!("no existing velocity"));
-        // }
         Ok(rmp_serde::from_slice(existing)?)
     }
     fn write_velocity(&mut self, vel: Velocity) -> Result<()> {
