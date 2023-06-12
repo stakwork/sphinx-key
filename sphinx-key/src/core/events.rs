@@ -88,7 +88,7 @@ pub fn make_event_loop(
     config: Config,
     seed: [u8; 32],
     policy: &Policy,
-    velocity: &Velocity,
+    velocity: &Option<Velocity>,
     mut ctrlr: Controller,
     client_id: &str,
     node_id: &PublicKey,
@@ -111,13 +111,27 @@ pub fn make_event_loop(
     // let persister = Arc::new(ThreadMemoPersister {});
 
     let sd_persister = FsPersister::new(&ROOT_STORE, Some(8));
+    let initial_allowlist = match sd_persister.get_node_allowlist(node_id) {
+        Ok(al) => al,
+        Err(_) => {
+            log::warn!("no allowlist found in fs persister!");
+            Vec::new()
+        }
+    };
+
     let lss_persister = ThreadMemoPersister {};
     let persister = Arc::new(BackupPersister::new(sd_persister, lss_persister));
 
     // initialize the RootHandler
-    let (rhb, approver) =
-        sphinx_signer::root::builder(seed, network, policy, velocity, persister, node_id)
-            .expect("failed to init signer");
+    let (rhb, approver) = sphinx_signer::root::builder(
+        seed,
+        network,
+        policy.clone(),
+        velocity.clone(),
+        initial_allowlist,
+        persister,
+    )
+    .expect("failed to init signer");
 
     // FIXME it right to restart here?
     let (root_handler, lss_signer) = match lss::init_lss(client_id, &rx, rhb, &mut mqtt) {
@@ -285,7 +299,7 @@ pub fn make_event_loop(
     _config: Config,
     _seed: [u8; 32],
     _policy: &Policy,
-    _velocity: &Velocity,
+    _velocity: &Option<Velocity>,
     mut _ctrlr: Controller,
     client_id: &str,
     _node_id: &PublicKey,

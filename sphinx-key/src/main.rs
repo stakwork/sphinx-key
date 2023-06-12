@@ -66,7 +66,7 @@ fn main() -> Result<()> {
     if let Ok(exist) = flash.read_config() {
         let seed = flash.read_seed().expect("no seed...");
         let policy = flash.read_policy().unwrap_or_default();
-        let velocity = flash.read_velocity().unwrap_or_default();
+        let velocity = flash.read_velocity().ok();
         println!(
             "=============> START CLIENT NOW <============== {:?}",
             exist
@@ -133,7 +133,7 @@ fn make_and_launch_client(
     config: Config,
     seed: [u8; 32],
     policy: &Policy,
-    velocity: &Velocity,
+    velocity: &Option<Velocity>,
     led_tx: mpsc::Sender<Status>,
     flash: Arc<Mutex<FlashPersister>>,
 ) -> anyhow::Result<()> {
