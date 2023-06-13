@@ -1,6 +1,7 @@
 use crate::conn::mqtt::QOS;
 use crate::core::lss;
 use crate::ota::{update_sphinx_key, validate_ota_message};
+use crate::status::Status;
 
 use lss_connector::secp256k1::PublicKey;
 use sphinx_signer::lightning_signer::bitcoin::Network;
@@ -30,23 +31,6 @@ pub enum Event {
     VlsMessage(Vec<u8>),
     LssMessage(Vec<u8>),
     Control(Vec<u8>),
-}
-
-#[derive(Debug, Ord, PartialOrd, Eq, PartialEq)]
-pub enum Status {
-    Starting,
-    MountingSDCard,
-    SyncingTime,
-    WifiAccessPoint,
-    Configuring,
-    ConnectingToWifi,
-    ConnectingToMqtt,
-    Connected,
-    Signing,
-    Ota,
-    Reset1,
-    Reset2,
-    Reset3,
 }
 
 pub const ROOT_STORE: &str = "/sdcard/store";

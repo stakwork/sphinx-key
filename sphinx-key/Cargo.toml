@@ -48,3 +48,6 @@ anyhow = "1"
 name = "clear"
 path = "src/clear.rs"
 
+[[bin]]
+name = "btn"
+path = "src/btn.rs"

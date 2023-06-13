@@ -1,7 +1,5 @@
-mod conn;
-mod core;
-mod ota;
 mod periph;
+mod status;
 
 #[allow(unused_imports)]
 use crate::periph::sd::mount_sd_card;

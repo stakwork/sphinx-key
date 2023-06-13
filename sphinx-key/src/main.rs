@@ -3,9 +3,11 @@ mod conn;
 mod core;
 mod ota;
 mod periph;
+mod status;
 
 use crate::core::control::{controller_from_seed, FlashPersister};
 use crate::core::{config::*, events::*};
+use crate::status::Status;
 // use crate::periph::led::led_control_loop;
 use crate::periph::button::button_loop;
 #[allow(unused_imports)]

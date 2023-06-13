@@ -1,4 +1,4 @@
-use crate::core::events::Status;
+use crate::status::Status;
 use anyhow::{anyhow, Result};
 use embedded_svc::http::client::Client;
 use embedded_svc::http::Status as HttpStatus;
