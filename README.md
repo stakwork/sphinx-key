@@ -76,6 +76,12 @@ This will encrypt your seed and send to the hardware, along with your home wifi 
 
 `espflash target/riscv32imc-esp-espidf/debug/sphinx-key --monitor`
 
+### button test
+
+`espflash target/riscv32imc-esp-espidf/debug/btn`
+
+`espmonitor $PORT`
+
 ## dependencies
 
 ##### cargo nightly:

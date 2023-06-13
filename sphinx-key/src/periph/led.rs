@@ -27,14 +27,16 @@ fn states() -> BTreeMap<Status, (Color, Time)> {
     s.insert(Status::Connected, (0x000101, 400)); // Cyan
     s.insert(Status::Signing, (0x111111, 100)); // White
     s.insert(Status::Ota, (0xffa500, 100)); // Orange
+    s.insert(Status::Reset1, (0x017700, 100)); // yellow?
+    s.insert(Status::Reset2, (0xffa500, 100)); // orange?
+    s.insert(Status::Reset3, (0x010000, 100)); // Red
     s
 }
 
 pub fn led_control_loop(gpio0: gpio::Gpio0, channel0: rmt::CHANNEL0, rx: mpsc::Receiver<Status>) {
-    let led = gpio0;
     let config = TransmitConfig::new().clock_divider(1);
     let transmit = Arc::new(Mutex::new(
-        TxRmtDriver::new(channel0, led, &config).unwrap(),
+        TxRmtDriver::new(channel0, gpio0, &config).unwrap(),
     ));
     thread::spawn(move || {
         let mut led = Led::new(0x000001, 100);

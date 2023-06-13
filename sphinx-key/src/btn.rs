@@ -10,8 +10,16 @@ use esp_idf_hal::peripherals::Peripherals;
 use esp_idf_svc::nvs::EspNvs;
 use esp_idf_svc::nvs::*;
 use std::sync::mpsc;
+use std::thread;
+use std::time::Duration;
 
 fn main() -> anyhow::Result<()> {
+    esp_idf_sys::link_patches();
+
+    esp_idf_svc::log::EspLogger::initialize_default();
+
+    thread::sleep(Duration::from_secs(1));
+
     let peripherals = Peripherals::take().unwrap();
     let pins = peripherals.pins;
 
@@ -22,5 +30,7 @@ fn main() -> anyhow::Result<()> {
     // BUTTON thread
     periph::button::button_loop(pins.gpio8, led_tx.clone());
 
-    Ok(())
+    loop {
+        thread::sleep(Duration::from_millis(1000));
+    }
 }
