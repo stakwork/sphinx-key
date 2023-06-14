@@ -23,71 +23,35 @@ pub fn start_client(
     modem: impl peripheral::Peripheral<P = esp_idf_hal::modem::Modem> + 'static,
     default_nvs: EspDefaultNvsPartition,
     config: &Config,
-) -> Result<Box<EspWifi<'static>>> {
+) -> Result<BlockingWifi<EspWifi<'static>>> {
     // let netif_stack = Arc::new(EspNetifStack::new()?);
     // let sys_loop_stack = Arc::new(EspSysLoopStack::new()?);
-
     let sysloop = EspSystemEventLoop::take()?;
 
-    let mut wifi = Box::new(EspWifi::new(modem, sysloop.clone(), Some(default_nvs))?);
-    let ap_infos = wifi.scan()?;
+    let mut wifi = BlockingWifi::wrap(
+        EspWifi::new(modem, sysloop.clone(), Some(default_nvs))?,
+        sysloop,
+    )?;
+
     let ssid = config.ssid.as_str();
     let pass = config.pass.as_str();
-
-    let ours = ap_infos.into_iter().find(|a| a.ssid == ssid);
-    let channel = if let Some(ours) = ours {
-        info!(
-            "Found configured access point {} on channel {}",
-            ssid, ours.channel
-        );
-        Some(ours.channel)
-    } else {
-        info!(
-            "Configured access point {} not found during scanning, will go with unknown channel",
-            ssid
-        );
-        None
-    };
-
     wifi.set_configuration(&Configuration::Client(ClientConfiguration {
         ssid: ssid.into(),
         password: pass.into(),
-        channel,
+        channel: None,
         ..Default::default()
     }))?;
+    info!("Wifi configured");
 
     wifi.start()?;
-
-    info!("...Wifi client configuration set, get status");
-    // match wifi.wait_status_with_timeout(Duration::from_secs(20), |status| !status.is_transitional())
-    // {
-    //     Ok(_) => (),
-    //     Err(e) => warn!("Unexpected Wifi status: {:?}", e),
-    // };
-
-    if !WifiWait::new(&sysloop)?
-        .wait_with_timeout(Duration::from_secs(20), || wifi.is_started().unwrap())
-    {
-        warn!("Wifi did not start");
-    }
-
-    info!("Connecting wifi...");
-
+    info!("Wifi started");
     wifi.connect()?;
-
-    if !EspNetifWait::new::<EspNetif>(wifi.sta_netif(), &sysloop)?.wait_with_timeout(
-        Duration::from_secs(20),
-        || {
-            wifi.is_connected().unwrap()
-                && wifi.sta_netif().get_ip_info().unwrap().ip != std::net::Ipv4Addr::new(0, 0, 0, 0)
-        },
-    ) {
-        warn!("Wifi did not connect or did not receive a DHCP lease");
-    }
-
-    let ip_info = wifi.sta_netif().get_ip_info()?;
-
+    info!("Wifi connected");
+    wifi.wait_netif_up()?;
+    info!("Wifi netif up");
+    let ip_info = wifi.wifi().sta_netif().get_ip_info()?;
     info!("Wifi DHCP info: {:?}", ip_info);
+
     // let status = wifi.get_status();
     // println!("=> wifi STATUS {:?}", status);
     // println!("=> is transitional? {:?}", status.is_transitional());
@@ -115,11 +79,14 @@ pub fn start_client(
 pub fn start_access_point(
     modem: impl peripheral::Peripheral<P = esp_idf_hal::modem::Modem> + 'static,
     default_nvs: EspDefaultNvsPartition,
-) -> Result<Box<EspWifi<'static>>> {
+) -> Result<BlockingWifi<EspWifi<'static>>> {
     let sysloop = EspSystemEventLoop::take()?;
     // let netif_stack = Arc::new(EspNetifStack::new()?);
     // let sys_loop_stack = Arc::new(EspSysLoopStack::new()?);
-    let mut wifi = Box::new(EspWifi::new(modem, sysloop.clone(), Some(default_nvs))?);
+    let mut wifi = BlockingWifi::wrap(
+        EspWifi::new(modem, sysloop.clone(), Some(default_nvs))?,
+        sysloop,
+    )?;
 
     let ssid: &'static str = env!("SSID");
     let password: &'static str = env!("PASS");
@@ -134,15 +101,12 @@ pub fn start_access_point(
         auth_method: AuthMethod::WPA2Personal,
         ..Default::default()
     }))?;
+    info!("Wifi configured");
 
     wifi.start()?;
-
-    info!("Wifi configuration set, about to get status");
-    if !WifiWait::new(&sysloop)?
-        .wait_with_timeout(Duration::from_secs(20), || wifi.is_started().unwrap())
-    {
-        return Err(anyhow::anyhow!("Wifi did not start"));
-    }
+    info!("Wifi started");
+    wifi.wait_netif_up()?;
+    info!("Wifi netif up");
 
     info!(
         "Wifi started!\n \nWIFI NAME: {}\nWIFI PASSWORD: {}\n",

@@ -163,7 +163,7 @@ fn make_and_launch_client(
     // let mqtt_client = conn::mqtt::start_listening(mqtt, connection, tx)?;
 
     // this blocks forever... the "main thread"
-    let do_log = true;
+    let do_log = false;
     log::info!("Network set to {:?}", network);
     log::info!(">>>>>>>>>>> blocking forever...");
     log::info!("{:?}", config);
