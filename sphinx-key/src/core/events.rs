@@ -142,13 +142,13 @@ pub fn make_event_loop(
                 led_tx.send(Status::ConnectingToMqtt).unwrap();
                 log::info!("GOT A Event::Disconnected msg!");
             }
-            Event::VlsMessage(ref msg_bytes) => {
+            Event::VlsMessage(msg_bytes) => {
                 led_tx.send(Status::Signing).unwrap();
                 let state1 = approver.control().get_state();
                 let _ret = match sphinx_signer::root::handle_with_lss(
                     &root_handler,
                     &lss_signer,
-                    msg_bytes.clone(),
+                    msg_bytes,
                     do_log,
                 ) {
                     Ok((vls_b, lss_b)) => {
@@ -177,8 +177,8 @@ pub fn make_event_loop(
                     drop(flash_db);
                 }
             }
-            Event::LssMessage(ref msg_bytes) => {
-                match lss::handle_lss_msg(msg_bytes, &msgs, &lss_signer) {
+            Event::LssMessage(msg_bytes) => {
+                match lss::handle_lss_msg(&msg_bytes, &msgs, &lss_signer) {
                     Ok((ret_topic, bytes)) => {
                         // set msgs back to None
                         msgs = None;
