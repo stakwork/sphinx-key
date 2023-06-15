@@ -2,8 +2,9 @@
 name = "sphinx-key"
 version = "0.1.0"
 authors = ["Evan Feenstra <evanfeenstra@gmail.com>"]
-edition = "2018"
+edition = "2021"
 resolver = "2"
+rust-version = "1.66"
 
 [profile.release]
 opt-level = "s"
@@ -41,8 +42,7 @@ hex = "0.4.3"
 rmp-serde = "1.1.0"
 
 [build-dependencies]
-embuild = "0.29"
-anyhow = "1"
+embuild = "0.31.2"
 
 [[bin]]
 name = "clear"

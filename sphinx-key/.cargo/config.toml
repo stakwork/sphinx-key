@@ -1,36 +1,18 @@
 [build]
-# Uncomment the relevant target for your chip here (ESP32, ESP32-S2, ESP32-S3 or ESP32-C3)
-#target = "xtensa-esp32-espidf"
-#target = "xtensa-esp32s2-espidf"
-#target = "xtensa-esp32s3-espidf"
 target = "riscv32imc-esp-espidf"
-
-[target.xtensa-esp32-espidf]
-linker = "ldproxy"
-
-[target.xtensa-esp32s2-espidf]
-linker = "ldproxy"
-
-[target.xtensa-esp32s3-espidf]
-linker = "ldproxy"
 
 [target.riscv32imc-esp-espidf]
 linker = "ldproxy"
-
-# Future - necessary for the experimental "native build" of esp-idf-sys with ESP32C3
-# See also https://github.com/ivmarkov/embuild/issues/16
-rustflags = ["-C", "default-linker-libraries"]
+# runner = "espflash --monitor" # Select this runner for espflash v1.x.x
+runner = "espflash flash --monitor" # Select this runner for espflash v2.x.x
+rustflags = ["--cfg", "espidf_time64", "-C", "default-linker-libraries"]
 
 [unstable]
-
 build-std = ["std", "panic_abort"]
-build-std-features = ["panic_immediate_abort"] # Required for older ESP-IDF versions without a realpath implementation
 
 [env]
-# Note: these variables are not used when using pio builder
-# Enables the esp-idf-sys "native" build feature (`cargo build --features native`) to build against ESP-IDF stable (v4.4)
-ESP_IDF_VERSION = { value = "tag:v4.4.2" }
-# Enables the esp-idf-sys "native" build feature (`cargo build --features native`) to build against ESP-IDF master (mainline)
-#ESP_IDF_VERSION = { value = "master" }
+# Note: these variables are not used when using pio builder (`cargo build --features pio`)
+ESP_IDF_VERSION = "release/v5.0"
 CC = { value = "../factory/.embuild/espressif/tools/riscv32-esp-elf/esp-2021r2-patch3-8.4.0/riscv32-esp-elf/bin/riscv32-esp-elf-gcc", relative = true }
 CFLAGS = { value = "-fno-pic" }
+MCU = { value = "esp32c3" }

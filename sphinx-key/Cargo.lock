@@ -290,7 +290,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7f83bc2e401ed041b7057345ebc488c005efa0341d5541ce7004d30458d0090b"
 dependencies = [
  "serde",
- "toml 0.7.3",
+ "toml",
 ]
 
 [[package]]
@@ -576,26 +576,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "dirs"
-version = "4.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ca3aa72a6f96ea37bbc5aa912f6788242832f75369bdfdadcb0e38423f100059"
-dependencies = [
- "dirs-sys",
-]
-
-[[package]]
-name = "dirs-sys"
-version = "0.3.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1b1d1d91c932ef41c0f2663aa8b0ca0342d444d842c06914aa0a7e352d0bada6"
-dependencies = [
- "libc",
- "redox_users",
- "winapi",
-]
-
-[[package]]
 name = "edge-executor"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -685,26 +665,6 @@ dependencies = [
 
 [[package]]
 name = "embuild"
-version = "0.29.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cd1dd6c90e28cfc361281a692320fcd820bcae71d327215e87c7d749bf8ddd26"
-dependencies = [
- "anyhow",
- "bitflags",
- "dirs",
- "filetime",
- "log",
- "serde",
- "serde_json",
- "shlex",
- "strum 0.24.1",
- "thiserror",
- "toml 0.5.11",
- "xmas-elf",
-]
-
-[[package]]
-name = "embuild"
 version = "0.31.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3ad838e9b86748e477f1d882c41777978947ca3a1f0cdde572234bc7dc68ed3d"
@@ -725,7 +685,7 @@ dependencies = [
  "strum 0.24.1",
  "tempfile",
  "thiserror",
- "toml 0.7.3",
+ "toml",
  "ureq",
  "which",
 ]
@@ -795,7 +755,7 @@ dependencies = [
  "embedded-hal 0.2.7",
  "embedded-hal 1.0.0-alpha.10",
  "embedded-hal-nb",
- "embuild 0.31.2",
+ "embuild",
  "enumset",
  "esp-idf-sys",
  "heapless",
@@ -811,7 +771,7 @@ dependencies = [
  "anyhow",
  "embassy-futures",
  "embedded-svc",
- "embuild 0.31.2",
+ "embuild",
  "enumset",
  "esp-idf-hal",
  "esp-idf-sys",
@@ -831,7 +791,7 @@ dependencies = [
  "build-time",
  "cargo_metadata",
  "const_format",
- "embuild 0.31.2",
+ "embuild",
  "envy",
  "libc",
  "regex",
@@ -1632,17 +1592,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "redox_users"
-version = "0.4.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b033d837a7cf162d7993aded9304e30a83213c648b6e389db233191f891e5c2b"
-dependencies = [
- "getrandom",
- "redox_syscall 0.2.16",
- "thiserror",
-]
-
-[[package]]
 name = "regex"
 version = "1.7.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2010,7 +1959,7 @@ dependencies = [
  "bitflags",
  "embedded-hal 1.0.0-alpha.10",
  "embedded-svc",
- "embuild 0.29.3",
+ "embuild",
  "esp-idf-hal",
  "esp-idf-svc",
  "esp-idf-sys",
@@ -2228,15 +2177,6 @@ name = "time-core"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2e153e1f1acaef8acc537e68b44906d2db6436e2b35ac2c6b42640fff91f00fd"
-
-[[package]]
-name = "toml"
-version = "0.5.11"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f4f7f0dd8d50a853a531c426359045b1998f04219d88799810762cd4ad314234"
-dependencies = [
- "serde",
-]
 
 [[package]]
 name = "toml"
@@ -2755,21 +2695,6 @@ checksum = "ae8970b36c66498d8ff1d66685dc86b91b29db0c7739899012f63a63814b4b28"
 dependencies = [
  "memchr",
 ]
-
-[[package]]
-name = "xmas-elf"
-version = "0.8.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8d29b4d8e7beaceb4e77447ba941a7600d23d0319ab52da0461abea214832d5a"
-dependencies = [
- "zero",
-]
-
-[[package]]
-name = "zero"
-version = "0.1.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2fe21bcc34ca7fe6dd56cc2cb1261ea59d6b93620215aefb5ea6032265527784"
 
 [[package]]
 name = "zeroize"
