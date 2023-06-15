@@ -251,7 +251,7 @@ fn config(settings: Settings) -> Config {
             connections: ConnectionSettings {
                 connection_timeout_ms: 5000,
                 throttle_delay_ms: 0,
-                max_payload_size: 5120,
+                max_payload_size: 20480,
                 max_inflight_count: 200,
                 max_inflight_size: 1024,
                 auth: None,
