@@ -12,7 +12,7 @@ build-std = ["std", "panic_abort"]
 
 [env]
 # Note: these variables are not used when using pio builder (`cargo build --features pio`)
-ESP_IDF_VERSION = "release/v5.0"
+ESP_IDF_VERSION = "tag:v5.0.2"
 CC = { value = "../factory/.embuild/espressif/tools/riscv32-esp-elf/esp-2022r1-11.2.0/riscv32-esp-elf/bin/riscv32-esp-elf-gcc", relative = true }
 CFLAGS = { value = "-fno-pic" }
 MCU = { value = "esp32c3" }
