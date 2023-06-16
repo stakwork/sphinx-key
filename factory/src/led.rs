@@ -1,4 +1,3 @@
-use embedded_hal::blocking::delay::DelayMs;
 use esp_idf_hal::delay::Ets;
 use esp_idf_hal::delay::FreeRtos;
 use esp_idf_hal::peripherals::Peripherals;

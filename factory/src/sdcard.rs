@@ -61,6 +61,7 @@ fn setup() -> anyhow::Result<()> {
         format_if_mount_failed: false,
         max_files: 5,
         allocation_unit_size: 16 * 1024,
+        disk_status_check_enable: false,
     };
 
     let mut card: *mut sdmmc_card_t = ptr::null_mut();

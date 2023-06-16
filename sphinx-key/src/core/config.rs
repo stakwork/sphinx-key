@@ -45,7 +45,7 @@ pub fn start_wifi_client(
     modem: impl peripheral::Peripheral<P = esp_idf_hal::modem::Modem> + 'static,
     default_nvs: EspDefaultNvsPartition,
     config: &Config,
-) -> Result<Box<EspWifi>> {
+) -> Result<BlockingWifi<EspWifi>> {
     let wifi = conn::wifi::start_client(modem, default_nvs, config)?;
     println!("CLIENT CONNECTED!!!!!! {:?}", wifi.is_connected());
     Ok(wifi)
@@ -79,7 +79,7 @@ pub fn decrypt_seed(dto: ConfigDTO, sk1: SecretKey) -> Result<(Config, [u8; 32])
 pub fn start_config_server_and_wait(
     modem: impl peripheral::Peripheral<P = esp_idf_hal::modem::Modem> + 'static,
     default_nvs: EspDefaultNvsPartition,
-) -> Result<(Box<EspWifi<'static>>, Config, [u8; 32])> {
+) -> Result<(BlockingWifi<EspWifi<'static>>, Config, [u8; 32])> {
     let mutex = Arc::new((Mutex::new(None), Condvar::new()));
 
     #[allow(clippy::redundant_clone)]
