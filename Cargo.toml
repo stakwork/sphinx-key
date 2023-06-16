@@ -1,12 +1,24 @@
 [workspace]
+resolver = "2"
 
 members = [
-    "tester",
+    "factory",
+    "sphinx-key",
 ]
 
 exclude = [
     "broker",
-    "factory",
     "persister",
-    "sphinx-key",
+    "tester",
 ]
+
+[profile.release]
+strip = true  # Automatically strip symbols from the binary.
+opt-level = "z"  # Optimize for size.
+lto = true
+codegen-units = 1
+panic = "abort"
+
+[profile.dev]
+debug = true # Symbols are nice and they don't increase the size on Flash
+opt-level = "z"

@@ -3,19 +3,7 @@ name = "sphinx-key-factory"
 version = "0.1.0"
 authors = ["decentclock <decentclock.5uh2k@slmail.me>"]
 edition = "2021"
-resolver = "2"
 rust-version = "1.66"
-
-[profile.release]
-strip = true  # Automatically strip symbols from the binary.
-opt-level = "z"  # Optimize for size.
-lto = true
-codegen-units = 1
-panic = "abort"
-
-[profile.dev]
-debug = true # Symbols are nice and they don't increase the size on Flash
-opt-level = "z"
 
 [features]
 pio = ["esp-idf-sys/pio"]
