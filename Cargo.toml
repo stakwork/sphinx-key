@@ -1,39 +1,26 @@
 [workspace]
+exclude  = ["broker", "tester"]
+members  = ["factory", "sphinx-key"]
 resolver = "2"
 
-members = [
-    "factory",
-    "sphinx-key",
-]
-
-exclude = [
-    "broker",
-    "persister",
-    "tester",
-]
-
-[workspace.package]
-edition = "2021"
-rust-version = "1.66"
-
 [workspace.dependencies]
-esp-idf-sys = { version = "0.33.1", features = ["binstart"] }
-esp-idf-svc = { version = "0.46.0", features = ["experimental", "alloc"] }
-esp-idf-hal = "0.41.1"
-embedded-svc = "0.25.0"
+anyhow       = { version = "1", features = ["backtrace"] }
+bitflags     = "1.3.2"
 embedded-hal = "=1.0.0-alpha.10"
-anyhow = { version = "1", features = ["backtrace"]}
-log = "0.4.17"
-bitflags = "1.3.2"
-embuild = "0.31.2"
+embedded-svc = "0.25.0"
+embuild      = "0.31.2"
+esp-idf-hal  = "0.41.1"
+esp-idf-svc  = { version = "0.46.0", features = ["experimental", "alloc"] }
+esp-idf-sys  = { version = "0.33.1", features = ["binstart"] }
+log          = "0.4.17"
 
 [profile.release]
-strip = true  # Automatically strip symbols from the binary.
-opt-level = "z"  # Optimize for size.
-lto = true
 codegen-units = 1
-panic = "abort"
+lto           = true
+opt-level     = "z"     # Optimize for size.
+panic         = "abort"
+strip         = true    # Automatically strip symbols from the binary.
 
 [profile.dev]
-debug = true # Symbols are nice and they don't increase the size on Flash
+debug     = true # Symbols are nice and they don't increase the size on Flash
 opt-level = "z"

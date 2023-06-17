@@ -1,19 +1,19 @@
 [package]
-name = "sphinx-key-factory"
-version = "0.1.0"
-authors = ["decentclock <decentclock.5uh2k@slmail.me>"]
-edition.workspace = true
-rust-version.workspace = true
+authors      = ["decentclock <decentclock.5uh2k@slmail.me>"]
+edition      = "2021"
+name         = "sphinx-key-factory"
+rust-version = "1.66"
+version      = "0.1.0"
 
 [dependencies]
-esp-idf-sys.workspace = true
-esp-idf-svc.workspace = true
-esp-idf-hal.workspace = true
-embedded-svc.workspace = true
+anyhow.workspace       = true
+bitflags.workspace     = true
 embedded-hal.workspace = true
-anyhow.workspace = true
-log.workspace = true
-bitflags.workspace = true
+embedded-svc.workspace = true
+esp-idf-hal.workspace  = true
+esp-idf-svc.workspace  = true
+esp-idf-sys.workspace  = true
+log.workspace          = true
 
 [build-dependencies]
 embuild.workspace = true
