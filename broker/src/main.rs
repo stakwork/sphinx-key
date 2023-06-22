@@ -70,13 +70,14 @@ async fn run_main(parent_fd: i32) -> rocket::Rocket<rocket::Build> {
     let settings = read_broker_config();
 
     let (mqtt_tx, mqtt_rx) = mpsc::channel(10000);
+    let (init_tx, init_rx) = mpsc::channel(10000);
     let (error_tx, error_rx) = broadcast::channel(10000);
     error_log::log_errors(error_rx);
 
     let (reconn_tx, reconn_rx) = mpsc::channel::<(String, bool)>(10000);
 
     // waits until first connection
-    let conns = broker_setup(settings, mqtt_rx, reconn_tx.clone(), error_tx.clone()).await;
+    let conns = broker_setup(settings, mqtt_rx, init_rx, reconn_tx.clone(), error_tx.clone()).await;
 
     tokio::time::sleep(Duration::from_secs(1)).await;
 
@@ -84,7 +85,7 @@ async fn run_main(parent_fd: i32) -> rocket::Rocket<rocket::Build> {
     let _lss_broker = if let Ok(lss_uri) = env::var("VLS_LSS") {
         // waits until LSS confirmation from signer
         let lss_broker = loop {
-            match lss::lss_setup(&lss_uri, mqtt_tx.clone()).await{
+            match lss::lss_setup(&lss_uri, init_tx.clone()).await{
                 Ok(l) => {
                     break l;
                 },
@@ -95,7 +96,7 @@ async fn run_main(parent_fd: i32) -> rocket::Rocket<rocket::Build> {
                 }
             }
         };
-        lss::lss_tasks(lss_broker.clone(), lss_rx, reconn_rx, mqtt_tx.clone());
+        lss::lss_tasks(lss_broker.clone(), lss_rx, reconn_rx, init_tx);
         log::info!("=> lss broker connection created!");
         Some(lss_broker)
     } else {
@@ -137,6 +138,7 @@ async fn run_main(parent_fd: i32) -> rocket::Rocket<rocket::Build> {
 pub async fn broker_setup(
     settings: Settings,
     mqtt_rx: mpsc::Receiver<ChannelRequest>,
+    init_rx: mpsc::Receiver<ChannelRequest>,
     reconn_tx: mpsc::Sender<(String, bool)>,
     error_tx: broadcast::Sender<Vec<u8>>,
 ) -> Arc<Mutex<Connections>> {
@@ -161,6 +163,7 @@ pub async fn broker_setup(
     start_broker(
         settings,
         mqtt_rx,
+        init_rx,
         status_tx,
         error_tx.clone(),
         auth_tx,
@@ -169,7 +172,7 @@ pub async fn broker_setup(
     .expect("BROKER FAILED TO START");
 
     // client connections state
-    let (startup_tx, startup_rx) = std_oneshot::channel();
+    let (startup_tx, startup_rx) = std_oneshot::channel::<String>();
     let conns_ = conns.clone();
     let reconn_tx_ = reconn_tx.clone();
     std::thread::spawn(move || {
@@ -180,7 +183,7 @@ pub async fn broker_setup(
         cs.client_action(&cid, connected);
         drop(cs);
         log::info!("=> connected: {}: {}", cid, connected);
-        let _ = startup_tx.send(true);
+        let _ = startup_tx.send(cid.to_string());
         while let Ok((cid, connected)) = status_rx.recv() {
             log::info!("=> reconnected: {}: {}", cid, connected);
             let mut cs = conns_.lock().unwrap();
@@ -189,7 +192,7 @@ pub async fn broker_setup(
             let _ = reconn_tx_.blocking_send((cid, connected));
         }
     });
-    let _ = startup_rx.recv();
+    let _first_client_id = startup_rx.recv();
 
     conns
 }

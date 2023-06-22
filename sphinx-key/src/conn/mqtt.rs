@@ -112,7 +112,9 @@ pub fn make_client(
                                 if topic.ends_with(topics::VLS) {
                                     tx.send(CoreEvent::VlsMessage(data))
                                         .expect("couldnt send Event::VlsMessage");
-                                } else if topic.ends_with(topics::LSS_MSG) {
+                                } else if topic.ends_with(topics::LSS_MSG)
+                                    || topic.ends_with(topics::INIT_MSG)
+                                {
                                     log::debug!("received data len {}", data.len());
                                     tx.send(CoreEvent::LssMessage(data))
                                         .expect("couldnt send Event::LssMessage");
