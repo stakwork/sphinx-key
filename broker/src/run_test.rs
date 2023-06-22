@@ -16,13 +16,14 @@ pub async fn run_test() -> rocket::Rocket<rocket::Build> {
 
     let settings = Settings::default();
     let (mqtt_tx, mqtt_rx) = mpsc::channel(10000);
+    let (_init_tx, init_rx) = mpsc::channel(10000);
     let (error_tx, error_rx) = broadcast::channel(10000);
     let (conn_tx, _conn_rx) = mpsc::channel(10000);
 
     crate::error_log::log_errors(error_rx);
 
     // block until connection
-    let conns = crate::broker_setup(settings, mqtt_rx, conn_tx.clone(), error_tx.clone()).await;
+    let conns = crate::broker_setup(settings, mqtt_rx, init_rx, conn_tx.clone(), error_tx.clone()).await;
     log::info!("=> off to the races!");
 
     let tx_ = mqtt_tx.clone();

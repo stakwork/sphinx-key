@@ -14,6 +14,7 @@ use std::time::Duration;
 pub fn start_broker(
     settings: Settings,
     mut receiver: mpsc::Receiver<ChannelRequest>,
+    mut init_receiver: mpsc::Receiver<ChannelRequest>,
     status_sender: std::sync::mpsc::Sender<(String, bool)>,
     error_sender: broadcast::Sender<Vec<u8>>,
     auth_sender: std::sync::mpsc::Sender<AuthMsg>,
@@ -74,44 +75,25 @@ pub fn start_broker(
         }
     });
 
-    // String is the client id
+    // (client_id, topic_end, payload). topic_end is always topics::LSS_RES
+    let (init_tx, init_rx) = std::sync::mpsc::channel::<(String, String, Vec<u8>)>();
+
+    let mut link_tx_ = link_tx.clone();
+    let conns_ = connections.clone();
+    // receive replies from LSS initialization
+    let _init_task = std::thread::spawn(move || {
+        while let Some(msg) = init_receiver.blocking_recv() {
+            pub_and_wait(msg, &conns_, &init_rx, &mut link_tx_);
+        }
+    });
+
+    // (client_id, topic_end, payload)
     let (msg_tx, msg_rx) = std::sync::mpsc::channel::<(String, String, Vec<u8>)>();
 
     // receive from CLN, Frontend, Controller, or LSS
-    let conns_ = connections.clone();
     let _relay_task = std::thread::spawn(move || {
         while let Some(msg) = receiver.blocking_recv() {
-            loop {
-                let reply = if let Some(cid) = msg.cid.clone() {
-                    // for a specific client
-                    pub_wait(&cid, &msg.topic, &msg.message, &msg_rx, &mut link_tx)
-                } else {
-                    // send to each client in turn
-                    let cs = conns_.lock().unwrap();
-                    let client_list = cs.clients.clone();
-                    drop(cs);
-                    // wait a second if there are no clients
-                    if client_list.len() == 0 {
-                        std::thread::sleep(Duration::from_secs(1));
-                        None
-                    } else {
-                        let mut rep = None;
-                        for cid in client_list.iter() {
-                            rep = pub_wait(&cid, &msg.topic, &msg.message, &msg_rx, &mut link_tx);
-                            if let Some(_) = &rep {
-                                break;
-                            }
-                        }
-                        rep
-                    }
-                };
-                if let Some(reply) = reply {
-                    if let Err(_) = msg.reply_tx.send(reply) {
-                        log::warn!("could not send on reply_tx");
-                    }
-                    break;
-                }
-            }
+            pub_and_wait(msg, &connections, &msg_rx, &mut link_tx);
         }
     });
 
@@ -136,10 +118,15 @@ pub fn start_broker(
                             }
                             let cid = ts[0].to_string();
                             let topic_end = ts[1].to_string();
-                            if let Err(e) =
-                                msg_tx.send((cid, topic_end, f.publish.payload.to_vec()))
-                            {
-                                log::error!("failed to pub to msg_tx! {:?}", e);
+                            let pld = f.publish.payload.to_vec();
+                            if topic_end == topics::LSS_RES {
+                                if let Err(e) = init_tx.send((cid, topic_end, pld)) {
+                                    log::error!("failed to pub to init_tx! {:?}", e);
+                                }
+                            } else {
+                                if let Err(e) = msg_tx.send((cid, topic_end, pld)) {
+                                    log::error!("failed to pub to msg_tx! {:?}", e);
+                                }
                             }
                         }
                     }
@@ -149,6 +136,7 @@ pub fn start_broker(
         }
     });
 
+    // _init_task.await.unwrap();
     // _relay_task.await.unwrap();
     // _sub_task.await.unwrap();
     // _alerts_handle.await?;
@@ -158,9 +146,48 @@ pub fn start_broker(
     Ok(())
 }
 
+// waits forever until the reply is returned
+fn pub_and_wait(
+    msg: ChannelRequest,
+    conns_: &Arc<Mutex<Connections>>,
+    msg_rx: &std::sync::mpsc::Receiver<(String, String, Vec<u8>)>,
+    link_tx: &mut LinkTx,
+) {
+    loop {
+        let reply = if let Some(cid) = msg.cid.clone() {
+            // for a specific client
+            pub_timeout(&cid, &msg.topic, &msg.message, &msg_rx, link_tx)
+        } else {
+            // send to each client in turn
+            let cs = conns_.lock().unwrap();
+            let client_list = cs.clients.clone();
+            drop(cs);
+            // wait a second if there are no clients
+            if client_list.len() == 0 {
+                std::thread::sleep(Duration::from_secs(1));
+                None
+            } else {
+                let mut rep = None;
+                for cid in client_list.iter() {
+                    rep = pub_timeout(&cid, &msg.topic, &msg.message, &msg_rx, link_tx);
+                    if let Some(_) = &rep {
+                        break;
+                    }
+                }
+                rep
+            }
+        };
+        if let Some(reply) = reply {
+            if let Err(_) = msg.reply_tx.send(reply) {
+                log::warn!("could not send on reply_tx");
+            }
+            break;
+        }
+    }
+}
+
 // publish to signer and wait for response
-// if timeout is exceed, try next signer
-fn pub_wait(
+fn pub_timeout(
     client_id: &str,
     topic: &str,
     payload: &[u8],
@@ -193,6 +220,8 @@ fn subs(cid: &str, mut ltx: LinkTx) {
         .unwrap();
     ltx.subscribe(format!("{}/{}", cid, topics::ERROR)).unwrap();
     ltx.subscribe(format!("{}/{}", cid, topics::LSS_RES))
+        .unwrap();
+    ltx.subscribe(format!("{}/{}", cid, topics::INIT_RES))
         .unwrap();
 }
 

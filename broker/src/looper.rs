@@ -160,16 +160,16 @@ impl<C: 'static + Client> SignerLoop<C> {
         let md = parser::raw_request_from_bytes(message, self.chan.sequence, peer_id, dbid)?;
         // send to signer
         log::info!("SEND ON {}", topics::VLS);
-        let (res_topic, res) = self.send_request_and_get_reply(topics::VLS, md)?;
+        let (res_topic, res) = self.send_request_wait(topics::VLS, md)?;
         log::info!("GOT ON {}", res_topic);
         let mut the_res = res.clone();
         if res_topic == topics::LSS_RES {
             // send reply to LSS to store muts
-            let lss_reply = self.send_lss_and_get_reply(res)?;
+            let lss_reply = self.send_lss(res)?;
             log::info!("LSS REPLY LEN {}", &lss_reply.len());
             // send to signer for HMAC validation, and get final reply
             log::info!("SEND ON {}", topics::LSS_MSG);
-            let (res_topic2, res2) = self.send_request_and_get_reply(topics::LSS_MSG, lss_reply)?;
+            let (res_topic2, res2) = self.send_request_wait(topics::LSS_MSG, lss_reply)?;
             log::info!("GOT ON {}, send to CLN", res_topic2);
             if res_topic2 != topics::VLS_RETURN {
                 log::warn!("got a topic NOT on {}", topics::VLS_RETURN);
@@ -206,11 +206,7 @@ impl<C: 'static + Client> SignerLoop<C> {
 
     // returns (topic, payload)
     // might halt if signer is offline
-    fn send_request_and_get_reply(
-        &mut self,
-        topic: &str,
-        message: Vec<u8>,
-    ) -> Result<(String, Vec<u8>)> {
+    fn send_request_wait(&mut self, topic: &str, message: Vec<u8>) -> Result<(String, Vec<u8>)> {
         // Send a request to the MQTT handler to send to signer
         let (request, reply_rx) = ChannelRequest::new(topic, message);
         // This can fail if MQTT shuts down
@@ -223,7 +219,7 @@ impl<C: 'static + Client> SignerLoop<C> {
         Ok((reply.topic_end, reply.reply))
     }
 
-    fn send_lss_and_get_reply(&mut self, message: Vec<u8>) -> Result<Vec<u8>> {
+    fn send_lss(&mut self, message: Vec<u8>) -> Result<Vec<u8>> {
         // Send a request to the MQTT handler to send to signer
         let (request, reply_rx) = LssReq::new(message);
         // This can fail if MQTT shuts down
