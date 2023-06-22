@@ -26,7 +26,7 @@ pub fn init_lss(
     let server_pubkey = PublicKey::from_slice(&init.server_pubkey)?;
 
     let (lss_signer, res1) = LssSigner::new(&handler_builder, &server_pubkey);
-    let lss_res_topic = format!("{}/{}", client_id, topics::LSS_RES);
+    let lss_res_topic = format!("{}/{}", client_id, topics::INIT_RES);
     mqtt.publish(&lss_res_topic, QOS, false, &res1)
         .expect("could not publish LSS response");
 

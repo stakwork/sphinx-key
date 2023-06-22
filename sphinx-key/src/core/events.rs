@@ -35,7 +35,12 @@ pub enum Event {
 
 pub const ROOT_STORE: &str = "/sdcard/store";
 
-pub const SUB_TOPICS: &[&str] = &[topics::VLS, topics::LSS_MSG, topics::CONTROL];
+pub const SUB_TOPICS: &[&str] = &[
+    topics::INIT_MSG,
+    topics::LSS_MSG,
+    topics::VLS,
+    topics::CONTROL,
+];
 
 fn mqtt_sub(
     mqtt: &mut EspMqttClient<ConnState<MessageImpl, EspError>>,
