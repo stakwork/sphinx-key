@@ -119,7 +119,7 @@ pub fn start_broker(
                             let cid = ts[0].to_string();
                             let topic_end = ts[1].to_string();
                             let pld = f.publish.payload.to_vec();
-                            if topic_end == topics::LSS_RES {
+                            if topic_end == topics::INIT_RES {
                                 if let Err(e) = init_tx.send((cid, topic_end, pld)) {
                                     log::error!("failed to pub to init_tx! {:?}", e);
                                 }
