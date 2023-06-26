@@ -221,9 +221,8 @@ impl<C: 'static + Client> SignerLoop<C> {
     }
 
     fn send_lss(&mut self, message: Vec<u8>) -> Result<Vec<u8>> {
-        // Send a request to the MQTT handler to send to signer
+        // Send a request to the LSS server
         let (request, reply_rx) = LssReq::new(message);
-        // This can fail if MQTT shuts down
         self.lss_tx.blocking_send(request).map_err(|_| Error::Eof)?;
         let res = reply_rx.blocking_recv().map_err(|_| Error::Eof)?;
         Ok(res)

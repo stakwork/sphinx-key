@@ -38,7 +38,7 @@ impl MqttSignerPort {
                 Err(_) => tokio::time::sleep(Duration::from_millis(5)).await,
             };
         }
-
+        // add the serial request header
         let m = parser::raw_request_from_bytes(message, 0, [0; 33], 0)?;
         let (res_topic, res) = self.send_request_wait(topics::VLS, m).await?;
         let mut the_res = res.clone();
@@ -51,6 +51,7 @@ impl MqttSignerPort {
             }
             the_res = res2;
         }
+        // remove the serial request header
         let r = parser::raw_response_from_bytes(the_res, 0)?;
         done_being_busy();
         Ok(r)
@@ -64,9 +65,7 @@ impl MqttSignerPort {
     }
 
     async fn send_lss(&self, message: Vec<u8>) -> Result<Vec<u8>> {
-        // Send a request to the MQTT handler to send to signer
         let (request, reply_rx) = LssReq::new(message);
-        // This can fail if MQTT shuts down
         self.lss_tx.send(request).await?;
         let res = reply_rx.await?;
         Ok(res)
