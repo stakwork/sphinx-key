@@ -5,14 +5,23 @@ use log::*;
 use rocket::tokio::sync::mpsc;
 use secp256k1::PublicKey;
 use sphinx_signer::{parser, sphinx_glyph::topics};
-use std::sync::{
-    atomic::{AtomicBool, Ordering},
-    Arc,
-};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread;
 use std::time::Duration;
 use vls_protocol::{msgs, msgs::Message, Error, Result};
 use vls_proxy::client::Client;
+
+pub static BUSY: AtomicBool = AtomicBool::new(false);
+
+// set BUSY to true if its false
+pub fn try_to_get_busy() -> std::result::Result<bool, bool> {
+    BUSY.compare_exchange(false, true, Ordering::Acquire, Ordering::Relaxed)
+}
+
+// set BUSY back to false
+pub fn done_being_busy() {
+    BUSY.store(false, Ordering::Relaxed);
+}
 
 #[derive(Clone, Debug)]
 pub struct ClientId {
@@ -37,7 +46,6 @@ pub struct SignerLoop<C: 'static + Client> {
     chan: Channel,
     client_id: Option<ClientId>,
     lss_tx: mpsc::Sender<LssReq>,
-    busy: Arc<AtomicBool>,
 }
 
 impl<C: 'static + Client> SignerLoop<C> {
@@ -54,7 +62,6 @@ impl<C: 'static + Client> SignerLoop<C> {
             chan: Channel::new(sender),
             client_id: None,
             lss_tx,
-            busy: Arc::new(AtomicBool::new(false)),
         }
     }
 
@@ -64,7 +71,6 @@ impl<C: 'static + Client> SignerLoop<C> {
         lss_tx: mpsc::Sender<LssReq>,
         sender: mpsc::Sender<ChannelRequest>,
         client_id: ClientId,
-        busy: Arc<AtomicBool>,
     ) -> Self {
         let log_prefix = format!("{}/{}", std::process::id(), client.id());
         Self {
@@ -73,7 +79,6 @@ impl<C: 'static + Client> SignerLoop<C> {
             chan: Channel::new(sender),
             client_id: Some(client_id),
             lss_tx,
-            busy,
         }
     }
 
@@ -108,7 +113,6 @@ impl<C: 'static + Client> SignerLoop<C> {
                         self.lss_tx.clone(),
                         self.chan.sender.clone(),
                         client_id,
-                        self.busy.clone(),
                     );
                     thread::spawn(move || new_loop.start(None));
                 }
@@ -142,10 +146,7 @@ impl<C: 'static + Client> SignerLoop<C> {
     fn handle_message(&mut self, message: Vec<u8>, catch_init: bool) -> Result<Vec<u8>> {
         // wait until not busy
         loop {
-            match self
-                .busy
-                .compare_exchange(false, true, Ordering::Acquire, Ordering::Relaxed)
-            {
+            match try_to_get_busy() {
                 Ok(_) => break,
                 Err(_) => thread::sleep(Duration::from_millis(5)),
             };
@@ -185,7 +186,7 @@ impl<C: 'static + Client> SignerLoop<C> {
             let _ = self.set_channel_pubkey(reply.clone());
         }
         // unlock
-        self.busy.store(false, Ordering::Relaxed);
+        done_being_busy();
         Ok(reply)
     }
 

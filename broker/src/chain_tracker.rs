@@ -1,8 +1,11 @@
 use crate::conn::{ChannelRequest, LssReq};
+use crate::looper::{done_being_busy, try_to_get_busy};
 use anyhow::Result;
 use async_trait::async_trait;
-use rocket::tokio::sync::mpsc;
+use rocket::tokio;
 use sphinx_signer::{parser, sphinx_glyph::topics};
+use std::time::Duration;
+use tokio::sync::mpsc;
 use vls_protocol::Error;
 use vls_protocol_client::{ClientResult, SignerPort};
 
@@ -28,6 +31,14 @@ impl MqttSignerPort {
     }
 
     async fn send_and_wait(&self, message: Vec<u8>) -> Result<Vec<u8>> {
+        // wait until not busy
+        loop {
+            match try_to_get_busy() {
+                Ok(_) => break,
+                Err(_) => tokio::time::sleep(Duration::from_millis(5)).await,
+            };
+        }
+
         let m = parser::raw_request_from_bytes(message, 0, [0; 33], 0)?;
         let (res_topic, res) = self.send_request_wait(topics::VLS, m).await?;
         let mut the_res = res.clone();
@@ -38,6 +49,7 @@ impl MqttSignerPort {
             the_res = res2;
         }
         let r = parser::raw_response_from_bytes(the_res, 0)?;
+        done_being_busy();
         Ok(r)
     }
 
