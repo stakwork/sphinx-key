@@ -45,7 +45,10 @@ impl MqttSignerPort {
         if res_topic == topics::LSS_RES {
             // send LSS instead
             let lss_reply = self.send_lss(res).await?;
-            let (_res_topic, res2) = self.send_request_wait(topics::LSS_MSG, lss_reply).await?;
+            let (res_topic2, res2) = self.send_request_wait(topics::LSS_MSG, lss_reply).await?;
+            if res_topic2 != topics::VLS_RETURN {
+                log::warn!("ChainTracker got a topic NOT on {}", topics::VLS_RETURN);
+            }
             the_res = res2;
         }
         let r = parser::raw_response_from_bytes(the_res, 0)?;
