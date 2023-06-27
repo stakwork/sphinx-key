@@ -159,7 +159,8 @@ fn make_and_launch_client(
     log::info!("PUBKEY {} TOKEN {}", &pubkey_str, &token);
 
     let client_id = random_word(8);
-    let mqtt_client = conn::mqtt::make_client(&config.broker, &client_id, &pubkey_str, &token, tx)?;
+    let mqtt_client =
+        conn::mqtt::make_client(&config.broker, &client_id, &pubkey_str, &token, tx.clone())?;
     // let mqtt_client = conn::mqtt::start_listening(mqtt, connection, tx)?;
 
     // this blocks forever... the "main thread"
@@ -167,6 +168,12 @@ fn make_and_launch_client(
     log::info!("Network set to {:?}", network);
     log::info!(">>>>>>>>>>> blocking forever...");
     log::info!("{:?}", config);
+
+    // heartbeat loop
+    thread::spawn(move || {
+        thread::sleep(Duration::from_secs(60));
+        let _ = tx.send(Event::HeartBeat);
+    });
 
     make_event_loop(
         mqtt_client,
