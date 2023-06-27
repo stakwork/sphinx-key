@@ -93,6 +93,7 @@ pub fn start_broker(
     // receive from CLN, Frontend, Controller, or LSS
     let _relay_task = std::thread::spawn(move || {
         while let Some(msg) = receiver.blocking_recv() {
+            log::debug!("Received message here: {:?}", msg);
             pub_and_wait(msg, &connections, &msg_rx, &mut link_tx);
         }
     });
@@ -156,8 +157,10 @@ fn pub_and_wait(
     loop {
         let reply = if let Some(cid) = msg.cid.clone() {
             // for a specific client
+            log::debug!("publishing to a specific client");
             pub_timeout(&cid, &msg.topic, &msg.message, &msg_rx, link_tx)
         } else {
+            log::debug!("publishing to all clients");
             // send to each client in turn
             let cs = conns_.lock().unwrap();
             let client_list = cs.clients.clone();
@@ -178,6 +181,7 @@ fn pub_and_wait(
             }
         };
         if let Some(reply) = reply {
+            log::debug!("MQTT got this response: {:?}", reply);
             if let Err(_) = msg.reply_tx.send(reply) {
                 log::warn!("could not send on reply_tx");
             }

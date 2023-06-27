@@ -19,23 +19,23 @@ serde_json       = { version = "1.0.81", default-features = false }
 serde_urlencoded = "0.7.1"
 url              = "2"
 
-lss-connector  = { git = "https://github.com/stakwork/sphinx-rs.git", default-features = false }
+lss-connector  = { git = "https://github.com/stakwork/sphinx-rs.git", default-features = false, rev = "9c8dc1f8dd61fa908f5546524a9c1d21f1b34dd7" }
 # lss-connector  = { path = "../../sphinx-rs/lss-connector", default-features = false }
-sphinx-crypter = { git = "https://github.com/stakwork/sphinx-rs.git" }
-sphinx-signer  = { git = "https://github.com/stakwork/sphinx-rs.git", optional = true }
+sphinx-crypter = { git = "https://github.com/stakwork/sphinx-rs.git", rev = "9c8dc1f8dd61fa908f5546524a9c1d21f1b34dd7" }
+sphinx-signer  = { git = "https://github.com/stakwork/sphinx-rs.git", optional = true, rev = "9c8dc1f8dd61fa908f5546524a9c1d21f1b34dd7" }
 # sphinx-signer  = { path = "../../sphinx-rs/signer", optional = true }
 
-anyhow.workspace       = true
-bitflags.workspace     = true
-embedded-hal.workspace = true
-embedded-svc.workspace = true
-esp-idf-hal.workspace  = true
-esp-idf-svc.workspace  = true
-esp-idf-sys.workspace  = true
-log.workspace          = true
+anyhow       = { version = "1", features = ["backtrace"] }
+bitflags     = "1.3.2"
+embedded-hal = "=1.0.0-alpha.10"
+embedded-svc = "0.25.0"
+esp-idf-hal  = "0.41.1"
+esp-idf-svc  = { version = "0.46.0", features = ["experimental", "alloc"] }
+esp-idf-sys  = { version = "0.33.1", features = ["binstart"] }
+log          = "0.4.17"
 
 [build-dependencies]
-embuild.workspace = true
+embuild = "0.31.2"
 
 [[bin]]
 name = "clear"
@@ -44,3 +44,4 @@ path = "src/clear.rs"
 [[bin]]
 name = "btn"
 path = "src/btn.rs"
+

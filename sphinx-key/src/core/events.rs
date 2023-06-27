@@ -140,6 +140,10 @@ pub fn make_event_loop(
     log::info!("=> starting the main signing loop...");
     let flash_db = ctrlr.persister();
     while let Ok(event) = rx.recv() {
+        unsafe {
+            let size = esp_idf_sys::heap_caps_get_free_size(4);
+            log::info!("Available DRAM: {}", size);
+        }
         match event {
             Event::Connected => {
                 mqtt_sub(&mut mqtt, client_id, SUB_TOPICS);
@@ -150,6 +154,7 @@ pub fn make_event_loop(
                 log::info!("GOT A Event::Disconnected msg!");
             }
             Event::HeartBeat => {
+                log::info!("Beating the heart!");
                 let _ = root_handler.node().get_heartbeat();
             }
             Event::VlsMessage(msg_bytes) => {
