@@ -13,7 +13,7 @@ use sphinx_signer::sphinx_glyph::control::{
 };
 use sphinx_signer::sphinx_glyph::error::Error as GlyphError;
 use sphinx_signer::sphinx_glyph::topics;
-use sphinx_signer::{self, RootHandler};
+use sphinx_signer::{self, Handler, RootHandler};
 use std::sync::mpsc;
 use std::sync::Arc;
 use std::thread;
@@ -32,6 +32,7 @@ pub enum Event {
     VlsMessage(Vec<u8>),
     LssMessage(Vec<u8>),
     Control(Vec<u8>),
+    HeartBeat,
 }
 
 pub const ROOT_STORE: &str = "/sdcard/store";
@@ -147,6 +148,9 @@ pub fn make_event_loop(
             Event::Disconnected => {
                 led_tx.send(Status::ConnectingToMqtt).unwrap();
                 log::info!("GOT A Event::Disconnected msg!");
+            }
+            Event::HeartBeat => {
+                let _ = root_handler.node().get_heartbeat();
             }
             Event::VlsMessage(msg_bytes) => {
                 led_tx.send(Status::Signing).unwrap();
