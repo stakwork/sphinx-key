@@ -226,6 +226,10 @@ fn restart_esp_if_memory_low() {
     unsafe {
         let size = esp_idf_sys::heap_caps_get_free_size(4);
         log::info!("Available DRAM: {}", size);
+        if size < 65000 {
+            log::info!("Restarting esp!");
+            esp_idf_sys::esp_restart();
+        }
     }
 }
 
