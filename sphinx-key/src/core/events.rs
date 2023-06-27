@@ -140,10 +140,6 @@ pub fn make_event_loop(
     log::info!("=> starting the main signing loop...");
     let flash_db = ctrlr.persister();
     while let Ok(event) = rx.recv() {
-        unsafe {
-            let size = esp_idf_sys::heap_caps_get_free_size(4);
-            log::info!("Available DRAM: {}", size);
-        }
         match event {
             Event::Connected => {
                 mqtt_sub(&mut mqtt, client_id, SUB_TOPICS);
@@ -170,6 +166,7 @@ pub fn make_event_loop(
                         if lss_b.len() == 0 {
                             // no muts, respond directly back!
                             mqtt_pub(&mut mqtt, client_id, topics::VLS_RETURN, &vls_b);
+                            restart_esp_if_memory_low();
                         } else {
                             // muts! send LSS first!
                             msgs = Some((vls_b, lss_b.clone()));
@@ -198,6 +195,9 @@ pub fn make_event_loop(
                         // set msgs back to None
                         msgs = None;
                         mqtt_pub(&mut mqtt, client_id, &ret_topic, &bytes);
+                        if ret_topic == topics::VLS_RETURN {
+                            restart_esp_if_memory_low();
+                        }
                     }
                     Err(e) => {
                         let err_msg = GlyphError::new(1, &e.to_string());
@@ -220,6 +220,13 @@ pub fn make_event_loop(
     }
 
     Ok(())
+}
+
+fn restart_esp_if_memory_low() {
+    unsafe {
+        let size = esp_idf_sys::heap_caps_get_free_size(4);
+        log::info!("Available DRAM: {}", size);
+    }
 }
 
 fn handle_control_response(
