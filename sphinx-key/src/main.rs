@@ -170,7 +170,7 @@ fn make_and_launch_client(
     log::info!("{:?}", config);
 
     // heartbeat loop
-    thread::spawn(move || {
+    thread::spawn(move || loop {
         thread::sleep(Duration::from_secs(60));
         let _ = tx.send(Event::HeartBeat);
     });
