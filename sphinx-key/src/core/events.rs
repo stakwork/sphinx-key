@@ -4,6 +4,7 @@ use crate::ota::{update_sphinx_key, validate_ota_message};
 use crate::status::Status;
 
 use lss_connector::secp256k1::PublicKey;
+use sphinx_signer::approver::SphinxApprover;
 use sphinx_signer::lightning_signer::bitcoin::Network;
 use sphinx_signer::lightning_signer::persist::Persist;
 use sphinx_signer::persist::{BackupPersister, FsPersister, ThreadMemoPersister};
@@ -199,7 +200,7 @@ pub fn make_event_loop(
                 log::info!("GOT A CONTROL MSG");
                 let cres = ctrlr.handle(msg_bytes);
                 if let Some(res) =
-                    handle_control_response(&root_handler, cres, network, led_tx.clone())
+                    handle_control_response(&root_handler, &approver, cres, led_tx.clone())
                 {
                     let res_data =
                         rmp_serde::to_vec_named(&res).expect("could not publish control response");
@@ -214,8 +215,8 @@ pub fn make_event_loop(
 
 fn handle_control_response(
     root_handler: &RootHandler,
+    approver: &SphinxApprover,
     cres: anyhow::Result<(ControlMessage, ControlResponse)>,
-    network: Network,
     led_tx: mpsc::Sender<Status>,
 ) -> Option<ControlResponse> {
     match cres {
@@ -223,8 +224,7 @@ fn handle_control_response(
             // the following msg types require other actions besides Flash persistence
             match control_msg {
                 ControlMessage::UpdatePolicy(new_policy) => {
-                    if let Err(e) =
-                        sphinx_signer::policy::set_policy(&root_handler, network, new_policy)
+                    if let Err(e) = sphinx_signer::policy::set_approver_policy(approver, new_policy)
                     {
                         log::error!("set policy failed {:?}", e);
                         control_res = ControlResponse::Error(format!("set policy failed {:?}", e))
