@@ -105,7 +105,7 @@ async fn run_main(parent_fd: i32) -> rocket::Rocket<rocket::Build> {
     };
 
     if let Ok(btc_url) = env::var("BITCOIND_RPC_URL") {
-        let signer_port = MqttSignerPort::new(mqtt_tx.clone());
+        let signer_port = MqttSignerPort::new(mqtt_tx.clone(), lss_tx.clone());
         let port_front = SignerPortFront::new(Arc::new(signer_port), settings.network);
         let source_factory = Arc::new(SourceFactory::new(".", settings.network));
         let frontend = Frontend::new(
