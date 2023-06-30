@@ -1,6 +1,6 @@
 [workspace]
-exclude  = ["broker", "tester"]
 members  = ["factory", "sphinx-key"]
+exclude  = ["broker", "tester"]
 resolver = "2"
 
 [workspace.dependencies]
