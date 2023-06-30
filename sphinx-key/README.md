@@ -4,16 +4,21 @@
 
 - On macOS, make sure you have the Apple Command Line Developer tools installed on your machine.
 - Install rust. You can grab the installation command at https://www.rust-lang.org/tools/install
-- Install python3.
+- Install python3 and pip.
 > **Warning**
 > python3.11 currently breaks this build.
-- Run the following commands (the last one will take a while, go for a walk or something 😀):
+- On linux, run this command: `sudo apt install libudev-dev clang`
+- Follow ESP-IDF instructions [here](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/get-started/linux-macos-setup.html#get-started-prerequisites) to install all the prerequisites.
+- Run the following commands:
 ```
 pip install esptool
-rustup install nightly-2022-10-20
-rustup component add rust-src --toolchain nightly-2022-10-20
 cargo install cargo-espflash ldproxy
 ```
+#### Linux permissions
+- Make sure your user is a member of the `dialout` group.
+- Running `groups` should display `dialout` in the returned list.
+- If not in the list, run this to add your current user to the dialout group: `sudo usermod -a -G dialout $USER`
+- For these changes to take effect, either log off and log back in, or do `su - $USER`.
 
 ### Signer
 
