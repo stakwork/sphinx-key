@@ -4,7 +4,7 @@ check_exists() {
     command -v "$1" > /dev/null
 }
 check_port() {
-    cargo espflash board-info "$1" &> /dev/null
+    cargo espflash board-info --port "$1" &> /dev/null
 }
 if ! check_exists esptool.py
 then
@@ -65,7 +65,7 @@ fi
 esptool.py erase_flash &&
 git pull &&
 cd factory &&
-cargo espflash --release $PORT &&
+cargo espflash flash --release --port $PORT &&
 cd ../sphinx-key &&
 
 if [ $MODE = "release" ]
@@ -77,4 +77,4 @@ fi &&
 
 esptool.py --chip esp32-c3 elf2image ../target/riscv32imc-esp-espidf/$MODE/sphinx-key &&
 esptool.py --chip esp32c3 -b 460800 --before=default_reset --after=hard_reset write_flash --flash_mode dio --flash_freq 40m --flash_size 4MB 0x80000 ../target/riscv32imc-esp-espidf/$MODE/sphinx-key.bin &&
-cargo espflash serial-monitor $PORT
+cargo espflash monitor --port $PORT

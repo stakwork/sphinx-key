@@ -2,7 +2,7 @@ check_exists() {
     command -v "$1" > /dev/null
 }
 check_port() {
-    cargo espflash board-info "$1" &> /dev/null
+    cargo espflash board-info --port "$1" &> /dev/null
 }
 if ! check_exists esptool.py
 then
@@ -32,8 +32,16 @@ do
 done
 if [ -z "$PORT" ]
 then
+    # Check for port on linux
+    if check_port /dev/ttyUSB0
+    then
+        PORT=/dev/ttyUSB0
+    fi
+fi
+if [ -z "$PORT" ]
+then
     echo "ESP likely not connected! Exiting now."
     echo "Make sure the ESP is connected with a data USB cable, and try again."
     exit 1
 fi
-cargo espflash serial-monitor $PORT
+cargo espflash monitor --port $PORT
