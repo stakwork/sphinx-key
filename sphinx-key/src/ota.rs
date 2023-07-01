@@ -16,7 +16,7 @@ use std::io::BufWriter;
 use std::io::Write;
 use std::sync::mpsc;
 
-const BUFFER_LEN: usize = 3072;
+const BUFFER_LEN: usize = 512;
 const UPDATE_BIN_PATH: &str = "/sdcard/update.bin";
 
 fn factory_reset() -> Result<()> {

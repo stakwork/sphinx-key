@@ -225,8 +225,9 @@ pub fn make_event_loop(
 fn restart_esp_if_memory_low() {
     unsafe {
         let size = esp_idf_sys::heap_caps_get_free_size(4);
-        log::info!("Available DRAM: {}", size);
-        if size < 65000 {
+        let threshold = 65000;
+        log::info!("Available DRAM: {}, Restart Threshold: {}", size, threshold);
+        if size < threshold {
             log::info!("Restarting esp!");
             esp_idf_sys::esp_restart();
         }
@@ -274,7 +275,9 @@ fn handle_control_response(
                         control_res =
                             ControlResponse::Error(format!("OTA update cannot launch {:?}", e))
                     } else {
-                        thread::spawn(move || {
+                        // A 10kB size stack was consistently overflowing when doing a factory reset
+                        let builder = thread::Builder::new().stack_size(15000usize);
+                        builder.spawn(move || {
                             led_tx.send(Status::Ota).unwrap();
                             if let Err(e) = update_sphinx_key(params, led_tx) {
                                 log::error!("OTA update failed {:?}", e.to_string());
@@ -282,7 +285,7 @@ fn handle_control_response(
                                 log::info!("OTA flow complete, restarting esp...");
                                 unsafe { esp_idf_sys::esp_restart() };
                             }
-                        });
+                        }).unwrap();
                         log::info!("OTA update launched...");
                     }
                 }
