@@ -155,18 +155,22 @@ fn pub_and_wait(
     link_tx: &mut LinkTx,
 ) {
     loop {
+        let cs = conns_.lock().unwrap();
+        let client_list = cs.clients.clone();
+        drop(cs);
         let reply = if let Some(cid) = msg.cid.clone() {
-            // for a specific client
-            log::debug!("publishing to a specific client");
-            pub_timeout(&cid, &msg.topic, &msg.message, &msg_rx, link_tx)
+            if !client_list.contains(&cid) {
+                Some(ChannelReply::empty())
+            } else {
+                // for a specific client
+                log::debug!("publishing to a specific client");
+                pub_timeout(&cid, &msg.topic, &msg.message, &msg_rx, link_tx)
+            }
         } else {
             log::debug!("publishing to all clients");
             // send to each client in turn
-            let cs = conns_.lock().unwrap();
-            let client_list = cs.clients.clone();
-            drop(cs);
-            // wait a second if there are no clients
             if client_list.len() == 0 {
+                // wait a second if there are no clients
                 std::thread::sleep(Duration::from_secs(1));
                 None
             } else {
@@ -207,7 +211,7 @@ fn pub_timeout(
     let dur = Duration::from_secs(9);
     if let Ok((cid, topic_end, reply)) = msg_rx.recv_timeout(dur) {
         if &cid == client_id {
-            return Some(ChannelReply { reply, topic_end });
+            return Some(ChannelReply::new(topic_end, reply));
         } else {
             log::warn!("Mismatched client id!");
             // wait a second before trying again
