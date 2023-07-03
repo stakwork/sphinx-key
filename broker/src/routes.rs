@@ -1,6 +1,6 @@
-use crate::util::Settings;
 use crate::conn::ChannelRequest;
 use crate::conn::Connections;
+use crate::util::Settings;
 use rocket::fairing::{Fairing, Info, Kind};
 use rocket::http::Header;
 use rocket::response::stream::{Event, EventStream};
@@ -40,7 +40,9 @@ pub async fn control(
     let _ = sender.send(request).await.map_err(|_| Error::Fail)?;
     // wait for reply
     let reply = reply_rx.await.map_err(|_| Error::Fail)?;
-
+    if reply.is_empty() {
+        return Err(Error::Fail);
+    }
     Ok(hex::encode(reply.reply).to_string())
 }
 

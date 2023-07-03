@@ -1,6 +1,6 @@
+use anyhow::Result;
 use rocket::tokio::sync::{mpsc, oneshot};
 use serde::{Deserialize, Serialize};
-use anyhow::Result;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Connections {
@@ -65,7 +65,11 @@ impl ChannelRequest {
         };
         (cr, reply_rx)
     }
-    pub async fn send(topic: &str, message: Vec<u8>, sender: &mpsc::Sender<ChannelRequest>) -> Result<Vec<u8>> {
+    pub async fn send(
+        topic: &str,
+        message: Vec<u8>,
+        sender: &mpsc::Sender<ChannelRequest>,
+    ) -> Result<Vec<u8>> {
         let (reply_tx, reply_rx) = oneshot::channel();
         let req = ChannelRequest {
             topic: topic.to_string(),
@@ -77,7 +81,12 @@ impl ChannelRequest {
         let reply = reply_rx.await?;
         Ok(reply.reply)
     }
-    pub async fn send_for(cid: &str, topic: &str, message: Vec<u8>, sender: &mpsc::Sender<ChannelRequest>) -> Result<Vec<u8>> {
+    pub async fn send_for(
+        cid: &str,
+        topic: &str,
+        message: Vec<u8>,
+        sender: &mpsc::Sender<ChannelRequest>,
+    ) -> Result<Vec<u8>> {
         let (reply_tx, reply_rx) = oneshot::channel();
         let req = ChannelRequest {
             topic: topic.to_string(),
@@ -109,6 +118,21 @@ pub struct ChannelReply {
     // the return topic end part (after last "/")
     pub topic_end: String,
     pub reply: Vec<u8>,
+}
+impl ChannelReply {
+    pub fn new(topic_end: String, reply: Vec<u8>) -> Self {
+        Self { topic_end, reply }
+    }
+    pub fn empty() -> Self {
+        Self {
+            topic_end: "".to_string(),
+            reply: Vec::new(),
+        }
+    }
+    // failed channel request
+    pub fn is_empty(&self) -> bool {
+        self.topic_end.len() == 0 && self.reply.len() == 0
+    }
 }
 
 /// Responses are received on the oneshot sender

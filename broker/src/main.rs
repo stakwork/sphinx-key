@@ -1,18 +1,18 @@
 // #![feature(once_cell)]
 mod chain_tracker;
+mod conn;
 mod error_log;
+mod looper;
+mod lss;
 mod mqtt;
 mod routes;
 mod run_test;
-mod looper;
 mod util;
-mod conn;
-mod lss;
 
-use crate::conn::{Connections, ChannelRequest, LssReq};
 use crate::chain_tracker::MqttSignerPort;
-use crate::mqtt::{check_auth, start_broker};
+use crate::conn::{ChannelRequest, Connections, LssReq};
 use crate::looper::SignerLoop;
+use crate::mqtt::{check_auth, start_broker};
 use crate::util::{read_broker_config, Settings};
 use clap::{arg, App};
 use rocket::tokio::{
@@ -20,8 +20,8 @@ use rocket::tokio::{
     sync::{broadcast, mpsc},
 };
 use rumqttd::{oneshot as std_oneshot, AuthMsg};
-use std::{env, time::Duration};
 use std::sync::{Arc, Mutex};
+use std::{env, time::Duration};
 use url::Url;
 use vls_frontend::{frontend::SourceFactory, Frontend};
 use vls_proxy::client::UnixClient;
@@ -77,7 +77,14 @@ async fn run_main(parent_fd: i32) -> rocket::Rocket<rocket::Build> {
     let (reconn_tx, reconn_rx) = mpsc::channel::<(String, bool)>(10000);
 
     // waits until first connection
-    let conns = broker_setup(settings, mqtt_rx, init_rx, reconn_tx.clone(), error_tx.clone()).await;
+    let conns = broker_setup(
+        settings,
+        mqtt_rx,
+        init_rx,
+        reconn_tx.clone(),
+        error_tx.clone(),
+    )
+    .await;
 
     tokio::time::sleep(Duration::from_secs(1)).await;
 
@@ -85,10 +92,10 @@ async fn run_main(parent_fd: i32) -> rocket::Rocket<rocket::Build> {
     let _lss_broker = if let Ok(lss_uri) = env::var("VLS_LSS") {
         // waits until LSS confirmation from signer
         let lss_broker = loop {
-            match lss::lss_setup(&lss_uri, init_tx.clone()).await{
+            match lss::lss_setup(&lss_uri, init_tx.clone()).await {
                 Ok(l) => {
                     break l;
-                },
+                }
                 Err(e) => {
                     let _ = error_tx.send(e.to_string().as_bytes().to_vec());
                     log::error!("failed LSS setup, trying again...");
@@ -157,7 +164,7 @@ pub async fn broker_setup(
             let _ = am.reply.send(ok);
         }
     });
-    
+
     // broker
     log::info!("=> start broker on network: {}", settings.network);
     start_broker(
@@ -196,4 +203,3 @@ pub async fn broker_setup(
 
     conns
 }
-
