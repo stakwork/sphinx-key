@@ -164,7 +164,13 @@ fn pub_and_wait(
             } else {
                 // for a specific client
                 log::debug!("publishing to a specific client");
-                pub_timeout(&cid, &msg.topic, &msg.message, &msg_rx, link_tx)
+                let res_opt = pub_timeout(&cid, &msg.topic, &msg.message, &msg_rx, link_tx);
+                // control topic should be able to fail early without retrying
+                if res_opt.is_none() && msg.topic == topics::CONTROL {
+                    Some(ChannelReply::empty())
+                } else {
+                    res_opt
+                }
             }
         } else {
             log::debug!("publishing to all clients");
