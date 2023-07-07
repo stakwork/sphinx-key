@@ -147,7 +147,11 @@ pub fn make_event_loop(
     while let Ok(event) = rx.recv() {
         match event {
             Event::Connected => {
+                log::info!("GOT A Event::Connected msg!");
                 mqtt_sub(&mut mqtt, client_id, SUB_TOPICS);
+                thread::sleep(std::time::Duration::from_secs(1));
+                // send the initial HELLO again
+                mqtt_pub(&mut mqtt, client_id, topics::HELLO, &[]);
                 led_tx.send(Status::Connected).unwrap();
             }
             Event::Disconnected => {
