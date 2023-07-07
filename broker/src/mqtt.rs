@@ -111,7 +111,7 @@ pub fn start_broker(
                     } else {
                         // VLS, CONTROL, LSS
                         let pld = f.publish.payload.to_vec();
-                        if topic_end == topics::INIT_RES {
+                        if topic_end == topics::INIT_1_RES || topic_end == topics::INIT_2_RES {
                             if let Err(e) = init_tx.send((cid, topic_end, pld)) {
                                 log::error!("failed to pub to init_tx! {:?}", e);
                             }
@@ -225,7 +225,9 @@ fn subs(cid: &str, mut ltx: LinkTx) {
     ltx.subscribe(format!("{}/{}", cid, topics::ERROR)).unwrap();
     ltx.subscribe(format!("{}/{}", cid, topics::LSS_RES))
         .unwrap();
-    ltx.subscribe(format!("{}/{}", cid, topics::INIT_RES))
+    ltx.subscribe(format!("{}/{}", cid, topics::INIT_1_RES))
+        .unwrap();
+    ltx.subscribe(format!("{}/{}", cid, topics::INIT_2_RES))
         .unwrap();
 }
 

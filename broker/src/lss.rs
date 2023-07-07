@@ -35,7 +35,7 @@ async fn send_init(
     msg_bytes: Vec<u8>,
     mqtt_tx: &mpsc::Sender<ChannelRequest>,
 ) -> Result<InitResponse> {
-    let reply = ChannelRequest::send(topics::INIT_MSG, msg_bytes, &mqtt_tx).await?;
+    let reply = ChannelRequest::send(topics::INIT_1_MSG, msg_bytes, &mqtt_tx).await?;
     let ir = Response::from_slice(&reply)?.as_init()?;
     Ok(ir)
 }
@@ -44,7 +44,7 @@ async fn send_created(
     msg_bytes: Vec<u8>,
     mqtt_tx: &mpsc::Sender<ChannelRequest>,
 ) -> Result<SignerMutations> {
-    let reply2 = ChannelRequest::send(topics::INIT_MSG, msg_bytes, &mqtt_tx).await?;
+    let reply2 = ChannelRequest::send(topics::INIT_2_MSG, msg_bytes, &mqtt_tx).await?;
     let cr = Response::from_slice(&reply2)?.as_created()?;
     Ok(cr)
 }
@@ -111,7 +111,7 @@ async fn dance_step_1(
     mqtt_tx: &mpsc::Sender<ChannelRequest>,
 ) -> Result<InitResponse> {
     let init_bytes = lss_conn.make_init_msg().await?;
-    let reply = ChannelRequest::send_for(cid, topics::INIT_MSG, init_bytes, mqtt_tx).await?;
+    let reply = ChannelRequest::send_for(cid, topics::INIT_1_MSG, init_bytes, mqtt_tx).await?;
     let ir = Response::from_slice(&reply)?.as_init()?;
     Ok(ir)
 }
@@ -123,7 +123,7 @@ async fn dance_step_2(
     ir: &InitResponse,
 ) -> Result<()> {
     let state_bytes = lss_conn.get_created_state_msg(ir).await?;
-    let reply2 = ChannelRequest::send_for(cid, topics::INIT_MSG, state_bytes, mqtt_tx).await?;
+    let reply2 = ChannelRequest::send_for(cid, topics::INIT_2_MSG, state_bytes, mqtt_tx).await?;
     let cr = Response::from_slice(&reply2)?.as_created()?;
     lss_conn.handle(Response::Created(cr)).await?;
     Ok(())
