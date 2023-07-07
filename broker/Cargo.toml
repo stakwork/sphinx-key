@@ -22,7 +22,7 @@ once_cell         = "1.12.0"
 pretty_env_logger = "0.4.0"
 rocket            = { version = "0.5.0-rc.2", features = ["json"] }
 rumqttc           = "0.12.0"
-rumqttd           = { git = "https://github.com/Evanfeenstra/rumqtt", branch = "sphinx-2" }
+rumqttd           = { git = "https://github.com/Evanfeenstra/rumqtt", branch = "sphinx-3", features = ["websocket"] }
 secp256k1         = { version = "0.24.0", features = ["rand-std", "bitcoin_hashes"] }
 serde             = { version = "1.0", features = ["derive"] }
 serde_json        = "1.0"
@@ -30,13 +30,13 @@ thiserror         = "1.0.31"
 toml              = "0.5.9"
 url               = { version = "2.2" }
 
-vls-frontend        = { git = "https://gitlab.com/lightning-signer/validating-lightning-signer.git", rev = "95a152dce73ea7d9d10dc4ba50f43c3a0af05df8" }
-vls-protocol        = { git = "https://gitlab.com/lightning-signer/validating-lightning-signer.git", rev = "95a152dce73ea7d9d10dc4ba50f43c3a0af05df8" }
-vls-protocol-client = { git = "https://gitlab.com/lightning-signer/validating-lightning-signer.git", rev = "95a152dce73ea7d9d10dc4ba50f43c3a0af05df8" }
-vls-proxy           = { git = "https://gitlab.com/lightning-signer/validating-lightning-signer.git", rev = "95a152dce73ea7d9d10dc4ba50f43c3a0af05df8" }
+vls-frontend        = { git = "https://gitlab.com/lightning-signer/validating-lightning-signer.git", rev = "e199c70cbacd3404e7cecf95bb75ca02afd4cffd" }
+vls-protocol        = { git = "https://gitlab.com/lightning-signer/validating-lightning-signer.git", rev = "e199c70cbacd3404e7cecf95bb75ca02afd4cffd" }
+vls-protocol-client = { git = "https://gitlab.com/lightning-signer/validating-lightning-signer.git", rev = "e199c70cbacd3404e7cecf95bb75ca02afd4cffd" }
+vls-proxy           = { git = "https://gitlab.com/lightning-signer/validating-lightning-signer.git", rev = "e199c70cbacd3404e7cecf95bb75ca02afd4cffd" }
 
-lss-connector = { git = "https://github.com/stakwork/sphinx-rs", rev = "9c8dc1f8dd61fa908f5546524a9c1d21f1b34dd7" }
-sphinx-signer = { git = "https://github.com/stakwork/sphinx-rs", rev = "9c8dc1f8dd61fa908f5546524a9c1d21f1b34dd7" }
+lss-connector = { git = "https://github.com/stakwork/sphinx-rs", rev = "78d8c989bed15f63e5cc7df42e19ee7117c33807" }
+sphinx-signer = { git = "https://github.com/stakwork/sphinx-rs", rev = "78d8c989bed15f63e5cc7df42e19ee7117c33807" }
 # lss-connector = { path = "../../sphinx-rs/lss-connector" }
 # sphinx-signer = { path = "../../sphinx-rs/signer" }
 

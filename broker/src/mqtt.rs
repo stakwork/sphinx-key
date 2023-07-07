@@ -2,7 +2,7 @@ use crate::conn::Connections;
 use crate::conn::{ChannelReply, ChannelRequest};
 use crate::util::Settings;
 use rocket::tokio::{sync::broadcast, sync::mpsc};
-use rumqttd::{local::LinkTx, Alert, AlertEvent, AuthMsg, Broker, Config, Notification};
+use rumqttd::{local::LinkTx, AuthMsg, Broker, Config, Notification};
 use sphinx_signer::sphinx_glyph::sphinx_auther::token::Token;
 use sphinx_signer::sphinx_glyph::topics;
 use std::sync::{Arc, Mutex};
@@ -21,15 +21,14 @@ pub fn start_broker(
     connections: Arc<Mutex<Connections>>,
 ) -> anyhow::Result<()> {
     let conf = config(settings);
+    // println!("CONF {:?}", conf);
     // let client_id = expected_client_id.to_string();
 
     let mut broker = Broker::new(conf);
-    let mut alerts = broker.alerts(vec![
-        // "/alerts/error/+".to_string(),
-        "/alerts/event/connect/+".to_string(),
-        "/alerts/event/disconnect/+".to_string(),
-    ])?;
+
     let (mut link_tx, mut link_rx) = broker.link("localclient")?;
+
+    link_tx.subscribe("#").unwrap();
 
     let auth_sender_ = auth_sender.clone();
     std::thread::spawn(move || {
@@ -39,33 +38,13 @@ pub fn start_broker(
     });
 
     // connected/disconnected status alerts
-    let (internal_status_tx, internal_status_rx) = std::sync::mpsc::channel();
-    let _alerts_handle = std::thread::spawn(move || loop {
-        let alert = alerts.poll();
-        log::info!("Alert: {:?}", alert);
-        match alert.1 {
-            Alert::Event(cid, event) => {
-                // dont alert for local connections
-                let locals = vec!["console", "localclient"];
-                if !locals.contains(&cid.as_str()) {
-                    if let Some(status) = match event {
-                        AlertEvent::Connect => Some(true),
-                        AlertEvent::Disconnect => Some(false),
-                        _ => None,
-                    } {
-                        let _ = internal_status_tx.send((cid, status));
-                    }
-                }
-            }
-            _ => (),
-        }
-    });
+    let (internal_status_tx, internal_status_rx) = std::sync::mpsc::channel::<(bool, String)>();
 
     // track connections
     let status_sender_ = status_sender.clone();
     let link_tx_ = link_tx.clone();
     let _conns_task = std::thread::spawn(move || {
-        while let Ok((cid, is)) = internal_status_rx.recv() {
+        while let Ok((is, cid)) = internal_status_rx.recv() {
             if is {
                 subs(&cid, link_tx_.clone());
             } else {
@@ -101,38 +80,48 @@ pub fn start_broker(
     // receive replies back from glyph
     let _sub_task = std::thread::spawn(move || {
         while let Ok(message) = link_rx.recv() {
-            if let Some(n) = message {
-                match n {
-                    Notification::Forward(f) => {
-                        let topic_res = std::str::from_utf8(&f.publish.topic);
-                        if let Err(_) = topic_res {
-                            continue;
-                        }
-                        let topic = topic_res.unwrap();
-                        if topic.ends_with(topics::ERROR) {
-                            let _ = error_sender.send(f.publish.payload.to_vec());
-                        } else {
-                            // VLS, CONTROL, LSS
-                            let ts: Vec<&str> = topic.split("/").collect();
-                            if ts.len() != 2 {
-                                continue;
+            if let None = message {
+                continue;
+            }
+            match message.unwrap() {
+                Notification::Forward(f) => {
+                    let topic_res = std::str::from_utf8(&f.publish.topic);
+                    if let Err(_) = topic_res {
+                        continue;
+                    }
+
+                    let topic = topic_res.unwrap();
+                    if topic.ends_with(topics::ERROR) {
+                        let _ = error_sender.send(f.publish.payload.to_vec());
+                        continue;
+                    }
+
+                    let ts: Vec<&str> = topic.split("/").collect();
+                    if ts.len() != 2 {
+                        continue;
+                    }
+                    let cid = ts[0].to_string();
+                    let topic_end = ts[1].to_string();
+
+                    if topic.ends_with(topics::HELLO) {
+                        let _ = internal_status_tx.send((true, cid));
+                    } else if topic.ends_with(topics::BYE) {
+                        let _ = internal_status_tx.send((false, cid));
+                    } else {
+                        // VLS, CONTROL, LSS
+                        let pld = f.publish.payload.to_vec();
+                        if topic_end == topics::INIT_RES {
+                            if let Err(e) = init_tx.send((cid, topic_end, pld)) {
+                                log::error!("failed to pub to init_tx! {:?}", e);
                             }
-                            let cid = ts[0].to_string();
-                            let topic_end = ts[1].to_string();
-                            let pld = f.publish.payload.to_vec();
-                            if topic_end == topics::INIT_RES {
-                                if let Err(e) = init_tx.send((cid, topic_end, pld)) {
-                                    log::error!("failed to pub to init_tx! {:?}", e);
-                                }
-                            } else {
-                                if let Err(e) = msg_tx.send((cid, topic_end, pld)) {
-                                    log::error!("failed to pub to msg_tx! {:?}", e);
-                                }
+                        } else {
+                            if let Err(e) = msg_tx.send((cid, topic_end, pld)) {
+                                log::error!("failed to pub to msg_tx! {:?}", e);
                             }
                         }
                     }
-                    _ => (),
-                };
+                }
+                _ => continue,
             }
         }
     });
@@ -228,9 +217,9 @@ fn pub_timeout(
 }
 
 fn subs(cid: &str, mut ltx: LinkTx) {
-    ltx.subscribe(format!("{}/{}", cid, topics::VLS_RETURN))
+    ltx.subscribe(format!("{}/{}", cid, topics::VLS_RES))
         .unwrap();
-    ltx.subscribe(format!("{}/{}", cid, topics::CONTROL_RETURN))
+    ltx.subscribe(format!("{}/{}", cid, topics::CONTROL_RES))
         .unwrap();
     ltx.subscribe(format!("{}/{}", cid, topics::ERROR)).unwrap();
     ltx.subscribe(format!("{}/{}", cid, topics::LSS_RES))
@@ -284,28 +273,45 @@ fn config(settings: Settings) -> Config {
         max_read_len: 10240,
         ..Default::default()
     };
-    let mut servers = HashMap::new();
-    servers.insert(
-        "sphinx-broker".to_string(),
+    let conns = ConnectionSettings {
+        connection_timeout_ms: 5000,
+        throttle_delay_ms: 0,
+        max_payload_size: 262144,
+        max_inflight_count: 256,
+        max_inflight_size: 1024,
+        auth: None,
+        dynamic_filters: true,
+    };
+    let mut v4_servers = HashMap::new();
+    v4_servers.insert(
+        "v4".to_string(),
         ServerSettings {
-            name: "sphinx-broker".to_string(),
+            name: "v4".to_string(),
             listen: SocketAddrV4::new(Ipv4Addr::new(0, 0, 0, 0), settings.mqtt_port).into(),
             next_connection_delay_ms: 1,
-            connections: ConnectionSettings {
-                connection_timeout_ms: 5000,
-                throttle_delay_ms: 0,
-                max_payload_size: 262144,
-                max_inflight_count: 256,
-                max_inflight_size: 1024,
-                auth: None,
-                dynamic_filters: true,
-            },
+            connections: conns.clone(),
             tls: None,
         },
     );
+    let mut ws_servers = None;
+    if let Some(wsp) = settings.websocket_port {
+        let mut ws = HashMap::new();
+        ws.insert(
+            "ws".to_string(),
+            ServerSettings {
+                name: "ws".to_string(),
+                listen: SocketAddrV4::new(Ipv4Addr::new(0, 0, 0, 0), wsp).into(),
+                next_connection_delay_ms: 1,
+                connections: conns,
+                tls: None,
+            },
+        );
+        ws_servers = Some(ws);
+    }
     Config {
         id: 0,
-        v4: servers,
+        v4: v4_servers,
+        ws: ws_servers,
         router,
         console: ConsoleSettings::new("0.0.0.0:3030"),
         cluster: None,

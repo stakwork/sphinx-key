@@ -90,8 +90,6 @@ async fn reconnect_dance(
     lss_conn: &LssBroker,
     mqtt_tx: &mpsc::Sender<ChannelRequest>,
 ) -> Result<()> {
-    // sleep 3 seconds to make sure ESP32 subscription is active
-    sleep(3).await;
     let ir = loop {
         if let Ok(ir) = dance_step_1(cid, lss_conn, mqtt_tx).await {
             break ir;
