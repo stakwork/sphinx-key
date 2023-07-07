@@ -172,8 +172,8 @@ impl<C: 'static + Client> SignerLoop<C> {
             log::info!("SEND ON {}", topics::LSS_MSG);
             let (res_topic2, res2) = self.send_request_wait(topics::LSS_MSG, lss_reply)?;
             log::info!("GOT ON {}, send to CLN", res_topic2);
-            if res_topic2 != topics::VLS_RETURN {
-                log::warn!("got a topic NOT on {}", topics::VLS_RETURN);
+            if res_topic2 != topics::VLS_RES {
+                log::warn!("got a topic NOT on {}", topics::VLS_RES);
             }
             the_res = res2;
         }

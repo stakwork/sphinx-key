@@ -124,6 +124,10 @@ pub fn make_event_loop(
     )
     .expect("failed to init signer");
 
+    thread::sleep(std::time::Duration::from_secs(1));
+    // send the initial HELLO
+    mqtt_pub(&mut mqtt, client_id, topics::HELLO, &[]);
+
     // FIXME it right to restart here?
     let (root_handler, lss_signer) = match lss::init_lss(client_id, &rx, rhb, &mut mqtt) {
         Ok(rl) => rl,
@@ -165,7 +169,7 @@ pub fn make_event_loop(
                     Ok((vls_b, lss_b)) => {
                         if lss_b.len() == 0 {
                             // no muts, respond directly back!
-                            mqtt_pub(&mut mqtt, client_id, topics::VLS_RETURN, &vls_b);
+                            mqtt_pub(&mut mqtt, client_id, topics::VLS_RES, &vls_b);
                             restart_esp_if_memory_low();
                         } else {
                             // muts! send LSS first!
@@ -195,7 +199,7 @@ pub fn make_event_loop(
                         // set msgs back to None
                         msgs = None;
                         mqtt_pub(&mut mqtt, client_id, &ret_topic, &bytes);
-                        if ret_topic == topics::VLS_RETURN {
+                        if ret_topic == topics::VLS_RES {
                             restart_esp_if_memory_low();
                         }
                     }
@@ -213,7 +217,7 @@ pub fn make_event_loop(
                 {
                     let res_data =
                         rmp_serde::to_vec_named(&res).expect("could not publish control response");
-                    mqtt_pub(&mut mqtt, client_id, topics::CONTROL_RETURN, &res_data);
+                    mqtt_pub(&mut mqtt, client_id, topics::CONTROL_RES, &res_data);
                 }
             }
         }
@@ -278,15 +282,17 @@ fn handle_control_response(
                     } else {
                         // A 10kB size stack was consistently overflowing when doing a factory reset
                         let builder = thread::Builder::new().stack_size(15000usize);
-                        builder.spawn(move || {
-                            led_tx.send(Status::Ota).unwrap();
-                            if let Err(e) = update_sphinx_key(params, led_tx) {
-                                log::error!("OTA update failed {:?}", e.to_string());
-                            } else {
-                                log::info!("OTA flow complete, restarting esp...");
-                                unsafe { esp_idf_sys::esp_restart() };
-                            }
-                        }).unwrap();
+                        builder
+                            .spawn(move || {
+                                led_tx.send(Status::Ota).unwrap();
+                                if let Err(e) = update_sphinx_key(params, led_tx) {
+                                    log::error!("OTA update failed {:?}", e.to_string());
+                                } else {
+                                    log::info!("OTA flow complete, restarting esp...");
+                                    unsafe { esp_idf_sys::esp_restart() };
+                                }
+                            })
+                            .unwrap();
                         log::info!("OTA update launched...");
                     }
                 }

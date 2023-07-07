@@ -10,6 +10,7 @@ pub struct Settings {
     pub http_port: u16,
     pub mqtt_port: u16,
     pub network: Network,
+    pub websocket_port: Option<u16>,
 }
 
 impl Default for Settings {
@@ -18,6 +19,7 @@ impl Default for Settings {
             http_port: 8000,
             mqtt_port: 1883,
             network: Network::Regtest,
+            websocket_port: Some(8083),
         }
     }
 }
