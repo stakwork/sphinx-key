@@ -1702,7 +1702,7 @@ dependencies = [
 [[package]]
 name = "lss-connector"
 version = "0.1.0"
-source = "git+https://github.com/stakwork/sphinx-rs?rev=38d7fa25e860b61a813ca8c3fad17f699daf2f08#38d7fa25e860b61a813ca8c3fad17f699daf2f08"
+source = "git+https://github.com/stakwork/sphinx-rs?rev=be14ee70477f8e99f70f17d7cee6b30741a2ffca#be14ee70477f8e99f70f17d7cee6b30741a2ffca"
 dependencies = [
  "anyhow",
  "lightning-storage-server",
@@ -3066,9 +3066,9 @@ checksum = "bebd363326d05ec3e2f532ab7660680f3b02130d780c299bca73469d521bc0ed"
 
 [[package]]
 name = "serde"
-version = "1.0.167"
+version = "1.0.168"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7daf513456463b42aa1d94cff7e0c24d682b429f020b9afa4f5ba5c40a22b237"
+checksum = "d614f89548720367ded108b3c843be93f3a341e22d5674ca0dd5cd57f34926af"
 dependencies = [
  "serde_derive",
 ]
@@ -3105,9 +3105,9 @@ dependencies = [
 
 [[package]]
 name = "serde_derive"
-version = "1.0.167"
+version = "1.0.168"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b69b106b68bc8054f0e974e70d19984040f8a5cf9215ca82626ea4853f82c4b9"
+checksum = "d4fe589678c688e44177da4f27152ee2d190757271dc7f1d5b6b9f68d869d641"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -3311,7 +3311,7 @@ dependencies = [
 [[package]]
 name = "sphinx-auther"
 version = "0.1.12"
-source = "git+https://github.com/stakwork/sphinx-rs?rev=38d7fa25e860b61a813ca8c3fad17f699daf2f08#38d7fa25e860b61a813ca8c3fad17f699daf2f08"
+source = "git+https://github.com/stakwork/sphinx-rs?rev=be14ee70477f8e99f70f17d7cee6b30741a2ffca#be14ee70477f8e99f70f17d7cee6b30741a2ffca"
 dependencies = [
  "anyhow",
  "base64 0.13.1",
@@ -3323,7 +3323,7 @@ dependencies = [
 [[package]]
 name = "sphinx-glyph"
 version = "0.1.2"
-source = "git+https://github.com/stakwork/sphinx-rs?rev=38d7fa25e860b61a813ca8c3fad17f699daf2f08#38d7fa25e860b61a813ca8c3fad17f699daf2f08"
+source = "git+https://github.com/stakwork/sphinx-rs?rev=be14ee70477f8e99f70f17d7cee6b30741a2ffca#be14ee70477f8e99f70f17d7cee6b30741a2ffca"
 dependencies = [
  "anyhow",
  "hex",
@@ -3369,7 +3369,7 @@ dependencies = [
 [[package]]
 name = "sphinx-signer"
 version = "0.1.0"
-source = "git+https://github.com/stakwork/sphinx-rs?rev=38d7fa25e860b61a813ca8c3fad17f699daf2f08#38d7fa25e860b61a813ca8c3fad17f699daf2f08"
+source = "git+https://github.com/stakwork/sphinx-rs?rev=be14ee70477f8e99f70f17d7cee6b30741a2ffca#be14ee70477f8e99f70f17d7cee6b30741a2ffca"
 dependencies = [
  "anyhow",
  "bip39",

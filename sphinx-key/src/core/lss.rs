@@ -50,7 +50,7 @@ pub fn init_lss(
 fn server_pubkey_from_event(event: Event) -> anyhow::Result<PublicKey> {
     match event {
         Event::LssMessage(b) => {
-            let init = LssMsg::from_slice(&b)?.as_init()?;
+            let init = LssMsg::from_slice(&b)?.into_init()?;
             let server_pubkey = PublicKey::from_slice(&init.server_pubkey)?;
             Ok(server_pubkey)
         }
@@ -59,7 +59,7 @@ fn server_pubkey_from_event(event: Event) -> anyhow::Result<PublicKey> {
 }
 fn created_from_event(event: Event) -> anyhow::Result<BrokerMutations> {
     match event {
-        Event::LssMessage(b) => Ok(LssMsg::from_slice(&b)?.as_created()?),
+        Event::LssMessage(b) => Ok(LssMsg::from_slice(&b)?.into_created()?),
         _ => Err(anyhow!("not an LSS msg")),
     }
 }

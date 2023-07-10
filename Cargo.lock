@@ -251,7 +251,7 @@ dependencies = [
  "once_cell",
  "proc-macro2",
  "quote",
- "syn 2.0.23",
+ "syn 2.0.25",
 ]
 
 [[package]]
@@ -468,7 +468,7 @@ dependencies = [
  "proc-macro2",
  "quote",
  "strsim",
- "syn 2.0.23",
+ "syn 2.0.25",
 ]
 
 [[package]]
@@ -479,7 +479,7 @@ checksum = "29a358ff9f12ec09c3e61fef9b5a9902623a695a46a917b07f269bff1445611a"
 dependencies = [
  "darling_core",
  "quote",
- "syn 2.0.23",
+ "syn 2.0.25",
 ]
 
 [[package]]
@@ -502,7 +502,7 @@ dependencies = [
  "proc-macro-error",
  "proc-macro2",
  "quote",
- "syn 2.0.23",
+ "syn 2.0.25",
 ]
 
 [[package]]
@@ -645,7 +645,7 @@ dependencies = [
  "darling",
  "proc-macro2",
  "quote",
- "syn 2.0.23",
+ "syn 2.0.25",
 ]
 
 [[package]]
@@ -1195,7 +1195,7 @@ checksum = "b06a4cde4c0f271a446782e3eff8de789548ce57dbc8eca9292c27f4a42004b4"
 [[package]]
 name = "lss-connector"
 version = "0.1.0"
-source = "git+https://github.com/stakwork/sphinx-rs.git?rev=38d7fa25e860b61a813ca8c3fad17f699daf2f08#38d7fa25e860b61a813ca8c3fad17f699daf2f08"
+source = "git+https://github.com/stakwork/sphinx-rs.git?rev=be14ee70477f8e99f70f17d7cee6b30741a2ffca#be14ee70477f8e99f70f17d7cee6b30741a2ffca"
 dependencies = [
  "anyhow",
  "log",
@@ -1660,9 +1660,9 @@ dependencies = [
 
 [[package]]
 name = "serde"
-version = "1.0.167"
+version = "1.0.171"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7daf513456463b42aa1d94cff7e0c24d682b429f020b9afa4f5ba5c40a22b237"
+checksum = "30e27d1e4fd7659406c492fd6cfaf2066ba8773de45ca75e855590f856dc34a9"
 dependencies = [
  "serde_derive",
 ]
@@ -1689,13 +1689,13 @@ dependencies = [
 
 [[package]]
 name = "serde_derive"
-version = "1.0.167"
+version = "1.0.171"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b69b106b68bc8054f0e974e70d19984040f8a5cf9215ca82626ea4853f82c4b9"
+checksum = "389894603bd18c46fa56231694f8d827779c0951a667087194cf9de94ed24682"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.23",
+ "syn 2.0.25",
 ]
 
 [[package]]
@@ -1745,7 +1745,7 @@ dependencies = [
  "darling",
  "proc-macro2",
  "quote",
- "syn 2.0.23",
+ "syn 2.0.25",
 ]
 
 [[package]]
@@ -1775,7 +1775,7 @@ dependencies = [
 [[package]]
 name = "sphinx-auther"
 version = "0.1.12"
-source = "git+https://github.com/stakwork/sphinx-rs.git?rev=38d7fa25e860b61a813ca8c3fad17f699daf2f08#38d7fa25e860b61a813ca8c3fad17f699daf2f08"
+source = "git+https://github.com/stakwork/sphinx-rs.git?rev=be14ee70477f8e99f70f17d7cee6b30741a2ffca#be14ee70477f8e99f70f17d7cee6b30741a2ffca"
 dependencies = [
  "anyhow",
  "base64",
@@ -1787,7 +1787,7 @@ dependencies = [
 [[package]]
 name = "sphinx-crypter"
 version = "0.1.0"
-source = "git+https://github.com/stakwork/sphinx-rs.git?rev=38d7fa25e860b61a813ca8c3fad17f699daf2f08#38d7fa25e860b61a813ca8c3fad17f699daf2f08"
+source = "git+https://github.com/stakwork/sphinx-rs.git?rev=be14ee70477f8e99f70f17d7cee6b30741a2ffca#be14ee70477f8e99f70f17d7cee6b30741a2ffca"
 dependencies = [
  "anyhow",
  "chacha20poly1305",
@@ -1798,7 +1798,7 @@ dependencies = [
 [[package]]
 name = "sphinx-glyph"
 version = "0.1.2"
-source = "git+https://github.com/stakwork/sphinx-rs.git?rev=38d7fa25e860b61a813ca8c3fad17f699daf2f08#38d7fa25e860b61a813ca8c3fad17f699daf2f08"
+source = "git+https://github.com/stakwork/sphinx-rs.git?rev=be14ee70477f8e99f70f17d7cee6b30741a2ffca#be14ee70477f8e99f70f17d7cee6b30741a2ffca"
 dependencies = [
  "anyhow",
  "hex",
@@ -1850,7 +1850,7 @@ dependencies = [
 [[package]]
 name = "sphinx-signer"
 version = "0.1.0"
-source = "git+https://github.com/stakwork/sphinx-rs.git?rev=38d7fa25e860b61a813ca8c3fad17f699daf2f08#38d7fa25e860b61a813ca8c3fad17f699daf2f08"
+source = "git+https://github.com/stakwork/sphinx-rs.git?rev=be14ee70477f8e99f70f17d7cee6b30741a2ffca#be14ee70477f8e99f70f17d7cee6b30741a2ffca"
 dependencies = [
  "anyhow",
  "bip39",
@@ -1956,9 +1956,9 @@ dependencies = [
 
 [[package]]
 name = "syn"
-version = "2.0.23"
+version = "2.0.25"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "59fb7d6d8281a51045d62b8eb3a7d1ce347b76f312af50cd3dc0af39c87c1737"
+checksum = "15e3fc8c0c74267e2df136e5e5fb656a464158aa57624053375eb9c8c6e25ae2"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1996,7 +1996,7 @@ checksum = "463fe12d7993d3b327787537ce8dd4dfa058de32fc2b195ef3cde03dc4771e8f"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.23",
+ "syn 2.0.25",
 ]
 
 [[package]]
@@ -2238,7 +2238,7 @@ dependencies = [
  "once_cell",
  "proc-macro2",
  "quote",
- "syn 2.0.23",
+ "syn 2.0.25",
  "wasm-bindgen-shared",
 ]
 
@@ -2260,7 +2260,7 @@ checksum = "54681b18a46765f095758388f2d0cf16eb8d4169b639ab575a8f5693af210c7b"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.23",
+ "syn 2.0.25",
  "wasm-bindgen-backend",
  "wasm-bindgen-shared",
 ]

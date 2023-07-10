@@ -235,7 +235,7 @@ fn restart_esp_if_memory_low() {
     unsafe {
         let size = esp_idf_sys::heap_caps_get_free_size(4);
         let block = esp_idf_sys::heap_caps_get_largest_free_block(4);
-        let threshold = 35000;
+        let threshold = 25000;
         log::info!(
             "Available DRAM: {}, Max block: {}, Restart Threshold: {}",
             size,
