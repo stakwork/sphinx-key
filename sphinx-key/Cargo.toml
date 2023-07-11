@@ -19,10 +19,10 @@ serde_json       = { version = "1.0.81", default-features = false }
 serde_urlencoded = "0.7.1"
 url              = "2"
 
-lss-connector  = { git = "https://github.com/stakwork/sphinx-rs.git", default-features = false, rev = "b08bd8d76b8f810892e409c5fa0fecbfdf2d6a8f" }
+lss-connector  = { git = "https://github.com/stakwork/sphinx-rs.git", default-features = false, rev = "97edb51448fa2ea4402e6411f67d1cf63e87ea51" }
 # lss-connector  = { path = "../../sphinx-rs/lss-connector", default-features = false }
-sphinx-crypter = { git = "https://github.com/stakwork/sphinx-rs.git", rev = "b08bd8d76b8f810892e409c5fa0fecbfdf2d6a8f" }
-sphinx-signer  = { git = "https://github.com/stakwork/sphinx-rs.git", optional = true, rev = "b08bd8d76b8f810892e409c5fa0fecbfdf2d6a8f" }
+sphinx-crypter = { git = "https://github.com/stakwork/sphinx-rs.git", rev = "97edb51448fa2ea4402e6411f67d1cf63e87ea51" }
+sphinx-signer  = { git = "https://github.com/stakwork/sphinx-rs.git", optional = true, rev = "97edb51448fa2ea4402e6411f67d1cf63e87ea51" }
 # sphinx-signer  = { path = "../../sphinx-rs/signer", optional = true }
 
 anyhow.workspace       = true
