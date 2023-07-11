@@ -30,13 +30,13 @@ thiserror         = "1.0.31"
 toml              = "0.5.9"
 url               = { version = "2.2" }
 
-vls-frontend        = { git = "https://gitlab.com/lightning-signer/validating-lightning-signer.git", rev = "163bade8dc4a97fdb516b68fbfdff8e43a74e795" }
-vls-protocol        = { git = "https://gitlab.com/lightning-signer/validating-lightning-signer.git", rev = "163bade8dc4a97fdb516b68fbfdff8e43a74e795" }
-vls-protocol-client = { git = "https://gitlab.com/lightning-signer/validating-lightning-signer.git", rev = "163bade8dc4a97fdb516b68fbfdff8e43a74e795" }
-vls-proxy           = { git = "https://gitlab.com/lightning-signer/validating-lightning-signer.git", rev = "163bade8dc4a97fdb516b68fbfdff8e43a74e795" }
+vls-frontend        = { git = "https://gitlab.com/lightning-signer/validating-lightning-signer.git", rev = "de25fc60bce03e9be16a698ffd8e8bdc48ed975d" }
+vls-protocol        = { git = "https://gitlab.com/lightning-signer/validating-lightning-signer.git", rev = "de25fc60bce03e9be16a698ffd8e8bdc48ed975d" }
+vls-protocol-client = { git = "https://gitlab.com/lightning-signer/validating-lightning-signer.git", rev = "de25fc60bce03e9be16a698ffd8e8bdc48ed975d" }
+vls-proxy           = { git = "https://gitlab.com/lightning-signer/validating-lightning-signer.git", rev = "de25fc60bce03e9be16a698ffd8e8bdc48ed975d" }
 
-lss-connector = { git = "https://github.com/stakwork/sphinx-rs", rev = "97edb51448fa2ea4402e6411f67d1cf63e87ea51" }
-sphinx-signer = { git = "https://github.com/stakwork/sphinx-rs", rev = "97edb51448fa2ea4402e6411f67d1cf63e87ea51" }
+lss-connector = { git = "https://github.com/stakwork/sphinx-rs", rev = "0843db9ff287f388653089ae95f45cac85fe7a66" }
+sphinx-signer = { git = "https://github.com/stakwork/sphinx-rs", rev = "0843db9ff287f388653089ae95f45cac85fe7a66" }
 # lss-connector = { path = "../../sphinx-rs/lss-connector" }
 # sphinx-signer = { path = "../../sphinx-rs/signer" }
 

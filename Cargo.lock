@@ -230,7 +230,7 @@ checksum = "bef38d45163c2f1dde094a7dfd33ccf595c92905c8f8f4fdc18d06fb1037718a"
 [[package]]
 name = "bolt-derive"
 version = "0.1.0"
-source = "git+https://gitlab.com/lightning-signer/validating-lightning-signer.git?rev=163bade8dc4a97fdb516b68fbfdff8e43a74e795#163bade8dc4a97fdb516b68fbfdff8e43a74e795"
+source = "git+https://gitlab.com/lightning-signer/validating-lightning-signer.git?rev=de25fc60bce03e9be16a698ffd8e8bdc48ed975d#de25fc60bce03e9be16a698ffd8e8bdc48ed975d"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1201,7 +1201,7 @@ checksum = "b06a4cde4c0f271a446782e3eff8de789548ce57dbc8eca9292c27f4a42004b4"
 [[package]]
 name = "lss-connector"
 version = "0.1.0"
-source = "git+https://github.com/stakwork/sphinx-rs.git?rev=97edb51448fa2ea4402e6411f67d1cf63e87ea51#97edb51448fa2ea4402e6411f67d1cf63e87ea51"
+source = "git+https://github.com/stakwork/sphinx-rs.git?rev=0843db9ff287f388653089ae95f45cac85fe7a66#0843db9ff287f388653089ae95f45cac85fe7a66"
 dependencies = [
  "anyhow",
  "log",
@@ -1781,7 +1781,7 @@ dependencies = [
 [[package]]
 name = "sphinx-auther"
 version = "0.1.12"
-source = "git+https://github.com/stakwork/sphinx-rs.git?rev=97edb51448fa2ea4402e6411f67d1cf63e87ea51#97edb51448fa2ea4402e6411f67d1cf63e87ea51"
+source = "git+https://github.com/stakwork/sphinx-rs.git?rev=0843db9ff287f388653089ae95f45cac85fe7a66#0843db9ff287f388653089ae95f45cac85fe7a66"
 dependencies = [
  "anyhow",
  "base64 0.21.2",
@@ -1793,7 +1793,7 @@ dependencies = [
 [[package]]
 name = "sphinx-crypter"
 version = "0.1.0"
-source = "git+https://github.com/stakwork/sphinx-rs.git?rev=97edb51448fa2ea4402e6411f67d1cf63e87ea51#97edb51448fa2ea4402e6411f67d1cf63e87ea51"
+source = "git+https://github.com/stakwork/sphinx-rs.git?rev=0843db9ff287f388653089ae95f45cac85fe7a66#0843db9ff287f388653089ae95f45cac85fe7a66"
 dependencies = [
  "anyhow",
  "chacha20poly1305",
@@ -1804,7 +1804,7 @@ dependencies = [
 [[package]]
 name = "sphinx-glyph"
 version = "0.1.2"
-source = "git+https://github.com/stakwork/sphinx-rs.git?rev=97edb51448fa2ea4402e6411f67d1cf63e87ea51#97edb51448fa2ea4402e6411f67d1cf63e87ea51"
+source = "git+https://github.com/stakwork/sphinx-rs.git?rev=0843db9ff287f388653089ae95f45cac85fe7a66#0843db9ff287f388653089ae95f45cac85fe7a66"
 dependencies = [
  "anyhow",
  "hex",
@@ -1856,7 +1856,7 @@ dependencies = [
 [[package]]
 name = "sphinx-signer"
 version = "0.1.0"
-source = "git+https://github.com/stakwork/sphinx-rs.git?rev=97edb51448fa2ea4402e6411f67d1cf63e87ea51#97edb51448fa2ea4402e6411f67d1cf63e87ea51"
+source = "git+https://github.com/stakwork/sphinx-rs.git?rev=0843db9ff287f388653089ae95f45cac85fe7a66#0843db9ff287f388653089ae95f45cac85fe7a66"
 dependencies = [
  "anyhow",
  "bip39",
@@ -2137,7 +2137,7 @@ checksum = "49874b5167b65d7193b8aba1567f5c7d93d001cafc34600cee003eda787e483f"
 [[package]]
 name = "vls-core"
 version = "0.9.1"
-source = "git+https://gitlab.com/lightning-signer/validating-lightning-signer.git?rev=163bade8dc4a97fdb516b68fbfdff8e43a74e795#163bade8dc4a97fdb516b68fbfdff8e43a74e795"
+source = "git+https://gitlab.com/lightning-signer/validating-lightning-signer.git?rev=de25fc60bce03e9be16a698ffd8e8bdc48ed975d#de25fc60bce03e9be16a698ffd8e8bdc48ed975d"
 dependencies = [
  "anyhow",
  "bitcoin",
@@ -2159,7 +2159,7 @@ dependencies = [
 [[package]]
 name = "vls-persist"
 version = "0.9.1"
-source = "git+https://gitlab.com/lightning-signer/validating-lightning-signer.git?rev=163bade8dc4a97fdb516b68fbfdff8e43a74e795#163bade8dc4a97fdb516b68fbfdff8e43a74e795"
+source = "git+https://gitlab.com/lightning-signer/validating-lightning-signer.git?rev=de25fc60bce03e9be16a698ffd8e8bdc48ed975d#de25fc60bce03e9be16a698ffd8e8bdc48ed975d"
 dependencies = [
  "hex",
  "log",
@@ -2172,7 +2172,7 @@ dependencies = [
 [[package]]
 name = "vls-protocol"
 version = "0.9.1"
-source = "git+https://gitlab.com/lightning-signer/validating-lightning-signer.git?rev=163bade8dc4a97fdb516b68fbfdff8e43a74e795#163bade8dc4a97fdb516b68fbfdff8e43a74e795"
+source = "git+https://gitlab.com/lightning-signer/validating-lightning-signer.git?rev=de25fc60bce03e9be16a698ffd8e8bdc48ed975d#de25fc60bce03e9be16a698ffd8e8bdc48ed975d"
 dependencies = [
  "as-any",
  "bolt-derive",
@@ -2186,7 +2186,7 @@ dependencies = [
 [[package]]
 name = "vls-protocol-signer"
 version = "0.9.1"
-source = "git+https://gitlab.com/lightning-signer/validating-lightning-signer.git?rev=163bade8dc4a97fdb516b68fbfdff8e43a74e795#163bade8dc4a97fdb516b68fbfdff8e43a74e795"
+source = "git+https://gitlab.com/lightning-signer/validating-lightning-signer.git?rev=de25fc60bce03e9be16a698ffd8e8bdc48ed975d#de25fc60bce03e9be16a698ffd8e8bdc48ed975d"
 dependencies = [
  "bit-vec",
  "log",
