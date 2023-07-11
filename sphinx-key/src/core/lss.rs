@@ -26,7 +26,7 @@ pub fn init_lss(
         }
     };
 
-    let (lss_signer, res1) = LssSigner::new(&handler_builder, &server_pubkey);
+    let (lss_signer, res1) = LssSigner::new(&handler_builder, &server_pubkey, None);
     let lss_res_1_topic = format!("{}/{}", client_id, topics::INIT_1_RES);
     mqtt.publish(&lss_res_1_topic, QOS, false, &res1)
         .expect("could not publish LSS response");
