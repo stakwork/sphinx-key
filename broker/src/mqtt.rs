@@ -28,8 +28,8 @@ pub fn start_broker(
 
     let (mut link_tx, mut link_rx) = broker.link("localclient")?;
 
-    link_tx.subscribe(format!("+/{}", topics::HELLO));
-    link_tx.subscribe(format!("+/{}", topics::BYE));
+    let _ = link_tx.subscribe(format!("+/{}", topics::HELLO));
+    let _ = link_tx.subscribe(format!("+/{}", topics::BYE));
 
     let auth_sender_ = auth_sender.clone();
     std::thread::spawn(move || {

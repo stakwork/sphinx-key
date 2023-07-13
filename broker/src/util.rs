@@ -41,6 +41,9 @@ pub fn read_broker_config() -> Settings {
         if let Some(http_port) = read_http_port_setting(&table) {
             settings.http_port = http_port;
         }
+        if let Some(ws_port) = read_ws_port_setting(&table) {
+            settings.websocket_port = Some(ws_port);
+        }
     } else {
         log::info!("File broker.conf not found, using default settings");
     }
@@ -60,6 +63,13 @@ pub fn read_broker_config() -> Settings {
         if let Ok(http_port) = env_port.parse::<u16>() {
             if http_port > 1023 {
                 settings.http_port = http_port;
+            }
+        }
+    }
+    if let Ok(env_port) = env::var("BROKER_WS_PORT") {
+        if let Ok(ws_port) = env_port.parse::<u16>() {
+            if ws_port > 1023 {
+                settings.websocket_port = Some(ws_port);
             }
         }
     }
@@ -154,6 +164,26 @@ fn read_http_port_setting(table: &Value) -> Option<u16> {
             panic!("The http port number is way too big!")
         }
         log::info!("Read broker http port setting: {}", temp);
+        Some(temp.try_into().unwrap())
+    }
+}
+
+fn read_ws_port_setting(table: &Value) -> Option<u16> {
+    if let None = table.get("ws_port") {
+        log::info!("Broker ws port not specified, setting to default 8083");
+        None
+    } else {
+        let temp = table["ws_port"]
+            .as_integer()
+            .expect("The ws port number is not an integer greater than 1023");
+        if temp <= 1023 {
+            panic!("The ws port number is not an integer greater than 1023")
+        }
+        let max: i64 = u16::MAX.into();
+        if temp > max {
+            panic!("The ws port number is way too big!")
+        }
+        log::info!("Read broker ws port setting: {}", temp);
         Some(temp.try_into().unwrap())
     }
 }
