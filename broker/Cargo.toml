@@ -35,8 +35,8 @@ vls-protocol        = { git = "https://gitlab.com/lightning-signer/validating-li
 vls-protocol-client = { git = "https://gitlab.com/lightning-signer/validating-lightning-signer.git", rev = "de25fc60bce03e9be16a698ffd8e8bdc48ed975d" }
 vls-proxy           = { git = "https://gitlab.com/lightning-signer/validating-lightning-signer.git", rev = "de25fc60bce03e9be16a698ffd8e8bdc48ed975d" }
 
-lss-connector = { git = "https://github.com/stakwork/sphinx-rs", rev = "0843db9ff287f388653089ae95f45cac85fe7a66" }
-sphinx-signer = { git = "https://github.com/stakwork/sphinx-rs", rev = "0843db9ff287f388653089ae95f45cac85fe7a66" }
+lss-connector = { git = "https://github.com/stakwork/sphinx-rs", rev = "43bc5f621546093e1a72baa715097aedc5795690" }
+sphinx-signer = { git = "https://github.com/stakwork/sphinx-rs", rev = "43bc5f621546093e1a72baa715097aedc5795690" }
 # lss-connector = { path = "../../sphinx-rs/lss-connector" }
 # sphinx-signer = { path = "../../sphinx-rs/signer" }
 
