@@ -1,10 +1,10 @@
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, Context, Result};
 use embedded_svc::storage::RawStorage;
 use esp_idf_svc::nvs::{EspDefaultNvs, EspDefaultNvsPartition};
+use glyph::control::{Config, ControlPersist, Controller, FlashKey, Policy, Velocity};
+use glyph::ser::*;
 use sphinx_signer::lightning_signer::bitcoin::Network;
-use sphinx_signer::sphinx_glyph::control::{
-    Config, ControlPersist, Controller, FlashKey, Policy, Velocity,
-};
+use sphinx_signer::sphinx_glyph as glyph;
 use std::convert::TryInto;
 use std::sync::{Arc, Mutex};
 
@@ -49,11 +49,13 @@ impl ControlPersist for FlashPersister {
             .0
             .get_raw(FlashKey::Config.as_str(), &mut buf)?
             .ok_or(anyhow!("no existing config"))?;
-        Ok(rmp_serde::from_slice(existing)?)
+        let mut bytes = Bytes::new(&existing);
+        Ok(deserialize_config(&mut bytes)?)
     }
     fn write_config(&mut self, conf: Config) -> Result<()> {
-        let conf1 = rmp_serde::to_vec(&conf)?;
-        self.0.set_raw(FlashKey::Config.as_str(), &conf1[..])?;
+        let mut bb = ByteBuf::new();
+        serialize_config(&mut bb, &conf)?;
+        self.0.set_raw(FlashKey::Config.as_str(), bb.as_slice())?;
         Ok(())
     }
     fn remove_config(&mut self) -> Result<()> {
@@ -83,11 +85,13 @@ impl ControlPersist for FlashPersister {
             .0
             .get_raw(FlashKey::Policy.as_str(), &mut buf)?
             .ok_or(anyhow!("no existing policy"))?;
-        Ok(rmp_serde::from_slice(existing)?)
+        let mut bytes = Bytes::new(&existing);
+        Ok(deserialize_policy(&mut bytes, None)?)
     }
     fn write_policy(&mut self, pol: Policy) -> Result<()> {
-        let pol1 = rmp_serde::to_vec(&pol)?;
-        self.0.set_raw(FlashKey::Policy.as_str(), &pol1[..])?;
+        let mut bb = ByteBuf::new();
+        serialize_policy(&mut bb, None, &pol)?;
+        self.0.set_raw(FlashKey::Policy.as_str(), bb.as_slice())?;
         Ok(())
     }
     fn remove_policy(&mut self) -> Result<()> {
@@ -100,11 +104,14 @@ impl ControlPersist for FlashPersister {
             .0
             .get_raw(FlashKey::Velocity.as_str(), &mut buf)?
             .ok_or(anyhow!("no existing velocity"))?;
-        Ok(rmp_serde::from_slice(existing)?)
+        let mut bytes = Bytes::new(existing);
+        let desvel = deserialize_velocity(&mut bytes, None)?;
+        Ok(desvel.context(anyhow::anyhow!("no velocity"))?)
     }
     fn write_velocity(&mut self, vel: Velocity) -> Result<()> {
-        let vel1 = rmp_serde::to_vec(&vel)?;
-        self.0.set_raw(FlashKey::Velocity.as_str(), &vel1[..])?;
+        let mut bb = ByteBuf::new();
+        serialize_velocity(&mut bb, None, Some(&vel))?;
+        self.0.set_raw(FlashKey::Velocity.as_str(), bb.as_slice())?;
         Ok(())
     }
 }

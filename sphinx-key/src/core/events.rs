@@ -3,16 +3,16 @@ use crate::core::lss;
 use crate::ota::{update_sphinx_key, validate_ota_message};
 use crate::status::Status;
 
+use glyph::control::{Config, ControlMessage, ControlResponse, Controller, Policy, Velocity};
+use glyph::error::Error as GlyphError;
+use glyph::ser::{serialize_controlresponse, ByteBuf};
+use glyph::topics;
 use lss_connector::secp256k1::PublicKey;
 use sphinx_signer::approver::SphinxApprover;
 use sphinx_signer::lightning_signer::bitcoin::Network;
 use sphinx_signer::lightning_signer::persist::Persist;
 use sphinx_signer::persist::{BackupPersister, FsPersister, ThreadMemoPersister};
-use sphinx_signer::sphinx_glyph::control::{
-    Config, ControlMessage, ControlResponse, Controller, Policy, Velocity,
-};
-use sphinx_signer::sphinx_glyph::error::Error as GlyphError;
-use sphinx_signer::sphinx_glyph::topics;
+use sphinx_signer::sphinx_glyph as glyph;
 use sphinx_signer::{self, Handler, RootHandler};
 use std::sync::mpsc;
 use std::sync::Arc;
@@ -135,6 +135,7 @@ pub fn make_event_loop(
         Err(e) => {
             log::error!("failed to init lss {:?}", e);
             unsafe { esp_idf_sys::esp_restart() };
+            return Err(anyhow::anyhow!("nope"));
         }
     };
 
@@ -220,9 +221,9 @@ pub fn make_event_loop(
                 if let Some(res) =
                     handle_control_response(&root_handler, &approver, cres, led_tx.clone())
                 {
-                    let res_data =
-                        rmp_serde::to_vec_named(&res).expect("could not publish control response");
-                    mqtt_pub(&mut mqtt, client_id, topics::CONTROL_RES, &res_data);
+                    let mut bb = ByteBuf::new();
+                    serialize_controlresponse(&mut bb, &res).expect("failed serialize_lssresponse");
+                    mqtt_pub(&mut mqtt, client_id, topics::CONTROL_RES, bb.as_slice());
                 }
             }
         }

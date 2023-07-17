@@ -40,7 +40,7 @@ fn main() -> anyhow::Result<()> {
             let path = entry.path();
             if path.is_dir() {
                 println!("PATH {}", path.display());
-                if let Err(e) = fs::remove_dir_all(path) {
+                if let Err(_e) = fs::remove_dir_all(path) {
                     println!("err removing dir");
                 }
             }

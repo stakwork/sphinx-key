@@ -190,8 +190,6 @@ checksum = "29b9e657de8ff1c3488a4ab77cb51d604eab53415ce34f0bc800f2eac9b13c28"
 dependencies = [
  "bitcoin_hashes",
  "rand_core 0.4.2",
- "serde",
- "unicode-normalization",
 ]
 
 [[package]]
@@ -1201,14 +1199,13 @@ checksum = "b06a4cde4c0f271a446782e3eff8de789548ce57dbc8eca9292c27f4a42004b4"
 [[package]]
 name = "lss-connector"
 version = "0.1.0"
-source = "git+https://github.com/stakwork/sphinx-rs.git?rev=0843db9ff287f388653089ae95f45cac85fe7a66#0843db9ff287f388653089ae95f45cac85fe7a66"
+source = "git+https://github.com/stakwork/sphinx-rs.git?rev=a5008ee18222cb6503049ea9cd9df0f3ba60495a#a5008ee18222cb6503049ea9cd9df0f3ba60495a"
 dependencies = [
  "anyhow",
  "log",
- "rmp-serde",
+ "rmp",
+ "rmp-utils",
  "secp256k1",
- "serde",
- "serde-big-array",
  "sphinx-glyph",
  "vls-protocol-signer",
 ]
@@ -1573,6 +1570,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "rmp-utils"
+version = "0.1.0"
+source = "git+https://github.com/stakwork/sphinx-rs.git?rev=a5008ee18222cb6503049ea9cd9df0f3ba60495a#a5008ee18222cb6503049ea9cd9df0f3ba60495a"
+dependencies = [
+ "anyhow",
+ "rmp",
+]
+
+[[package]]
 name = "rustc-demangle"
 version = "0.1.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1674,15 +1680,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "serde-big-array"
-version = "0.5.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "11fc7cc2c76d73e0f27ee52abbd64eec84d46f370c88371120433196934e4b7f"
-dependencies = [
- "serde",
-]
-
-[[package]]
 name = "serde_bolt"
 version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1781,7 +1778,7 @@ dependencies = [
 [[package]]
 name = "sphinx-auther"
 version = "0.1.12"
-source = "git+https://github.com/stakwork/sphinx-rs.git?rev=0843db9ff287f388653089ae95f45cac85fe7a66#0843db9ff287f388653089ae95f45cac85fe7a66"
+source = "git+https://github.com/stakwork/sphinx-rs.git?rev=a5008ee18222cb6503049ea9cd9df0f3ba60495a#a5008ee18222cb6503049ea9cd9df0f3ba60495a"
 dependencies = [
  "anyhow",
  "base64 0.21.2",
@@ -1793,7 +1790,7 @@ dependencies = [
 [[package]]
 name = "sphinx-crypter"
 version = "0.1.0"
-source = "git+https://github.com/stakwork/sphinx-rs.git?rev=0843db9ff287f388653089ae95f45cac85fe7a66#0843db9ff287f388653089ae95f45cac85fe7a66"
+source = "git+https://github.com/stakwork/sphinx-rs.git?rev=a5008ee18222cb6503049ea9cd9df0f3ba60495a#a5008ee18222cb6503049ea9cd9df0f3ba60495a"
 dependencies = [
  "anyhow",
  "chacha20poly1305",
@@ -1804,11 +1801,12 @@ dependencies = [
 [[package]]
 name = "sphinx-glyph"
 version = "0.1.2"
-source = "git+https://github.com/stakwork/sphinx-rs.git?rev=0843db9ff287f388653089ae95f45cac85fe7a66#0843db9ff287f388653089ae95f45cac85fe7a66"
+source = "git+https://github.com/stakwork/sphinx-rs.git?rev=a5008ee18222cb6503049ea9cd9df0f3ba60495a#a5008ee18222cb6503049ea9cd9df0f3ba60495a"
 dependencies = [
  "anyhow",
  "hex",
- "rmp-serde",
+ "rmp",
+ "rmp-utils",
  "serde",
  "serde_json",
  "sphinx-auther",
@@ -1829,7 +1827,6 @@ dependencies = [
  "hex",
  "log",
  "lss-connector",
- "rmp-serde",
  "serde",
  "serde_json",
  "serde_urlencoded",
@@ -1856,7 +1853,7 @@ dependencies = [
 [[package]]
 name = "sphinx-signer"
 version = "0.1.0"
-source = "git+https://github.com/stakwork/sphinx-rs.git?rev=0843db9ff287f388653089ae95f45cac85fe7a66#0843db9ff287f388653089ae95f45cac85fe7a66"
+source = "git+https://github.com/stakwork/sphinx-rs.git?rev=a5008ee18222cb6503049ea9cd9df0f3ba60495a#a5008ee18222cb6503049ea9cd9df0f3ba60495a"
 dependencies = [
  "anyhow",
  "bip39",
