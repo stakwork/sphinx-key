@@ -1700,12 +1700,11 @@ dependencies = [
 [[package]]
 name = "lss-connector"
 version = "0.1.0"
-source = "git+https://github.com/stakwork/sphinx-rs?rev=a5008ee18222cb6503049ea9cd9df0f3ba60495a#a5008ee18222cb6503049ea9cd9df0f3ba60495a"
+source = "git+https://github.com/stakwork/sphinx-rs?rev=4ab623467e98d381489bf032c3fcd42d1273a375#4ab623467e98d381489bf032c3fcd42d1273a375"
 dependencies = [
  "anyhow",
  "lightning-storage-server",
  "log",
- "rmp",
  "rmp-utils",
  "secp256k1",
  "sphinx-glyph",
@@ -2695,7 +2694,7 @@ dependencies = [
 [[package]]
 name = "rmp-utils"
 version = "0.1.0"
-source = "git+https://github.com/stakwork/sphinx-rs?rev=a5008ee18222cb6503049ea9cd9df0f3ba60495a#a5008ee18222cb6503049ea9cd9df0f3ba60495a"
+source = "git+https://github.com/stakwork/sphinx-rs?rev=4ab623467e98d381489bf032c3fcd42d1273a375#4ab623467e98d381489bf032c3fcd42d1273a375"
 dependencies = [
  "anyhow",
  "rmp",
@@ -3308,7 +3307,7 @@ dependencies = [
 [[package]]
 name = "sphinx-auther"
 version = "0.1.12"
-source = "git+https://github.com/stakwork/sphinx-rs?rev=a5008ee18222cb6503049ea9cd9df0f3ba60495a#a5008ee18222cb6503049ea9cd9df0f3ba60495a"
+source = "git+https://github.com/stakwork/sphinx-rs?rev=4ab623467e98d381489bf032c3fcd42d1273a375#4ab623467e98d381489bf032c3fcd42d1273a375"
 dependencies = [
  "anyhow",
  "base64 0.21.2",
@@ -3320,11 +3319,10 @@ dependencies = [
 [[package]]
 name = "sphinx-glyph"
 version = "0.1.2"
-source = "git+https://github.com/stakwork/sphinx-rs?rev=a5008ee18222cb6503049ea9cd9df0f3ba60495a#a5008ee18222cb6503049ea9cd9df0f3ba60495a"
+source = "git+https://github.com/stakwork/sphinx-rs?rev=4ab623467e98d381489bf032c3fcd42d1273a375#4ab623467e98d381489bf032c3fcd42d1273a375"
 dependencies = [
  "anyhow",
  "hex",
- "rmp",
  "rmp-utils",
  "serde",
  "serde_json",
@@ -3367,7 +3365,7 @@ dependencies = [
 [[package]]
 name = "sphinx-signer"
 version = "0.1.0"
-source = "git+https://github.com/stakwork/sphinx-rs?rev=a5008ee18222cb6503049ea9cd9df0f3ba60495a#a5008ee18222cb6503049ea9cd9df0f3ba60495a"
+source = "git+https://github.com/stakwork/sphinx-rs?rev=4ab623467e98d381489bf032c3fcd42d1273a375#4ab623467e98d381489bf032c3fcd42d1273a375"
 dependencies = [
  "anyhow",
  "bip39",
