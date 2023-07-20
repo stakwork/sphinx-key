@@ -20,7 +20,7 @@ pub fn try_to_get_busy() -> std::result::Result<bool, bool> {
 
 // set BUSY back to false
 pub fn done_being_busy() {
-    BUSY.store(false, Ordering::Relaxed);
+    BUSY.store(false, Ordering::Release);
 }
 
 #[derive(Clone, Debug)]
