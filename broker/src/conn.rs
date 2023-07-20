@@ -41,7 +41,6 @@ impl Connections {
 }
 
 pub struct Channel {
-    pub sequence: u16,
     pub sender: mpsc::Sender<ChannelRequest>,
     pub pubkey: [u8; 33],
 }
