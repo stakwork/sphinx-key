@@ -5,13 +5,14 @@ use log::*;
 use rocket::tokio::sync::mpsc;
 use secp256k1::PublicKey;
 use sphinx_signer::{parser, sphinx_glyph::topics};
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU16, Ordering};
 use std::thread;
 use std::time::Duration;
 use vls_protocol::{msgs, msgs::Message, Error, Result};
 use vls_proxy::client::Client;
 
 pub static BUSY: AtomicBool = AtomicBool::new(false);
+pub static COUNTER: AtomicU16 = AtomicU16::new(0u16);
 
 // set BUSY to true if its false
 pub fn try_to_get_busy() -> std::result::Result<bool, bool> {
@@ -20,7 +21,7 @@ pub fn try_to_get_busy() -> std::result::Result<bool, bool> {
 
 // set BUSY back to false
 pub fn done_being_busy() {
-    BUSY.store(false, Ordering::Relaxed);
+    BUSY.store(false, Ordering::Release);
 }
 
 #[derive(Clone, Debug)]
@@ -33,7 +34,6 @@ impl Channel {
     pub fn new(sender: mpsc::Sender<ChannelRequest>) -> Self {
         Self {
             sender,
-            sequence: 0,
             pubkey: [0; 33], // init with empty pubkey
         }
     }
@@ -158,7 +158,12 @@ impl<C: 'static + Client> SignerLoop<C> {
             .as_ref()
             .map(|c| c.peer_id.serialize())
             .unwrap_or([0u8; 33]);
-        let md = parser::raw_request_from_bytes(message, self.chan.sequence, peer_id, dbid)?;
+        let md = parser::raw_request_from_bytes(
+            message,
+            COUNTER.load(Ordering::Relaxed),
+            peer_id,
+            dbid,
+        )?;
         // send to signer
         log::info!("SEND ON {}", topics::VLS);
         let (res_topic, res) = self.send_request_wait(topics::VLS, md)?;
@@ -178,9 +183,9 @@ impl<C: 'static + Client> SignerLoop<C> {
             the_res = res2;
         }
         // create reply bytes for CLN
-        let reply = parser::raw_response_from_bytes(the_res, self.chan.sequence)?;
+        let reply = parser::raw_response_from_bytes(the_res, COUNTER.load(Ordering::Relaxed))?;
         // add to the sequence
-        self.chan.sequence = self.chan.sequence.wrapping_add(1);
+        COUNTER.fetch_add(1u16, Ordering::Relaxed);
         // catch the pubkey if its the first one connection
         if catch_init {
             let _ = self.set_channel_pubkey(reply.clone());
