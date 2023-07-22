@@ -12,6 +12,7 @@ use sphinx_signer::approver::SphinxApprover;
 use sphinx_signer::lightning_signer::bitcoin::Network;
 use sphinx_signer::lightning_signer::persist::Persist;
 use sphinx_signer::persist::{BackupPersister, FsPersister, ThreadMemoPersister};
+use sphinx_signer::root::VlsHandlerError;
 use sphinx_signer::sphinx_glyph as glyph;
 use sphinx_signer::{self, Handler, RootHandler};
 use std::sync::mpsc;
@@ -145,6 +146,7 @@ pub fn make_event_loop(
     // signing loop
     log::info!("=> starting the main signing loop...");
     let flash_db = ctrlr.persister();
+    let mut expected_sequence = None;
     while let Ok(event) = rx.recv() {
         match event {
             Event::Connected => {
@@ -170,9 +172,10 @@ pub fn make_event_loop(
                     &root_handler,
                     &lss_signer,
                     msg_bytes,
+                    expected_sequence,
                     do_log,
                 ) {
-                    Ok((vls_b, lss_b)) => {
+                    Ok((vls_b, lss_b, sequence)) => {
                         if lss_b.len() == 0 {
                             // no muts, respond directly back!
                             mqtt_pub(&mut mqtt, client_id, topics::VLS_RES, &vls_b);
@@ -182,12 +185,20 @@ pub fn make_event_loop(
                             msgs = Some((vls_b, lss_b.clone()));
                             mqtt_pub(&mut mqtt, client_id, topics::LSS_RES, &lss_b);
                         }
+                        expected_sequence = Some(sequence + 1);
                     }
-                    Err(e) => {
-                        let err_msg = GlyphError::new(1, &e.to_string());
-                        log::error!("HANDLE FAILED {:?}", e);
-                        mqtt_pub(&mut mqtt, client_id, topics::ERROR, &err_msg.to_vec()[..]);
-                    }
+                    Err(e) => match e {
+                        VlsHandlerError::BadSequence(current, expected) => unsafe {
+                            log::info!("caught a badsequence error, current: {}, expected: {}", current, expected);
+                            log::info!("restarting esp!");
+                            esp_idf_sys::esp_restart();
+                        },
+                        _ => {
+                            let err_msg = GlyphError::new(1, &e.to_string());
+                            log::error!("HANDLE FAILED {:?}", e);
+                            mqtt_pub(&mut mqtt, client_id, topics::ERROR, &err_msg.to_vec()[..]);
+                        }
+                    },
                 };
                 let state2 = approver.control().get_state();
                 if state1 != state2 {
