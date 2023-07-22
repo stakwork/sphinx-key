@@ -74,7 +74,7 @@ async fn run_main(parent_fd: i32) -> rocket::Rocket<rocket::Build> {
     let (error_tx, error_rx) = broadcast::channel(10000);
     error_log::log_errors(error_rx);
 
-    let (reconn_tx, reconn_rx) = mpsc::channel::<(String, bool)>(10000);
+    let (reconn_tx, reconn_rx) = mpsc::channel::<(String, bool, std_oneshot::Sender<bool>)>(10000);
 
     // waits until first connection
     let conns = broker_setup(
@@ -146,7 +146,7 @@ pub async fn broker_setup(
     settings: Settings,
     mqtt_rx: mpsc::Receiver<ChannelRequest>,
     init_rx: mpsc::Receiver<ChannelRequest>,
-    reconn_tx: mpsc::Sender<(String, bool)>,
+    reconn_tx: mpsc::Sender<(String, bool, std_oneshot::Sender<bool>)>,
     error_tx: broadcast::Sender<Vec<u8>>,
 ) -> Arc<Mutex<Connections>> {
     let (auth_tx, auth_rx) = std::sync::mpsc::channel::<AuthMsg>();
@@ -193,10 +193,16 @@ pub async fn broker_setup(
         let _ = startup_tx.send(cid.to_string());
         while let Ok((cid, connected)) = status_rx.recv() {
             log::info!("=> reconnected: {}: {}", cid, connected);
+            let (dance_complete_tx, dance_complete_rx) = std_oneshot::channel::<bool>();
+            let _ = reconn_tx_.blocking_send((cid.clone(), connected, dance_complete_tx));
+            let dance_complete = dance_complete_rx.recv().unwrap_or_else(|e| {
+                log::info!("dance_complete channel died before receiving response: {}", e);
+                false
+            });
             let mut cs = conns_.lock().unwrap();
-            cs.client_action(&cid, connected);
+            cs.client_action(&cid, dance_complete);
+            log::debug!("List: {:?}, action: {}", cs, dance_complete);
             drop(cs);
-            let _ = reconn_tx_.blocking_send((cid, connected));
         }
     });
     let _first_client_id = startup_rx.recv();

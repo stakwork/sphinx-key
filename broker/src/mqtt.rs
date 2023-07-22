@@ -145,25 +145,24 @@ fn pub_and_wait(
     link_tx: &mut LinkTx,
 ) {
     loop {
-        let cs = conns_.lock().unwrap();
-        let client_list = cs.clients.clone();
-        drop(cs);
+        log::debug!("looping in pub_and_wait");
         let reply = if let Some(cid) = msg.cid.clone() {
-            if !client_list.contains(&cid) {
+            // for a specific client
+            log::debug!("publishing to a specific client");
+            let res_opt = pub_timeout(&cid, &msg.topic, &msg.message, &msg_rx, link_tx);
+            log::debug!("client responded!");
+            // control topic should be able to fail early without retrying
+            if res_opt.is_none() && msg.topic == topics::CONTROL {
                 Some(ChannelReply::empty())
             } else {
-                // for a specific client
-                log::debug!("publishing to a specific client");
-                let res_opt = pub_timeout(&cid, &msg.topic, &msg.message, &msg_rx, link_tx);
-                // control topic should be able to fail early without retrying
-                if res_opt.is_none() && msg.topic == topics::CONTROL {
-                    Some(ChannelReply::empty())
-                } else {
-                    res_opt
-                }
+                res_opt
             }
         } else {
             log::debug!("publishing to all clients");
+            let cs = conns_.lock().unwrap();
+            let client_list = cs.clients.clone();
+            log::debug!("got the list lock!");
+            drop(cs);
             // send to each client in turn
             if client_list.len() == 0 {
                 // wait a second if there are no clients
