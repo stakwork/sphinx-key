@@ -63,7 +63,8 @@ pub fn start_broker(
     // receive replies from LSS initialization
     let _init_task = std::thread::spawn(move || {
         while let Some(msg) = init_receiver.blocking_recv() {
-            pub_and_wait(msg, &conns_, &init_rx, &mut link_tx_);
+            // Retry three times
+            pub_and_wait(msg, &conns_, &init_rx, &mut link_tx_, Some(3));
         }
     });
 
@@ -74,7 +75,14 @@ pub fn start_broker(
     let _relay_task = std::thread::spawn(move || {
         while let Some(msg) = receiver.blocking_recv() {
             log::debug!("Received message here: {:?}", msg);
-            pub_and_wait(msg, &connections, &msg_rx, &mut link_tx);
+            let retries = if msg.topic == topics::CONTROL {
+                // Don't retry
+                Some(0)
+            } else {
+                // Retry indefinitely
+                None
+            };
+            pub_and_wait(msg, &connections, &msg_rx, &mut link_tx, retries);
         }
     });
 
@@ -143,7 +151,9 @@ fn pub_and_wait(
     conns_: &Arc<Mutex<Connections>>,
     msg_rx: &std::sync::mpsc::Receiver<(String, String, Vec<u8>)>,
     link_tx: &mut LinkTx,
+    retries: Option<u8>,
 ) {
+    let mut counter = 0u8;
     loop {
         log::debug!("looping in pub_and_wait");
         let reply = if let Some(cid) = msg.cid.clone() {
@@ -152,11 +162,7 @@ fn pub_and_wait(
             let res_opt = pub_timeout(&cid, &msg.topic, &msg.message, &msg_rx, link_tx);
             log::debug!("client responded!");
             // control topic should be able to fail early without retrying
-            if res_opt.is_none() && msg.topic == topics::CONTROL {
-                Some(ChannelReply::empty())
-            } else {
-                res_opt
-            }
+            res_opt
         } else {
             log::debug!("publishing to all clients");
             let cs = conns_.lock().unwrap();
@@ -186,6 +192,15 @@ fn pub_and_wait(
             }
             break;
         }
+        if let Some(attempt) = retries {
+            if counter == attempt {
+                if let Err(_) = msg.reply_tx.send(ChannelReply::empty()) {
+                    log::warn!("could not send on reply_tx");
+                }
+                break;
+            }
+        }
+        counter = counter + 1;
     }
 }
 

@@ -1,5 +1,5 @@
 use crate::conn::{ChannelRequest, LssReq};
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use lss_connector::{InitResponse, LssBroker, Response, SignerMutations};
 use rocket::tokio;
 use rumqttd::oneshot;
@@ -75,17 +75,17 @@ pub fn lss_tasks(
     let lss_conn_ = lss_conn.clone();
     let init_tx_ = init_tx.clone();
     tokio::task::spawn(async move {
-        while let Some((cid, connected, oneshot_send_tx)) = reconn_rx.recv().await {
+        while let Some((cid, connected, dance_complete_tx)) = reconn_rx.recv().await {
             if connected {
                 log::info!("CLIENT {} reconnected!", cid);
                 if let Err(e) = reconnect_dance(&cid, &lss_conn_, &init_tx_).await {
                     log::error!("reconnect dance failed {:?}", e);
-                    let _ = oneshot_send_tx.send(false);
+                    let _ = dance_complete_tx.send(false);
                 } else {
-                    let _ = oneshot_send_tx.send(true);
+                    let _ = dance_complete_tx.send(true);
                 }
             } else {
-                let _ = oneshot_send_tx.send(false);
+                let _ = dance_complete_tx.send(false);
             }
         }
     });
@@ -97,19 +97,9 @@ async fn reconnect_dance(
     mqtt_tx: &mpsc::Sender<ChannelRequest>,
 ) -> Result<()> {
     log::debug!("Reconnect dance started, proceeding with step 1");
-    let ir = loop {
-        if let Ok(ir) = dance_step_1(cid, lss_conn, mqtt_tx).await {
-            break ir;
-        }
-        sleep(2).await;
-    };
+    let ir = dance_step_1(cid, lss_conn, mqtt_tx).await?;
     log::debug!("Step 1 finished, now onto step 2");
-    loop {
-        if let Ok(_) = dance_step_2(cid, lss_conn, mqtt_tx, &ir).await {
-            break;
-        }
-        sleep(2).await;
-    }
+    let _ = dance_step_2(cid, lss_conn, mqtt_tx, &ir).await?;
     log::debug!("Reconnect dance finished!");
     Ok(())
 }
@@ -122,7 +112,10 @@ async fn dance_step_1(
     let init_bytes = lss_conn.make_init_msg().await?;
     log::debug!("starting dance_step_1 send for {}", cid);
     let reply = ChannelRequest::send_for(cid, topics::INIT_1_MSG, init_bytes, mqtt_tx).await?;
-    log::debug!("send for completed");
+    log::debug!("dance_step_1 send for completed");
+    if reply.is_empty() {
+        return Err(anyhow!("dance step 1 did not complete"));
+    }
     let ir = Response::from_slice(&reply)?.into_init()?;
     Ok(ir)
 }
@@ -136,7 +129,10 @@ async fn dance_step_2(
     let state_bytes = lss_conn.get_created_state_msg(ir).await?;
     log::debug!("starting dance_step_2 send for {}", cid);
     let reply2 = ChannelRequest::send_for(cid, topics::INIT_2_MSG, state_bytes, mqtt_tx).await?;
-    log::debug!("send for completed");
+    log::debug!("dance_step_2 send for completed");
+    if reply2.is_empty() {
+        return Err(anyhow!("dance step 2 did not complete"));
+    }
     let cr = Response::from_slice(&reply2)?.into_created()?;
     lss_conn.handle(Response::Created(cr)).await?;
     Ok(())
