@@ -160,8 +160,6 @@ fn pub_and_wait(
             // for a specific client
             log::debug!("publishing to a specific client");
             let res_opt = pub_timeout(&cid, &msg.topic, &msg.message, &msg_rx, link_tx);
-            log::debug!("client responded!");
-            // control topic should be able to fail early without retrying
             res_opt
         } else {
             log::debug!("publishing to all clients");
@@ -191,6 +189,8 @@ fn pub_and_wait(
                 log::warn!("could not send on reply_tx");
             }
             break;
+        } else {
+            log::debug!("couldn't reach any clients...");
         }
         if let Some(attempt) = retries {
             if counter == attempt {
