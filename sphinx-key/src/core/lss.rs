@@ -54,7 +54,7 @@ fn server_pubkey_from_event(event: Event) -> anyhow::Result<PublicKey> {
             let server_pubkey = PublicKey::from_slice(&init.server_pubkey)?;
             Ok(server_pubkey)
         }
-        _ => Err(anyhow!("not an LSS msg")),
+        m => Err(anyhow!("not an LSS msg: {:?}", m)),
     }
 }
 fn created_from_event(event: Event) -> anyhow::Result<BrokerMutations> {

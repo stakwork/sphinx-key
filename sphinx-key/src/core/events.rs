@@ -27,6 +27,7 @@ use esp_idf_svc::mqtt::client::*;
 use esp_idf_sys;
 use esp_idf_sys::EspError;
 
+#[derive(Debug)]
 pub enum Event {
     Connected,
     Disconnected,
