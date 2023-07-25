@@ -32,6 +32,8 @@ const CLIENT_ID: &str = "sphinx-1";
 #[cfg(feature = "pingpong")]
 const CLIENT_ID: &str = "test-1";
 
+const ID_LEN: usize = 8;
+
 fn main() -> Result<()> {
     // Temporary. Will disappear once ESP-IDF 4.4 is released, but for now it is necessary to call this function once,
     // or else some patches to the runtime implemented by esp-idf-sys might not link properly.
@@ -67,6 +69,7 @@ fn main() -> Result<()> {
     let mut flash = FlashPersister::new(default_nvs.clone());
     if let Ok(exist) = flash.read_config() {
         let seed = flash.read_seed().expect("no seed...");
+        let id = flash.read_id().expect("no id...");
         let policy = flash.read_policy().unwrap_or_default();
         let velocity = flash.read_velocity().ok();
         println!(
@@ -102,6 +105,7 @@ fn main() -> Result<()> {
             if let Ok(()) = make_and_launch_client(
                 exist.clone(),
                 seed,
+                id.clone(),
                 &policy,
                 &velocity,
                 led_tx.clone(),
@@ -121,6 +125,9 @@ fn main() -> Result<()> {
             Ok((_wifi, config, seed)) => {
                 flash.write_config(config).expect("could not store config");
                 flash.write_seed(seed).expect("could not store seed");
+                flash
+                    .write_id(random_word(ID_LEN))
+                    .expect("could not store id");
                 println!("CONFIG SAVED");
                 unsafe { esp_idf_sys::esp_restart() };
             }
@@ -134,6 +141,7 @@ fn main() -> Result<()> {
 fn make_and_launch_client(
     config: Config,
     seed: [u8; 32],
+    id: String,
     policy: &Policy,
     velocity: &Option<Velocity>,
     led_tx: mpsc::Sender<Status>,
@@ -158,7 +166,7 @@ fn make_and_launch_client(
     let token = ctrlr.make_auth_token().expect("couldnt make auth token");
     log::info!("PUBKEY {} TOKEN {}", &pubkey_str, &token);
 
-    let client_id = random_word(8);
+    let client_id = format!("{}_{}", id, random_word(8));
     let mqtt_client =
         conn::mqtt::make_client(&config.broker, &client_id, &pubkey_str, &token, tx.clone())?;
     // let mqtt_client = conn::mqtt::start_listening(mqtt, connection, tx)?;
