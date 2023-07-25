@@ -131,13 +131,11 @@ pub fn make_event_loop(
     // send the initial HELLO
     mqtt_pub(&mut mqtt, client_id, topics::HELLO, &[]);
 
-    // FIXME it right to restart here?
     let (root_handler, lss_signer) = match lss::init_lss(client_id, &rx, rhb, &mut mqtt) {
         Ok(rl) => rl,
         Err(e) => {
             log::error!("failed to init lss {:?}", e);
             unsafe { esp_idf_sys::esp_restart() };
-            return Err(anyhow::anyhow!("nope"));
         }
     };
 
@@ -190,7 +188,11 @@ pub fn make_event_loop(
                     }
                     Err(e) => match e {
                         VlsHandlerError::BadSequence(current, expected) => unsafe {
-                            log::info!("caught a badsequence error, current: {}, expected: {}", current, expected);
+                            log::info!(
+                                "caught a badsequence error, current: {}, expected: {}",
+                                current,
+                                expected
+                            );
                             log::info!("restarting esp!");
                             esp_idf_sys::esp_restart();
                         },

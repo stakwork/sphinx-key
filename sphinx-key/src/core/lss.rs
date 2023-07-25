@@ -9,6 +9,7 @@ use lss_connector::{secp256k1::PublicKey, BrokerMutations, LssSigner, Msg as Lss
 use sphinx_signer::sphinx_glyph::topics;
 use sphinx_signer::{self, RootHandler, RootHandlerBuilder};
 use std::sync::mpsc;
+use std::time::Duration;
 
 pub use lss_connector::handle_lss_msg;
 
@@ -19,7 +20,7 @@ pub fn init_lss(
     mqtt: &mut EspMqttClient<ConnState<MessageImpl, EspError>>,
 ) -> Result<(RootHandler, LssSigner)> {
     let server_pubkey = loop {
-        let event = rx.recv()?;
+        let event = rx.recv_timeout(Duration::from_secs(30))?;
         match server_pubkey_from_event(event) {
             Ok(spk) => break spk,
             Err(e) => log::warn!("failed server_pubkey_from_event {:?}", e),
@@ -32,7 +33,7 @@ pub fn init_lss(
         .expect("could not publish LSS response");
 
     let created = loop {
-        let event = rx.recv()?;
+        let event = rx.recv_timeout(Duration::from_secs(30))?;
         match created_from_event(event) {
             Ok(c) => break c,
             Err(e) => log::warn!("failed created_from_event {:?}", e),
