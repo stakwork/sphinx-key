@@ -53,7 +53,7 @@ async fn send_created(
 pub fn lss_tasks(
     lss_conn: LssBroker,
     mut lss_rx: mpsc::Receiver<LssReq>,
-    mut reconn_rx: mpsc::Receiver<(String, bool, oneshot::Sender<bool>)>,
+    mut reconn_rx: mpsc::Receiver<(String, oneshot::Sender<bool>)>,
     init_tx: mpsc::Sender<ChannelRequest>,
 ) {
     // msg handler (from CLN looper)
@@ -75,17 +75,13 @@ pub fn lss_tasks(
     let lss_conn_ = lss_conn.clone();
     let init_tx_ = init_tx.clone();
     tokio::task::spawn(async move {
-        while let Some((cid, connected, dance_complete_tx)) = reconn_rx.recv().await {
-            if connected {
-                log::info!("CLIENT {} reconnected!", cid);
-                if let Err(e) = reconnect_dance(&cid, &lss_conn_, &init_tx_).await {
-                    log::error!("reconnect dance failed {:?}", e);
-                    let _ = dance_complete_tx.send(false);
-                } else {
-                    let _ = dance_complete_tx.send(true);
-                }
-            } else {
+        while let Some((cid, dance_complete_tx)) = reconn_rx.recv().await {
+            log::info!("CLIENT {} reconnected!", cid);
+            if let Err(e) = reconnect_dance(&cid, &lss_conn_, &init_tx_).await {
+                log::error!("reconnect dance failed {:?}", e);
                 let _ = dance_complete_tx.send(false);
+            } else {
+                let _ = dance_complete_tx.send(true);
             }
         }
     });
