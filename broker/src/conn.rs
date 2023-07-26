@@ -6,7 +6,7 @@ use std::collections::HashMap;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Connections {
     pub pubkey: Option<String>,
-    pub clients: HashMap<String, String>,
+    pub clients: HashMap<String, bool>,
     pub current: String,
 }
 
@@ -25,12 +25,10 @@ impl Connections {
         self.current = cid;
     }
     pub fn add_client(&mut self, cid: &str) {
-        let (value, key) = cid.split_once("_").expect("id is missing _ delimeter");
-        self.clients.insert(value.to_string(), key.to_string());
+        self.clients.insert(cid.to_string(), false);
     }
     pub fn remove_client(&mut self, cid: &str) {
-        let (value, _key) = cid.split_once("_").expect("id is missing _ delimeter");
-        self.clients.remove(value);
+        self.clients.remove(cid);
     }
     pub fn client_action(&mut self, cid: &str, connected: bool) {
         if connected {

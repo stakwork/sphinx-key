@@ -177,13 +177,12 @@ fn pub_and_wait(
                 let mut rep = pub_timeout(&current, &msg.topic, &msg.message, &msg_rx, link_tx);
                 // If that failed, try looking for some other signer
                 if rep.is_none() {
-                    for (id, session) in client_list.iter() {
-                        let cid = format!("{}_{}", id, session);
+                    for cid in client_list.keys() {
                         rep = pub_timeout(&cid, &msg.topic, &msg.message, &msg_rx, link_tx);
                         if rep.is_some() {
                             let mut cs = conns_.lock().unwrap();
                             log::debug!("got the list lock!");
-                            cs.set_current(cid);
+                            cs.set_current(cid.to_string());
                             drop(cs);
                             break;
                         }

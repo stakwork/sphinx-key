@@ -141,7 +141,7 @@ fn main() -> Result<()> {
 fn make_and_launch_client(
     config: Config,
     seed: [u8; 32],
-    id: String,
+    client_id: String,
     policy: &Policy,
     velocity: &Option<Velocity>,
     led_tx: mpsc::Sender<Status>,
@@ -166,7 +166,6 @@ fn make_and_launch_client(
     let token = ctrlr.make_auth_token().expect("couldnt make auth token");
     log::info!("PUBKEY {} TOKEN {}", &pubkey_str, &token);
 
-    let client_id = format!("{}_{}", id, random_word(8));
     let mqtt_client =
         conn::mqtt::make_client(&config.broker, &client_id, &pubkey_str, &token, tx.clone())?;
     // let mqtt_client = conn::mqtt::start_listening(mqtt, connection, tx)?;
