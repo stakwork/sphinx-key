@@ -159,11 +159,11 @@ fn pub_and_wait(
         let reply = if let Some(cid) = msg.cid.clone() {
             // for a specific client
             log::debug!("publishing to a specific client");
-            let res_opt = pub_timeout(&cid, &msg.topic, &msg.message, &msg_rx, link_tx);
-            res_opt
+            pub_timeout(&cid, &msg.topic, &msg.message, &msg_rx, link_tx)
         } else {
             log::debug!("publishing to all clients");
             let cs = conns_.lock().unwrap();
+            let current = cs.current.clone();
             let client_list = cs.clients.clone();
             log::debug!("got the list lock!");
             drop(cs);
@@ -173,11 +173,20 @@ fn pub_and_wait(
                 std::thread::sleep(Duration::from_secs(1));
                 None
             } else {
-                let mut rep = None;
-                for cid in client_list.iter() {
-                    rep = pub_timeout(&cid, &msg.topic, &msg.message, &msg_rx, link_tx);
-                    if let Some(_) = &rep {
-                        break;
+                // Try the current connection
+                let mut rep = pub_timeout(&current, &msg.topic, &msg.message, &msg_rx, link_tx);
+                // If that failed, try looking for some other signer
+                if rep.is_none() {
+                    for (id, session) in client_list.iter() {
+                        let cid = format!("{}_{}", id, session);
+                        rep = pub_timeout(&cid, &msg.topic, &msg.message, &msg_rx, link_tx);
+                        if rep.is_some() {
+                            let mut cs = conns_.lock().unwrap();
+                            log::debug!("got the list lock!");
+                            cs.set_current(cid);
+                            drop(cs);
+                            break;
+                        }
                     }
                 }
                 rep
@@ -192,13 +201,16 @@ fn pub_and_wait(
         } else {
             log::debug!("couldn't reach any clients...");
         }
-        if let Some(attempt) = retries {
-            if counter == attempt {
+        if let Some(max) = retries {
+            log::debug!("counter: {}, retries: {}", counter, max);
+            if counter == max {
                 if let Err(_) = msg.reply_tx.send(ChannelReply::empty()) {
                     log::warn!("could not send on reply_tx");
                 }
                 break;
             }
+        } else {
+            log::debug!("retrying indefinitely");
         }
         counter = counter + 1;
     }
