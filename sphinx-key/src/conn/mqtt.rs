@@ -88,18 +88,19 @@ pub fn make_client(
                                 }
                                 Details::InitialChunk(chunk_info) => {
                                     if let Some(topic) = msg.topic() {
+                                        inflight = Vec::with_capacity(chunk_info.total_data_size);
                                         inflight_topic = topic.to_string();
-                                        inflight.extend(msg.data().iter());
+                                        inflight.extend_from_slice(msg.data());
                                         None
                                     } else {
                                         None
                                     }
                                 }
                                 Details::SubsequentChunk(chunk_data) => {
-                                    inflight.extend(msg.data().iter());
+                                    inflight.extend_from_slice(msg.data());
                                     if inflight.len() == chunk_data.total_data_size {
                                         let ret = Some((inflight_topic, inflight));
-                                        inflight_topic = "".to_string();
+                                        inflight_topic = String::new();
                                         inflight = Vec::new();
                                         ret
                                     } else {
