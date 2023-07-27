@@ -1,38 +1,38 @@
 use anyhow::Result;
 use rocket::tokio::sync::{mpsc, oneshot};
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Connections {
     pub pubkey: Option<String>,
-    pub clients: Vec<String>,
+    pub clients: HashMap<String, bool>,
+    pub current: String,
 }
 
 impl Connections {
     pub fn new() -> Self {
         Self {
             pubkey: None,
-            clients: Vec::new(),
+            clients: HashMap::new(),
+            current: String::default(),
         }
     }
     pub fn set_pubkey(&mut self, pk: &str) {
         self.pubkey = Some(pk.to_string())
     }
+    pub fn set_current(&mut self, cid: String) {
+        self.current = cid;
+    }
     pub fn add_client(&mut self, cid: &str) {
-        let cids = cid.to_string();
-        if !self.clients.contains(&cids) {
-            // new client is added to beginning of Vec
-            self.clients.insert(0, cids);
-        }
+        self.clients.insert(cid.to_string(), false);
     }
     pub fn remove_client(&mut self, cid: &str) {
-        let cids = cid.to_string();
-        if self.clients.contains(&cids) {
-            self.clients.retain(|x| x != cid)
-        }
+        self.clients.remove(cid);
     }
     pub fn client_action(&mut self, cid: &str, connected: bool) {
         if connected {
+            self.current = cid.to_string();
             self.add_client(cid);
         } else {
             self.remove_client(cid);
