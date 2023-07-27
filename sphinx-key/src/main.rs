@@ -77,16 +77,14 @@ fn main() -> Result<()> {
             exist
         );
         led_tx.send(Status::ConnectingToWifi).unwrap();
-        let wifi_ = start_wifi_client(peripherals.modem, default_nvs.clone(), &exist)?;
-        // let _wifi = loop {
-        //     if let Ok(wifi) = start_wifi_client(peripherals.modem, default_nvs.clone(), &exist) {
-        //         println!("Wifi connected!");
-        //         break wifi;
-        //     } else {
-        //         println!("Failed to connect to wifi. Make sure the details are correct, trying again in 5 seconds...");
-        //         thread::sleep(Duration::from_secs(5));
-        //     }
-        // };
+        let wifi_ = match start_wifi_client(peripherals.modem, default_nvs.clone(), &exist) {
+            Ok(wifi) => wifi,
+            Err(e) => {
+                log::error!("Could not setup wifi: {}", e);
+                log::info!("Restarting esp!");
+                unsafe { esp_idf_sys::esp_restart() };
+            }
+        };
 
         led_tx.send(Status::SyncingTime).unwrap();
         conn::sntp::sync_time();
