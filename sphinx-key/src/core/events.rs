@@ -214,7 +214,7 @@ pub fn make_event_loop(
                 }
             }
             Event::LssMessage(msg_bytes) => {
-                match lss::handle_lss_msg(&msg_bytes, &msgs, &lss_signer) {
+                match lss::handle_lss_msg(&msg_bytes, msgs, &lss_signer) {
                     Ok((ret_topic, bytes)) => {
                         // set msgs back to None
                         msgs = None;
@@ -224,6 +224,7 @@ pub fn make_event_loop(
                         }
                     }
                     Err(e) => {
+                        msgs = None;
                         let err_msg = GlyphError::new(1, &e.to_string());
                         mqtt_pub(&mut mqtt, client_id, topics::ERROR, &err_msg.to_vec()[..]);
                     }
