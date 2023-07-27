@@ -7,7 +7,7 @@ use std::collections::HashMap;
 pub struct Connections {
     pub pubkey: Option<String>,
     pub clients: HashMap<String, bool>,
-    pub current: String,
+    pub current: Option<String>,
 }
 
 impl Connections {
@@ -15,24 +15,27 @@ impl Connections {
         Self {
             pubkey: None,
             clients: HashMap::new(),
-            current: String::default(),
+            current: None,
         }
     }
     pub fn set_pubkey(&mut self, pk: &str) {
         self.pubkey = Some(pk.to_string())
     }
     pub fn set_current(&mut self, cid: String) {
-        self.current = cid;
+        self.current = Some(cid);
     }
-    pub fn add_client(&mut self, cid: &str) {
-        self.clients.insert(cid.to_string(), false);
+    fn add_client(&mut self, cid: &str) {
+        self.clients.insert(cid.to_string(), true);
+        self.current = Some(cid.to_string());
     }
-    pub fn remove_client(&mut self, cid: &str) {
+    fn remove_client(&mut self, cid: &str) {
         self.clients.remove(cid);
+        if self.current == Some(cid.to_string()) {
+            self.current = None;
+        }
     }
     pub fn client_action(&mut self, cid: &str, connected: bool) {
         if connected {
-            self.current = cid.to_string();
             self.add_client(cid);
         } else {
             self.remove_client(cid);

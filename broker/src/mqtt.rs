@@ -168,11 +168,12 @@ fn pub_and_wait(
             log::debug!("got the list lock!");
             drop(cs);
             // send to each client in turn
-            if client_list.len() == 0 {
+            if client_list.len() == 0 || current.is_none() {
                 // wait a second if there are no clients
                 std::thread::sleep(Duration::from_secs(1));
                 None
             } else {
+                let current = current.unwrap();
                 // Try the current connection
                 let mut rep = pub_timeout(&current, &msg.topic, &msg.message, &msg_rx, link_tx);
                 // If that failed, try looking for some other signer

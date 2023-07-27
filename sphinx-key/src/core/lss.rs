@@ -23,7 +23,7 @@ pub fn init_lss(
         let event = rx.recv_timeout(Duration::from_secs(30))?;
         match server_pubkey_from_event(event) {
             Ok(spk) => break spk,
-            Err(e) => log::warn!("failed server_pubkey_from_event {:?}", e),
+            Err(e) => log::warn!("not server_pubkey_from_event {:?}", e),
         }
     };
 
@@ -36,7 +36,7 @@ pub fn init_lss(
         let event = rx.recv_timeout(Duration::from_secs(30))?;
         match created_from_event(event) {
             Ok(c) => break c,
-            Err(e) => log::warn!("failed created_from_event {:?}", e),
+            Err(e) => log::warn!("not created_from_event {:?}", e),
         }
     };
 

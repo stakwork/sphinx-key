@@ -192,6 +192,10 @@ pub async fn broker_setup(
         let _ = startup_tx.send(cid.to_string());
         while let Ok((cid, connected)) = status_rx.recv() {
             log::info!("=> reconnected: {}: {}", cid, connected);
+            let mut cs = conns_.lock().unwrap();
+            // drop it from list until ready
+            cs.client_action(&cid, false);
+            drop(cs);
             if connected {
                 let (dance_complete_tx, dance_complete_rx) = std_oneshot::channel::<bool>();
                 let _ = reconn_tx.blocking_send((cid.clone(), dance_complete_tx));
