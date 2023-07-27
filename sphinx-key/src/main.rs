@@ -87,7 +87,11 @@ fn main() -> Result<()> {
         };
 
         led_tx.send(Status::SyncingTime).unwrap();
-        conn::sntp::sync_time();
+        if let Err(e) = conn::sntp::sync_time_timeout() {
+            log::error!("Could not setup sntp: {}", e);
+            log::info!("Restarting esp!");
+            unsafe { esp_idf_sys::esp_restart() };
+        }
         let now = SystemTime::now()
             .duration_since(SystemTime::UNIX_EPOCH)
             .unwrap();
