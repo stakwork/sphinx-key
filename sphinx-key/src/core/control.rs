@@ -91,7 +91,7 @@ impl ControlPersist for FlashPersister {
             .0
             .get_raw(FlashKey::Id.as_str(), &mut buf)?
             .ok_or(anyhow!("no existing id"))?;
-        Ok(String::from_utf8(existing.to_vec()).expect("bad byte conversion to utf8"))
+        Ok(String::from_utf8(existing.to_vec())?)
     }
     fn read_policy(&self) -> Result<Policy> {
         let mut buf = [0u8; 250];

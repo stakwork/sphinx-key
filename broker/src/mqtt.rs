@@ -177,7 +177,7 @@ fn pub_and_wait(
                 let mut rep = pub_timeout(&current, &msg.topic, &msg.message, &msg_rx, link_tx);
                 // If that failed, try looking for some other signer
                 if rep.is_none() {
-                    for cid in client_list.keys() {
+                    for cid in client_list.into_keys().filter(|k| k != &current) {
                         rep = pub_timeout(&cid, &msg.topic, &msg.message, &msg_rx, link_tx);
                         if rep.is_some() {
                             let mut cs = conns_.lock().unwrap();

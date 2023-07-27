@@ -32,7 +32,7 @@ const CLIENT_ID: &str = "sphinx-1";
 #[cfg(feature = "pingpong")]
 const CLIENT_ID: &str = "test-1";
 
-const ID_LEN: usize = 8;
+const ID_LEN: usize = 12;
 
 fn main() -> Result<()> {
     // Temporary. Will disappear once ESP-IDF 4.4 is released, but for now it is necessary to call this function once,
