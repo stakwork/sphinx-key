@@ -28,7 +28,7 @@ fn main() -> anyhow::Result<()> {
     periph::led::led_control_loop(pins.gpio0, peripherals.rmt.channel0, led_rx);
 
     // BUTTON thread
-    periph::button::button_loop(pins.gpio8, led_tx.clone());
+    periph::button::button_loop(pins.gpio9, led_tx.clone());
 
     loop {
         thread::sleep(Duration::from_millis(1000));

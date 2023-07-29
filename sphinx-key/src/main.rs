@@ -44,7 +44,7 @@ fn main() -> Result<()> {
     led_control_loop(pins.gpio0, peripherals.rmt.channel0, led_rx);
 
     // BUTTON thread
-    // button_loop(pins.gpio8, led_tx.clone());
+    // button_loop(pins.gpio9, led_tx.clone());
 
     // thread::sleep(Duration::from_secs(100));
 

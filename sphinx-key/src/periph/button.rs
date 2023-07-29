@@ -9,9 +9,9 @@ const MILLIS: u16 = 10_000;
 
 const PAUSE: u16 = 50;
 
-pub fn button_loop(gpio8: gpio::Gpio8, tx: mpsc::Sender<Status>) {
+pub fn button_loop(gpio9: gpio::Gpio9, tx: mpsc::Sender<Status>) {
     thread::spawn(move || {
-        let mut button = PinDriver::input(gpio8).unwrap();
+        let mut button = PinDriver::input(gpio9).unwrap();
         button.set_pull(Pull::Up).unwrap();
         let mut pressed = false;
         let mut up_times = 0;
