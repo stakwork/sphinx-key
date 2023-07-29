@@ -1,4 +1,3 @@
-#![feature(once_cell)]
 mod conn;
 mod core;
 mod ota;
@@ -7,11 +6,11 @@ mod status;
 
 use crate::core::control::{controller_from_seed, FlashPersister};
 use crate::core::{config::*, events::*};
-use crate::status::Status;
-// use crate::periph::led::led_control_loop;
 use crate::periph::button::button_loop;
+use crate::periph::led::led_control_loop;
 #[allow(unused_imports)]
 use crate::periph::sd::{mount_sd_card, simple_fs_test};
+use crate::status::Status;
 
 use anyhow::Result;
 use esp_idf_sys as _; // If using the `binstart` feature of `esp-idf-sys`, always keep this module imported
@@ -25,12 +24,6 @@ use esp_idf_svc::nvs::*;
 
 use sphinx_signer::lightning_signer::bitcoin::Network;
 use sphinx_signer::sphinx_glyph::control::{Config, ControlPersist, Policy, Velocity};
-
-#[cfg(not(feature = "pingpong"))]
-const CLIENT_ID: &str = "sphinx-1";
-
-#[cfg(feature = "pingpong")]
-const CLIENT_ID: &str = "test-1";
 
 const ID_LEN: usize = 12;
 
@@ -46,9 +39,9 @@ fn main() -> Result<()> {
     let peripherals = Peripherals::take().unwrap();
     let pins = peripherals.pins;
 
-    let (led_tx, _led_rx) = mpsc::channel();
+    let (led_tx, led_rx) = mpsc::channel();
     // LED control thread
-    // led_control_loop(pins.gpio0, peripherals.rmt.channel0, led_rx);
+    led_control_loop(pins.gpio0, peripherals.rmt.channel0, led_rx);
 
     // BUTTON thread
     // button_loop(pins.gpio8, led_tx.clone());
@@ -77,7 +70,7 @@ fn main() -> Result<()> {
             exist
         );
         led_tx.send(Status::ConnectingToWifi).unwrap();
-        let wifi_ = match start_wifi_client(peripherals.modem, default_nvs.clone(), &exist) {
+        let _wifi = match start_wifi_client(peripherals.modem, default_nvs.clone(), &exist) {
             Ok(wifi) => wifi,
             Err(e) => {
                 log::error!("Could not setup wifi: {}", e);

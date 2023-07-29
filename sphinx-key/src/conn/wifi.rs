@@ -1,23 +1,13 @@
-use sphinx_signer::sphinx_glyph::control::Config;
-
-use esp_idf_svc::netif::*;
-use esp_idf_svc::nvs::EspDefaultNvsPartition;
-use esp_idf_svc::ping;
-// use esp_idf_svc::sysloop::*;
-use esp_idf_svc::eventloop::EspSystemEventLoop;
-use esp_idf_svc::wifi::*;
-
 use embedded_svc::httpd::Result;
 use embedded_svc::ipv4;
-// use embedded_svc::ping::Ping;
-// use embedded_svc::wifi::Wifi;
 use embedded_svc::wifi::*;
-
 use esp_idf_hal::peripheral;
-
+use esp_idf_svc::eventloop::EspSystemEventLoop;
+use esp_idf_svc::nvs::EspDefaultNvsPartition;
+use esp_idf_svc::ping;
+use esp_idf_svc::wifi::*;
 use log::*;
-// use std::thread;
-use std::time::Duration;
+use sphinx_signer::sphinx_glyph::control::Config;
 
 pub fn start_client(
     modem: impl peripheral::Peripheral<P = esp_idf_hal::modem::Modem> + 'static,

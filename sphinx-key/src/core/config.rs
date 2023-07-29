@@ -6,7 +6,6 @@ use std::convert::TryInto;
 use std::sync::{Arc, Condvar, Mutex};
 use std::time::Duration;
 
-use embedded_svc::wifi::*;
 use esp_idf_svc::nvs::*;
 use esp_idf_svc::wifi::*;
 

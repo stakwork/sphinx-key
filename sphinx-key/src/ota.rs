@@ -1,9 +1,6 @@
 use crate::status::Status;
 use anyhow::{anyhow, Result};
 use embedded_svc::http::client::Client;
-use embedded_svc::http::Status as HttpStatus;
-use embedded_svc::io::Read;
-// use embedded_svc::ota::Ota;
 
 use esp_idf_svc::http::client::Configuration;
 use esp_idf_svc::http::client::EspHttpConnection;

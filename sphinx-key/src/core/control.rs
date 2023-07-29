@@ -1,6 +1,5 @@
 use crate::ID_LEN;
 use anyhow::{anyhow, Context, Result};
-use embedded_svc::storage::RawStorage;
 use esp_idf_svc::nvs::{EspDefaultNvs, EspDefaultNvsPartition};
 use glyph::control::{Config, ControlPersist, Controller, FlashKey, Policy, Velocity};
 use glyph::ser::*;
