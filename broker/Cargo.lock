@@ -1700,7 +1700,7 @@ dependencies = [
 [[package]]
 name = "lss-connector"
 version = "0.1.0"
-source = "git+https://github.com/stakwork/sphinx-rs?rev=8b0c8aefa939448dab2594eaad1c7e2568b5dad5#8b0c8aefa939448dab2594eaad1c7e2568b5dad5"
+source = "git+https://github.com/stakwork/sphinx-rs?rev=fb7cb744d3c8310fa5a9ce3a5a5cde6e9fb2b138#fb7cb744d3c8310fa5a9ce3a5a5cde6e9fb2b138"
 dependencies = [
  "anyhow",
  "lightning-storage-server",
@@ -2694,7 +2694,7 @@ dependencies = [
 [[package]]
 name = "rmp-utils"
 version = "0.1.0"
-source = "git+https://github.com/stakwork/sphinx-rs?rev=8b0c8aefa939448dab2594eaad1c7e2568b5dad5#8b0c8aefa939448dab2594eaad1c7e2568b5dad5"
+source = "git+https://github.com/stakwork/sphinx-rs?rev=fb7cb744d3c8310fa5a9ce3a5a5cde6e9fb2b138#fb7cb744d3c8310fa5a9ce3a5a5cde6e9fb2b138"
 dependencies = [
  "anyhow",
  "log",
@@ -3308,7 +3308,7 @@ dependencies = [
 [[package]]
 name = "sphinx-auther"
 version = "0.1.12"
-source = "git+https://github.com/stakwork/sphinx-rs?rev=8b0c8aefa939448dab2594eaad1c7e2568b5dad5#8b0c8aefa939448dab2594eaad1c7e2568b5dad5"
+source = "git+https://github.com/stakwork/sphinx-rs?rev=fb7cb744d3c8310fa5a9ce3a5a5cde6e9fb2b138#fb7cb744d3c8310fa5a9ce3a5a5cde6e9fb2b138"
 dependencies = [
  "anyhow",
  "base64 0.21.2",
@@ -3320,7 +3320,7 @@ dependencies = [
 [[package]]
 name = "sphinx-glyph"
 version = "0.1.2"
-source = "git+https://github.com/stakwork/sphinx-rs?rev=8b0c8aefa939448dab2594eaad1c7e2568b5dad5#8b0c8aefa939448dab2594eaad1c7e2568b5dad5"
+source = "git+https://github.com/stakwork/sphinx-rs?rev=fb7cb744d3c8310fa5a9ce3a5a5cde6e9fb2b138#fb7cb744d3c8310fa5a9ce3a5a5cde6e9fb2b138"
 dependencies = [
  "anyhow",
  "hex",
@@ -3366,7 +3366,7 @@ dependencies = [
 [[package]]
 name = "sphinx-signer"
 version = "0.1.0"
-source = "git+https://github.com/stakwork/sphinx-rs?rev=8b0c8aefa939448dab2594eaad1c7e2568b5dad5#8b0c8aefa939448dab2594eaad1c7e2568b5dad5"
+source = "git+https://github.com/stakwork/sphinx-rs?rev=fb7cb744d3c8310fa5a9ce3a5a5cde6e9fb2b138#fb7cb744d3c8310fa5a9ce3a5a5cde6e9fb2b138"
 dependencies = [
  "anyhow",
  "bip39",
@@ -3509,18 +3509,18 @@ checksum = "222a222a5bfe1bba4a77b45ec488a741b3cb8872e5e499451fd7d0129c9c7c3d"
 
 [[package]]
 name = "thiserror"
-version = "1.0.44"
+version = "1.0.43"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "611040a08a0439f8248d1990b111c95baa9c704c805fa1f62104b39655fd7f90"
+checksum = "a35fc5b8971143ca348fa6df4f024d4d55264f3468c71ad1c2f365b0a4d58c42"
 dependencies = [
  "thiserror-impl",
 ]
 
 [[package]]
 name = "thiserror-impl"
-version = "1.0.44"
+version = "1.0.43"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "090198534930841fab3a5d1bb637cde49e339654e606195f8d9c76eeb081dc96"
+checksum = "463fe12d7993d3b327787537ce8dd4dfa058de32fc2b195ef3cde03dc4771e8f"
 dependencies = [
  "proc-macro2",
  "quote",

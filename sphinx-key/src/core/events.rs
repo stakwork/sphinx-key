@@ -174,7 +174,7 @@ pub fn make_event_loop(
                     expected_sequence,
                     do_log,
                 ) {
-                    Ok((vls_b, lss_b, sequence)) => {
+                    Ok((vls_b, lss_b, sequence, _cmd)) => {
                         if lss_b.len() == 0 {
                             // no muts, respond directly back!
                             mqtt_pub(&mut mqtt, client_id, topics::VLS_RES, &vls_b);
