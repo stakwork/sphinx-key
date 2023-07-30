@@ -121,8 +121,8 @@ pub fn make_event_loop(
         seed,
         network,
         policy.clone(),
-        velocity.clone(),
         initial_allowlist,
+        velocity.clone(),
         persister,
     )
     .expect("failed to init signer");
