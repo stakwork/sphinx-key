@@ -56,3 +56,25 @@ pub fn config_server(
 
     server.start(&Default::default())
 }
+
+#[allow(unused_variables, deprecated)]
+pub fn wifi_server(mutex: Arc<(Mutex<Option<Config>>, Condvar)>) -> Result<idf::Server> {
+    let server = idf::ServerRegistry::new()
+        .at("/config")
+        .post(move |request| {
+            let bod = &request
+                .query_string()
+                .ok_or(anyhow::anyhow!("failed to parse query string"))?;
+            println!("bod {:?}", bod);
+            let params = serde_urlencoded::from_str::<Params>(bod)?;
+
+            let config = serde_json::from_str::<Config>(&params.config)?;
+
+            let mut wait = mutex.0.lock().unwrap();
+            *wait = Some(config);
+            mutex.1.notify_one();
+            Ok("{\"success\":true}".to_owned().into())
+        })?;
+
+    server.start(&Default::default())
+}

@@ -1,7 +1,9 @@
 use crate::status::Status;
+use crate::FlashPersister;
 use esp_idf_hal::gpio;
 use esp_idf_hal::gpio::*;
-use std::sync::mpsc;
+use sphinx_signer::sphinx_glyph::control::ControlPersist;
+use std::sync::{mpsc, Arc, Mutex};
 use std::thread;
 use std::time::Duration;
 
@@ -11,7 +13,11 @@ const PAUSE: u16 = 50;
 
 // progression is waiting -> *starting -> reset1a -> reset1 -> reset2a -> reset2 -> reset3
 // state machine initialized at starting
-pub fn button_loop(gpio9: gpio::Gpio9, tx: mpsc::Sender<Status>) {
+pub fn button_loop(
+    gpio9: gpio::Gpio9,
+    tx: mpsc::Sender<Status>,
+    flash_arc: Arc<Mutex<FlashPersister>>,
+) {
     thread::spawn(move || {
         let mut button = PinDriver::input(gpio9).unwrap();
         button.set_pull(Pull::Up).unwrap();
@@ -21,6 +27,17 @@ pub fn button_loop(gpio9: gpio::Gpio9, tx: mpsc::Sender<Status>) {
         let mut machine = Machine::new(tx, Status::Starting);
         loop {
             // we are using thread::sleep here to make sure the watchdog isn't triggered
+            if machine.state == Status::Reset3 {
+                let mut flash = flash_arc.lock().unwrap();
+                if let Err(_e) = flash.remove_config() {
+                    log::error!("could not clear wifi config");
+                    drop(flash);
+                } else {
+                    log::info!("restarting esp!");
+                    drop(flash);
+                    unsafe { esp_idf_sys::esp_restart() };
+                }
+            }
             thread::sleep(Duration::from_millis(PAUSE.into()));
             if button.is_high() {
                 if pressed {

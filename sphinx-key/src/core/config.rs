@@ -111,3 +111,34 @@ pub fn start_config_server_and_wait(
         config_seed_tuple.1.clone(),
     ))
 }
+
+pub fn start_wifi_server_and_wait(
+    modem: impl peripheral::Peripheral<P = esp_idf_hal::modem::Modem> + 'static,
+    default_nvs: EspDefaultNvsPartition,
+) -> Result<(BlockingWifi<EspWifi<'static>>, Config)> {
+    let mutex = Arc::new((Mutex::new(None), Condvar::new()));
+
+    #[allow(clippy::redundant_clone)]
+    #[allow(unused_mut)]
+    let mut wifi = conn::wifi::start_access_point(modem, default_nvs.clone())?;
+
+    let httpd = conn::http::wifi_server(mutex.clone());
+    let mut wait = mutex.0.lock().unwrap();
+    log::info!("Waiting for wifi creds from the phone!");
+
+    let config: &Config = loop {
+        if let Some(conf) = &*wait {
+            break conf;
+        } else {
+            wait = mutex
+                .1
+                .wait_timeout(wait, Duration::from_secs(1))
+                .unwrap()
+                .0;
+        }
+    };
+
+    drop(httpd);
+    println!("===> config! {:?}", config);
+    Ok((wifi, config.clone()))
+}
