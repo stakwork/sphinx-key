@@ -18,10 +18,7 @@ pub fn button_loop(gpio9: gpio::Gpio9, tx: mpsc::Sender<Status>) {
         let mut pressed = false;
         let mut up_times = 0;
         let mut low_times = 0;
-        let mut machine = Machine {
-            tx,
-            state: Status::Starting,
-        };
+        let mut machine = Machine::new(tx, Status::Starting);
         loop {
             // we are using thread::sleep here to make sure the watchdog isn't triggered
             thread::sleep(Duration::from_millis(PAUSE.into()));
