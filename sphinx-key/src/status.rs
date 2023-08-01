@@ -15,5 +15,6 @@ pub enum Status {
     Reset1,
     Reset2a,
     Reset2,
+    Reset3a,
     Reset3,
 }

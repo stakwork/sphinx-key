@@ -46,6 +46,10 @@ pub fn button_loop(gpio9: gpio::Gpio9, tx: mpsc::Sender<Status>) {
                         machine.update_status(Status::Reset1);
                     }
 
+                    if machine.state == Status::Reset3a {
+                        machine.update_status(Status::Reset3);
+                    }
+
                     // if stayed up, advance
                     if PAUSE * up_times > MILLIS {
                         if machine.state == Status::Reset1 {
@@ -81,7 +85,7 @@ pub fn button_loop(gpio9: gpio::Gpio9, tx: mpsc::Sender<Status>) {
                     // if stayed held down, advance
                     if PAUSE * low_times > MILLIS {
                         if machine.state == Status::Reset2 {
-                            machine.update_status(Status::Reset3);
+                            machine.update_status(Status::Reset3a);
                         } else if machine.state == Status::Starting {
                             machine.update_status(Status::Reset1a);
                         }
