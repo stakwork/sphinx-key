@@ -4,7 +4,8 @@ mod ota;
 mod periph;
 mod status;
 
-use crate::core::control::{controller_from_seed, FlashPersister};
+use crate::core::control::controller_from_seed;
+pub use crate::core::control::FlashPersister;
 use crate::core::{config::*, events::*};
 use crate::periph::button::button_loop;
 use crate::periph::led::led_control_loop;
@@ -43,11 +44,6 @@ fn main() -> Result<()> {
     // LED control thread
     led_control_loop(pins.gpio0, peripherals.rmt.channel0, led_rx);
 
-    // BUTTON thread
-    // button_loop(pins.gpio9, led_tx.clone());
-
-    // thread::sleep(Duration::from_secs(100));
-
     led_tx.send(Status::MountingSDCard).unwrap();
     println!("About to mount the sdcard...");
     while let Err(_e) = mount_sd_card() {
@@ -59,12 +55,17 @@ fn main() -> Result<()> {
     // let default_nav_partition = EspDefaultNvs.take().unwrap();
     let default_nvs = EspDefaultNvsPartition::take()?;
     // let default_nvs = Arc::new();
-    let mut flash = FlashPersister::new(default_nvs.clone());
+    let flash_per = FlashPersister::new(default_nvs.clone());
+    let flash_arc = Arc::new(Mutex::new(flash_per));
+    // BUTTON thread
+    button_loop(pins.gpio9, led_tx.clone(), flash_arc.clone());
+    let mut flash = flash_arc.lock().unwrap();
     if let Ok(exist) = flash.read_config() {
         let seed = flash.read_seed().expect("no seed...");
         let id = flash.read_id().expect("no id...");
         let policy = flash.read_policy().unwrap_or_default();
         let velocity = flash.read_velocity().ok();
+        drop(flash);
         println!(
             "=============> START CLIENT NOW <============== {:?}",
             exist
@@ -95,7 +96,6 @@ fn main() -> Result<()> {
 
         led_tx.send(Status::ConnectingToMqtt).unwrap();
 
-        let flash_arc = Arc::new(Mutex::new(flash));
         loop {
             if let Ok(()) = make_and_launch_client(
                 exist.clone(),
@@ -116,13 +116,24 @@ fn main() -> Result<()> {
     } else {
         led_tx.send(Status::WifiAccessPoint).unwrap();
         println!("=============> START SERVER NOW AND WAIT <==============");
-        match start_config_server_and_wait(peripherals.modem, default_nvs.clone()) {
-            Ok((_wifi, config, seed)) => {
+        let stored_seed = flash.read_seed().ok();
+        match start_config_server_and_wait(
+            peripherals.modem,
+            default_nvs.clone(),
+            stored_seed.is_some(),
+        ) {
+            Ok((_wifi, config, seed_opt)) => {
                 flash.write_config(config).expect("could not store config");
-                flash.write_seed(seed).expect("could not store seed");
-                flash
-                    .write_id(random_word(ID_LEN))
-                    .expect("could not store id");
+                if stored_seed.is_none() {
+                    match seed_opt {
+                        Some(s) => flash.write_seed(s).expect("could not store seed"),
+                        None => panic!("SEED REQUIRED!!!"),
+                    }
+                    flash
+                        .write_id(random_word(ID_LEN))
+                        .expect("could not store id");
+                }
+                drop(flash);
                 println!("CONFIG SAVED");
                 unsafe { esp_idf_sys::esp_restart() };
             }

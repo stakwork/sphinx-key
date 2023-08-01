@@ -33,14 +33,12 @@ pub fn start_client(
     }))?;
     info!("Wifi configured");
 
-    wifi.start()?;
-    info!("Wifi started");
-    wifi.connect()?;
-    info!("Wifi connected");
-    wifi.wait_netif_up()?;
-    info!("Wifi netif up");
-    let ip_info = wifi.wifi().sta_netif().get_ip_info()?;
-    info!("Wifi DHCP info: {:?}", ip_info);
+    loop {
+        match try_connection(&mut wifi) {
+            Ok(_) => break,
+            Err(e) => info!("error: {}, trying wifi connection again!", e),
+        }
+    }
 
     // let status = wifi.get_status();
     // println!("=> wifi STATUS {:?}", status);
@@ -64,6 +62,18 @@ pub fn start_client(
     info!("wifi::start_client Ok(())");
 
     Ok(wifi)
+}
+
+fn try_connection(wifi: &mut BlockingWifi<EspWifi<'static>>) -> Result<()> {
+    wifi.start()?;
+    info!("Wifi started");
+    wifi.connect()?;
+    info!("Wifi connected");
+    wifi.wait_netif_up()?;
+    info!("Wifi netif up");
+    let ip_info = wifi.wifi().sta_netif().get_ip_info()?;
+    info!("Wifi DHCP info: {:?}", ip_info);
+    Ok(())
 }
 
 pub fn start_access_point(

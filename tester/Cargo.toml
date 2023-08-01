@@ -34,6 +34,10 @@ name = "config"
 path = "src/config.rs"
 
 [[bin]]
+name = "wifi"
+path = "src/wifi.rs"
+
+[[bin]]
 name = "config-server"
 path = "src/server.rs"
 

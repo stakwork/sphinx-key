@@ -30,9 +30,9 @@ pub struct ConfigDTO {
     pub broker: String,
     pub ssid: String,
     pub pass: String,
-    pub pubkey: String,
-    pub seed: String, // encrypted (56 bytes)
     pub network: String,
+    pub pubkey: Option<String>,
+    pub seed: Option<String>, // encrypted (56 bytes)
 }
 
 /*
@@ -55,15 +55,20 @@ pub fn ecdh_keypair() -> (SecretKey, PublicKey) {
     s.generate_keypair(&mut thread_rng())
 }
 
-pub fn decrypt_seed(dto: ConfigDTO, sk1: SecretKey) -> Result<(Config, [u8; 32])> {
-    let their_pk = hex::decode(dto.pubkey)?;
-    let their_pk_bytes: [u8; PUBLIC_KEY_LEN] = their_pk[..PUBLIC_KEY_LEN].try_into()?;
-    let shared_secret = derive_shared_secret_from_slice(their_pk_bytes, sk1.secret_bytes())?;
-    // decrypt seed
-    let cipher_seed = hex::decode(dto.seed)?;
-    let cipher: [u8; PAYLOAD_LEN] = cipher_seed[..PAYLOAD_LEN].try_into()?;
-    let seed = decrypt(cipher, shared_secret)?;
-
+pub fn decrypt_seed(dto: ConfigDTO, sk1: SecretKey) -> Result<(Config, Option<[u8; 32]>)> {
+    let mut seed = None;
+    if let Some(pubkey) = dto.pubkey {
+        if let Some(seed_in) = dto.seed {
+            let their_pk = hex::decode(pubkey)?;
+            let their_pk_bytes: [u8; PUBLIC_KEY_LEN] = their_pk[..PUBLIC_KEY_LEN].try_into()?;
+            let shared_secret =
+                derive_shared_secret_from_slice(their_pk_bytes, sk1.secret_bytes())?;
+            // decrypt seed
+            let cipher_seed = hex::decode(seed_in)?;
+            let cipher: [u8; PAYLOAD_LEN] = cipher_seed[..PAYLOAD_LEN].try_into()?;
+            seed = Some(decrypt(cipher, shared_secret)?);
+        }
+    }
     Ok((
         Config {
             broker: dto.broker,
@@ -78,18 +83,23 @@ pub fn decrypt_seed(dto: ConfigDTO, sk1: SecretKey) -> Result<(Config, [u8; 32])
 pub fn start_config_server_and_wait(
     modem: impl peripheral::Peripheral<P = esp_idf_hal::modem::Modem> + 'static,
     default_nvs: EspDefaultNvsPartition,
-) -> Result<(BlockingWifi<EspWifi<'static>>, Config, [u8; 32])> {
+    has_stored_seed: bool,
+) -> Result<(BlockingWifi<EspWifi<'static>>, Config, Option<[u8; 32]>)> {
     let mutex = Arc::new((Mutex::new(None), Condvar::new()));
 
     #[allow(clippy::redundant_clone)]
     #[allow(unused_mut)]
     let mut wifi = conn::wifi::start_access_point(modem, default_nvs.clone())?;
 
-    let httpd = conn::http::config_server(mutex.clone());
+    let httpd = conn::http::config_server(mutex.clone(), has_stored_seed)?;
     let mut wait = mutex.0.lock().unwrap();
-    log::info!("Waiting for data from the phone!");
+    if has_stored_seed {
+        log::info!("Waiting for wifi details from the phone!");
+    } else {
+        log::info!("Waiting for seed and data from the phone!");
+    }
 
-    let config_seed_tuple: &(Config, [u8; 32]) = loop {
+    let config_seed_tuple: &(Config, Option<[u8; 32]>) = loop {
         if let Some(conf) = &*wait {
             break conf;
         } else {

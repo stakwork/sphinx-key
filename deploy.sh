@@ -70,9 +70,9 @@ cd ../sphinx-key &&
 
 if [ $MODE = "release" ]
 then
-    cargo build --release
+    cargo build --release --bin sphinx-key
 else
-    cargo build
+    cargo build --bin sphinx-key
 fi &&
 
 esptool.py --chip esp32-c3 elf2image ../target/riscv32imc-esp-espidf/$MODE/sphinx-key &&

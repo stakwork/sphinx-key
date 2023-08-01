@@ -23,7 +23,8 @@ pub struct Params {
 
 #[allow(unused_variables, deprecated)]
 pub fn config_server(
-    mutex: Arc<(Mutex<Option<(Config, [u8; 32])>>, Condvar)>,
+    mutex: Arc<(Mutex<Option<(Config, Option<[u8; 32]>)>>, Condvar)>,
+    has_stored_seed: bool,
 ) -> Result<idf::Server> {
     let (sk1, pk1) = ecdh_keypair();
 
@@ -47,6 +48,9 @@ pub fn config_server(
             let dto = serde_json::from_str::<ConfigDTO>(&params.config)?;
 
             let conf_seed_tuple = decrypt_seed(dto, sk1)?;
+            if !has_stored_seed && conf_seed_tuple.1.is_none() {
+                return Err(anyhow::anyhow!("seed required"));
+            }
 
             let mut wait = mutex.0.lock().unwrap();
             *wait = Some(conf_seed_tuple);
