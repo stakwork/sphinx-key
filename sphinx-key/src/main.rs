@@ -137,7 +137,10 @@ fn main() -> Result<()> {
                 println!("CONFIG SAVED");
                 unsafe { esp_idf_sys::esp_restart() };
             }
-            Err(msg) => log::error!("{}", msg),
+            Err(msg) => {
+                drop(flash);
+                log::error!("{}", msg);
+            }
         }
     }
 
