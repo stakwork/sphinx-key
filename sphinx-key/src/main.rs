@@ -14,17 +14,16 @@ use crate::periph::sd::{mount_sd_card, simple_fs_test};
 use crate::status::Status;
 
 use anyhow::Result;
+use esp_idf_hal::gpio::Gpio9;
+use esp_idf_hal::peripherals::Peripherals;
+use esp_idf_svc::nvs::EspDefaultNvsPartition;
 use esp_idf_sys as _; // If using the `binstart` feature of `esp-idf-sys`, always keep this module imported
+use sphinx_signer::lightning_signer::bitcoin::Network;
+use sphinx_signer::sphinx_glyph::control::{Config, ControlPersist, Policy, Velocity};
 use std::sync::{mpsc, Arc, Mutex};
 use std::thread;
 use std::time::Duration;
 use std::time::SystemTime;
-
-use esp_idf_hal::peripherals::Peripherals;
-use esp_idf_svc::nvs::EspDefaultNvsPartition;
-
-use sphinx_signer::lightning_signer::bitcoin::Network;
-use sphinx_signer::sphinx_glyph::control::{Config, ControlPersist, Policy, Velocity};
 
 const ID_LEN: usize = 12;
 
@@ -58,7 +57,12 @@ fn main() -> Result<()> {
     let flash_per = FlashPersister::new(default_nvs.clone());
     let flash_arc = Arc::new(Mutex::new(flash_per));
     // BUTTON thread
-    button_loop(pins.gpio9, led_tx.clone(), flash_arc.clone());
+    while let Err(e) =
+        button_loop(unsafe { Gpio9::new() }, led_tx.clone(), flash_arc.clone())
+    {
+        log::error!("unable to spawn button thread: {:?}", e);
+        thread::sleep(Duration::from_millis(1000));
+    }
     let flash = flash_arc.lock().unwrap();
     if let Ok(exist) = flash.read_config() {
         let seed = flash.read_seed().expect("no seed...");
