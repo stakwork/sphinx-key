@@ -4,11 +4,14 @@ use serde::{Deserialize, Serialize};
 use sphinx_crypter::chacha::{encrypt, MSG_LEN, NONCE_LEN};
 use sphinx_crypter::ecdh::{derive_shared_secret_from_slice, PUBLIC_KEY_LEN};
 use sphinx_crypter::secp256k1::Secp256k1;
+use sphinx_signer::sphinx_glyph::control::Config;
 use std::convert::TryInto;
 use std::env;
 use std::time::Duration;
 
 const URL: &str = "http://192.168.71.1";
+// Set to true to only reset wifi credentials, and not transmit the seed again
+const WIFI_RESET: bool = false;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct EcdhBody {
@@ -59,32 +62,42 @@ async fn main() -> anyhow::Result<()> {
         .build()
         .expect("couldnt build reqwest client");
 
-    let res = client
-        .get(format!("{}/{}", url, "ecdh"))
-        .header("Content-Type", "application/json")
-        .send()
-        .await?;
-    let their_ecdh: EcdhBody = res.json().await?;
-    let their_pk = hex::decode(their_ecdh.pubkey)?;
+    let conf_string = if !WIFI_RESET {
+        let res = client
+            .get(format!("{}/{}", url, "ecdh"))
+            .header("Content-Type", "application/json")
+            .send()
+            .await?;
+        let their_ecdh: EcdhBody = res.json().await?;
+        let their_pk = hex::decode(their_ecdh.pubkey)?;
 
-    let their_pk_bytes: [u8; PUBLIC_KEY_LEN] = their_pk[..PUBLIC_KEY_LEN].try_into()?;
-    let shared_secret = derive_shared_secret_from_slice(their_pk_bytes, sk1.secret_bytes())?;
+        let their_pk_bytes: [u8; PUBLIC_KEY_LEN] = their_pk[..PUBLIC_KEY_LEN].try_into()?;
+        let shared_secret = derive_shared_secret_from_slice(their_pk_bytes, sk1.secret_bytes())?;
 
-    let mut nonce_end = [0; NONCE_LEN];
-    OsRng.fill_bytes(&mut nonce_end);
-    let cipher = encrypt(seed, shared_secret, nonce_end)?;
+        let mut nonce_end = [0; NONCE_LEN];
+        OsRng.fill_bytes(&mut nonce_end);
+        let cipher = encrypt(seed, shared_secret, nonce_end)?;
 
-    let cipher_seed = hex::encode(cipher);
-    let config = ConfigBody {
-        seed: cipher_seed,
-        ssid,
-        pass,
-        broker,
-        network,
-        pubkey: hex::encode(pk1.serialize()),
+        let cipher_seed = hex::encode(cipher);
+        let config = ConfigBody {
+            seed: cipher_seed,
+            ssid,
+            pass,
+            broker,
+            network,
+            pubkey: hex::encode(pk1.serialize()),
+        };
+        serde_json::to_string(&config)?
+    } else {
+        let config = Config {
+            ssid,
+            pass,
+            broker,
+            network,
+        };
+        serde_json::to_string(&config)?
     };
 
-    let conf_string = serde_json::to_string(&config)?;
     let conf_encoded = urlencoding::encode(&conf_string).to_owned();
 
     let res2 = client
