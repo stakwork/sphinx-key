@@ -59,7 +59,7 @@ fn main() -> Result<()> {
     let flash_arc = Arc::new(Mutex::new(flash_per));
     // BUTTON thread
     button_loop(pins.gpio9, led_tx.clone(), flash_arc.clone());
-    let mut flash = flash_arc.lock().unwrap();
+    let flash = flash_arc.lock().unwrap();
     if let Ok(exist) = flash.read_config() {
         let seed = flash.read_seed().expect("no seed...");
         let id = flash.read_id().expect("no id...");
@@ -117,12 +117,14 @@ fn main() -> Result<()> {
         led_tx.send(Status::WifiAccessPoint).unwrap();
         println!("=============> START SERVER NOW AND WAIT <==============");
         let stored_seed = flash.read_seed().ok();
+        drop(flash);
         match start_config_server_and_wait(
             peripherals.modem,
             default_nvs.clone(),
             stored_seed.is_some(),
         ) {
             Ok((_wifi, config, seed_opt)) => {
+                let mut flash = flash_arc.lock().unwrap();
                 flash.write_config(config).expect("could not store config");
                 if stored_seed.is_none() {
                     match seed_opt {
@@ -138,7 +140,6 @@ fn main() -> Result<()> {
                 unsafe { esp_idf_sys::esp_restart() };
             }
             Err(msg) => {
-                drop(flash);
                 log::error!("{}", msg);
             }
         }
