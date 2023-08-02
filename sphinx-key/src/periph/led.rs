@@ -17,7 +17,6 @@ pub struct Led {
 
 fn states() -> BTreeMap<Status, (Color, Time)> {
     let mut s = BTreeMap::new();
-    s.insert(Status::Starting, (0x000001, 100)); // Blue
     s.insert(Status::MountingSDCard, (0x000102, 100)); // Cyan
     s.insert(Status::SyncingTime, (0x000122, 100)); // Cyan
     s.insert(Status::WifiAccessPoint, (0x000100, 100)); // Green
@@ -27,8 +26,13 @@ fn states() -> BTreeMap<Status, (Color, Time)> {
     s.insert(Status::Connected, (0x000101, 400)); // Cyan
     s.insert(Status::Signing, (0x111111, 100)); // White
     s.insert(Status::Ota, (0xffa500, 100)); // Orange
-    s.insert(Status::Reset1, (0x017700, 100)); // yellow?
-    s.insert(Status::Reset2, (0xffa500, 100)); // orange?
+    s.insert(Status::Waiting, (0x000001, 100)); // Blue
+    s.insert(Status::Starting, (0x000001, 100)); // Blue
+    s.insert(Status::Reset1a, (0x017700, 100)); // yellow
+    s.insert(Status::Reset1, (0x017700, 100)); // yellow
+    s.insert(Status::Reset2a, (0xffa500, 100)); // orange
+    s.insert(Status::Reset2, (0xffa500, 100)); // orange
+    s.insert(Status::Reset3a, (0x010000, 100)); // Red
     s.insert(Status::Reset3, (0x010000, 100)); // Red
     s
 }

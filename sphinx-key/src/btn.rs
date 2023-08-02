@@ -1,17 +1,22 @@
+mod conn;
+mod core;
+mod ota;
 mod periph;
 mod status;
 
-use status::Status;
-
-use esp_idf_sys as _; // If using the `binstart` feature of `esp-idf-sys`, always keep this module imported
-
-// use embedded_svc::storage::StorageBase;
+pub use crate::core::control::FlashPersister;
 use esp_idf_hal::peripherals::Peripherals;
+use esp_idf_svc::nvs::EspDefaultNvsPartition;
 use esp_idf_svc::nvs::EspNvs;
 use esp_idf_svc::nvs::*;
+use esp_idf_sys as _; // If using the `binstart` feature of `esp-idf-sys`, always keep this module imported
+use status::Status;
 use std::sync::mpsc;
+use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
+
+const ID_LEN: usize = 12;
 
 fn main() -> anyhow::Result<()> {
     esp_idf_sys::link_patches();
@@ -28,7 +33,10 @@ fn main() -> anyhow::Result<()> {
     periph::led::led_control_loop(pins.gpio0, peripherals.rmt.channel0, led_rx);
 
     // BUTTON thread
-    periph::button::button_loop(pins.gpio9, led_tx.clone());
+    let default_nvs = EspDefaultNvsPartition::take()?;
+    let flash_per = FlashPersister::new(default_nvs.clone());
+    let flash_arc = Arc::new(Mutex::new(flash_per));
+    periph::button::button_loop(pins.gpio9, led_tx.clone(), flash_arc);
 
     loop {
         thread::sleep(Duration::from_millis(1000));

@@ -21,7 +21,7 @@ use std::time::Duration;
 use std::time::SystemTime;
 
 use esp_idf_hal::peripherals::Peripherals;
-use esp_idf_svc::nvs::*;
+use esp_idf_svc::nvs::EspDefaultNvsPartition;
 
 use sphinx_signer::lightning_signer::bitcoin::Network;
 use sphinx_signer::sphinx_glyph::control::{Config, ControlPersist, Policy, Velocity};
