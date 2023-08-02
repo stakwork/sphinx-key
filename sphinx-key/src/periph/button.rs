@@ -126,11 +126,15 @@ struct Machine {
 
 impl Machine {
     fn new(tx: mpsc::Sender<Status>, state: Status) -> Machine {
+        log::info!("send {:?}", state);
+        tx.send(state).unwrap();
         Self { tx, state }
     }
     fn update_status(&mut self, new_state: Status) {
-        log::info!("send {:?}", new_state);
-        self.tx.send(new_state).unwrap();
-        self.state = new_state;
+        if self.state != new_state {
+            log::info!("send {:?}", new_state);
+            self.tx.send(new_state).unwrap();
+            self.state = new_state;
+        }
     }
 }
