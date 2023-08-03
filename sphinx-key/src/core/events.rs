@@ -34,7 +34,6 @@ pub enum Event {
     VlsMessage(Vec<u8>),
     LssMessage(Vec<u8>),
     Control(Vec<u8>),
-    HeartBeat,
 }
 
 pub const ROOT_STORE: &str = "/sdcard/store";
@@ -147,6 +146,12 @@ pub fn make_event_loop(
     let flash_db = ctrlr.persister();
     let mut expected_sequence = None;
     while let Ok(event) = rx.recv() {
+        if let Some(seq) = expected_sequence {
+            if seq % 40 == 0 {
+                log::info!("get heartbeat!");
+                let _ = root_handler.node().get_heartbeat();
+            }
+        }
         match event {
             Event::Connected => {
                 log::info!("GOT A Event::Connected msg!");
@@ -159,10 +164,6 @@ pub fn make_event_loop(
             Event::Disconnected => {
                 led_tx.send(Status::ConnectingToMqtt).unwrap();
                 log::info!("GOT A Event::Disconnected msg!");
-            }
-            Event::HeartBeat => {
-                log::info!("Beating the heart!");
-                let _ = root_handler.node().get_heartbeat();
             }
             Event::VlsMessage(msg_bytes) => {
                 led_tx.send(Status::Signing).unwrap();

@@ -193,12 +193,6 @@ fn make_and_launch_client(
     log::info!(">>>>>>>>>>> blocking forever...");
     log::info!("{:?}", config);
 
-    // heartbeat loop
-    thread::spawn(move || loop {
-        thread::sleep(Duration::from_secs(60));
-        let _ = tx.send(Event::HeartBeat);
-    });
-
     make_event_loop(
         mqtt_client,
         rx,
