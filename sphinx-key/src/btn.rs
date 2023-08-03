@@ -5,7 +5,9 @@ mod periph;
 mod status;
 
 pub use crate::core::control::FlashPersister;
+use esp_idf_hal::gpio::Gpio0;
 use esp_idf_hal::gpio::Gpio9;
+use esp_idf_hal::peripheral::Peripheral;
 use esp_idf_hal::peripherals::Peripherals;
 use esp_idf_svc::nvs::EspDefaultNvsPartition;
 use esp_idf_svc::nvs::EspNvs;
@@ -22,17 +24,21 @@ const ID_LEN: usize = 12;
 
 fn main() -> anyhow::Result<()> {
     esp_idf_sys::link_patches();
-
     esp_idf_svc::log::EspLogger::initialize_default();
-
     thread::sleep(Duration::from_secs(1));
+    let mut peripherals = Peripherals::take().unwrap();
 
-    let peripherals = Peripherals::take().unwrap();
-    let pins = peripherals.pins;
-
-    let (led_tx, led_rx) = mpsc::channel::<Status>();
     // LED control thread
-    periph::led::led_control_loop(pins.gpio0, peripherals.rmt.channel0, led_rx);
+    let (mut led_tx, mut led_rx) = mpsc::channel::<Status>();
+    while let Err(e) = periph::led::led_control_loop(
+        unsafe { Gpio0::new() },
+        unsafe { peripherals.rmt.channel0.clone_unchecked() },
+        led_rx,
+    ) {
+        log::error!("unable to spawn led thread: {:?}", e);
+        thread::sleep(Duration::from_millis(1000));
+        (led_tx, led_rx) = mpsc::channel::<Status>();
+    }
 
     // BUTTON thread
     let default_nvs = EspDefaultNvsPartition::take()?;
