@@ -1,4 +1,5 @@
 use crate::status::Status;
+use anyhow::Result;
 use esp_idf_hal::rmt::config::TransmitConfig;
 use esp_idf_hal::rmt::{FixedLengthSignal, PinState, Pulse, TxRmtDriver};
 use esp_idf_hal::{gpio, rmt};
@@ -37,12 +38,17 @@ fn states() -> BTreeMap<Status, (Color, Time)> {
     s
 }
 
-pub fn led_control_loop(gpio0: gpio::Gpio0, channel0: rmt::CHANNEL0, rx: mpsc::Receiver<Status>) {
+pub fn led_control_loop(
+    gpio0: gpio::Gpio0,
+    channel0: rmt::CHANNEL0,
+    rx: mpsc::Receiver<Status>,
+) -> Result<()> {
     let config = TransmitConfig::new().clock_divider(1);
     let transmit = Arc::new(Mutex::new(
         TxRmtDriver::new(channel0, gpio0, &config).unwrap(),
     ));
-    thread::spawn(move || {
+    let builder = thread::Builder::new().stack_size(1500);
+    builder.spawn(move || {
         let mut led = Led::new(0x000001, 100);
         let states = states();
         loop {
@@ -55,7 +61,8 @@ pub fn led_control_loop(gpio0: gpio::Gpio0, channel0: rmt::CHANNEL0, rx: mpsc::R
             led.blink(transmit.clone());
             thread::sleep(Duration::from_millis(400));
         }
-    });
+    })?;
+    Ok(())
 }
 
 impl Led {

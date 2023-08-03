@@ -1,5 +1,6 @@
 use crate::status::Status;
 use crate::FlashPersister;
+use anyhow::Result;
 use esp_idf_hal::gpio;
 use esp_idf_hal::gpio::*;
 use sphinx_signer::sphinx_glyph::control::ControlPersist;
@@ -17,8 +18,9 @@ pub fn button_loop(
     gpio9: gpio::Gpio9,
     tx: mpsc::Sender<Status>,
     flash_arc: Arc<Mutex<FlashPersister>>,
-) {
-    thread::spawn(move || {
+) -> Result<()> {
+    let builder = thread::Builder::new().stack_size(2500);
+    builder.spawn(move || {
         let mut button = PinDriver::input(gpio9).unwrap();
         button.set_pull(Pull::Up).unwrap();
         let mut pressed = false;
@@ -116,7 +118,8 @@ pub fn button_loop(
                 }
             }
         }
-    });
+    })?;
+    Ok(())
 }
 
 struct Machine {
