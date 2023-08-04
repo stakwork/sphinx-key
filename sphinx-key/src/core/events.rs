@@ -10,7 +10,7 @@ use glyph::topics;
 use lss_connector::secp256k1::PublicKey;
 use sphinx_signer::approver::SphinxApprover;
 use sphinx_signer::lightning_signer::bitcoin::Network;
-use sphinx_signer::lightning_signer::persist::Persist;
+use sphinx_signer::lightning_signer::persist::{DummyPersister, Persist};
 use sphinx_signer::persist::{BackupPersister, FsPersister, ThreadMemoPersister};
 use sphinx_signer::root::VlsHandlerError;
 use sphinx_signer::sphinx_glyph as glyph;
@@ -103,6 +103,9 @@ pub fn make_event_loop(
     // let persister: Arc<dyn Persist> = Arc::new(FsPersister::new(&ROOT_STORE, Some(8)));
     // let persister = Arc::new(ThreadMemoPersister {});
 
+    //let sd_persister = DummyPersister {};
+    //let initial_allowlist = Vec::new();
+
     let sd_persister = FsPersister::new(&ROOT_STORE, Some(8));
     let initial_allowlist = match sd_persister.get_node_allowlist(node_id) {
         Ok(al) => al,
@@ -182,8 +185,8 @@ pub fn make_event_loop(
                             restart_esp_if_memory_low();
                         } else {
                             // muts! send LSS first!
-                            msgs = Some((vls_b, lss_b.clone()));
                             mqtt_pub(&mut mqtt, client_id, topics::LSS_RES, &lss_b);
+                            msgs = Some((vls_b, lss_b));
                         }
                         expected_sequence = Some(sequence + 1);
                     }
