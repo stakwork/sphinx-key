@@ -76,7 +76,7 @@ async fn run_main(parent_fd: i32) -> rocket::Rocket<rocket::Build> {
 
     let (reconn_tx, reconn_rx) = mpsc::channel::<(String, std_oneshot::Sender<bool>)>(10000);
 
-    // waits until first connection
+    // this does not wait for the first connection
     let conns = broker_setup(
         settings,
         mqtt_rx,
@@ -86,10 +86,8 @@ async fn run_main(parent_fd: i32) -> rocket::Rocket<rocket::Build> {
     )
     .await;
 
-    tokio::time::sleep(Duration::from_secs(1)).await;
-
     let (lss_tx, lss_rx) = mpsc::channel::<LssReq>(10000);
-    let _lss_broker = if let Ok(lss_uri) = env::var("VLS_LSS") {
+    if let Ok(lss_uri) = env::var("VLS_LSS") {
         // waits until LSS confirmation from signer
         let lss_broker = loop {
             match lss::lss_setup(&lss_uri, init_tx.clone()).await {
@@ -103,12 +101,10 @@ async fn run_main(parent_fd: i32) -> rocket::Rocket<rocket::Build> {
                 }
             }
         };
-        lss::lss_tasks(lss_broker.clone(), lss_rx, reconn_rx, init_tx);
+        lss::lss_tasks(lss_broker, lss_rx, reconn_rx, init_tx);
         log::info!("=> lss broker connection created!");
-        Some(lss_broker)
     } else {
         log::warn!("running without LSS");
-        None
     };
 
     if let Ok(btc_url) = env::var("BITCOIND_RPC_URL") {
@@ -179,7 +175,6 @@ pub async fn broker_setup(
     .expect("BROKER FAILED TO START");
 
     // client connections state
-    let (startup_tx, startup_rx) = std_oneshot::channel::<String>();
     let conns_ = conns.clone();
     std::thread::spawn(move || {
         log::info!("=> wait for connected status");
@@ -189,7 +184,6 @@ pub async fn broker_setup(
         cs.client_action(&cid, connected);
         drop(cs);
         log::info!("=> connected: {}: {}", cid, connected);
-        let _ = startup_tx.send(cid.to_string());
         while let Ok((cid, connected)) = status_rx.recv() {
             log::info!("=> reconnected: {}: {}", cid, connected);
             let mut cs = conns_.lock().unwrap();
@@ -213,7 +207,6 @@ pub async fn broker_setup(
             }
         }
     });
-    let _first_client_id = startup_rx.recv();
 
     conns
 }

@@ -42,7 +42,6 @@ pub fn start_broker(
     let (internal_status_tx, internal_status_rx) = std::sync::mpsc::channel::<(bool, String)>();
 
     // track connections
-    let status_sender_ = status_sender.clone();
     let link_tx_ = link_tx.clone();
     let _conns_task = std::thread::spawn(move || {
         while let Ok((is, cid)) = internal_status_rx.recv() {
@@ -51,7 +50,7 @@ pub fn start_broker(
             } else {
                 unsubs(&cid, link_tx_.clone());
             }
-            let _ = status_sender_.send((cid, is));
+            let _ = status_sender.send((cid, is));
         }
     });
 
