@@ -5,8 +5,7 @@ mod periph;
 mod status;
 
 use crate::core::control::controller_from_seed;
-pub use crate::core::control::FlashPersister;
-use crate::core::{config::*, events::*};
+use crate::core::{config::*, events::*, FlashPersister};
 use crate::periph::button::button_loop;
 use crate::periph::led::led_control_loop;
 #[allow(unused_imports)]

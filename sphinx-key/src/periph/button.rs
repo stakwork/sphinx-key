@@ -1,5 +1,5 @@
+use crate::core::FlashPersister;
 use crate::status::Status;
-use crate::FlashPersister;
 use anyhow::Result;
 use esp_idf_hal::gpio;
 use esp_idf_hal::gpio::*;
