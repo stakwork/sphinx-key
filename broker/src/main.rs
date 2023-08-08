@@ -20,8 +20,8 @@ use rocket::tokio::{
     sync::{broadcast, mpsc},
 };
 use rumqttd::{oneshot as std_oneshot, AuthMsg};
+use std::env;
 use std::sync::{Arc, Mutex};
-use std::{env, time::Duration};
 use url::Url;
 use vls_frontend::{frontend::SourceFactory, Frontend};
 use vls_proxy::client::UnixClient;
@@ -74,38 +74,26 @@ async fn run_main(parent_fd: i32) -> rocket::Rocket<rocket::Build> {
     let (error_tx, error_rx) = broadcast::channel(10000);
     error_log::log_errors(error_rx);
 
-    let (reconn_tx, reconn_rx) = mpsc::channel::<(String, std_oneshot::Sender<bool>)>(10000);
+    let (conn_tx, conn_rx) = mpsc::channel::<(String, std_oneshot::Sender<bool>)>(10000);
 
     // this does not wait for the first connection
     let conns = broker_setup(
         settings,
         mqtt_rx,
         init_rx,
-        reconn_tx.clone(),
+        conn_tx,
         error_tx.clone(),
     )
     .await;
 
     let (lss_tx, lss_rx) = mpsc::channel::<LssReq>(10000);
+    // TODO: add a validation here of the uri setting to make sure LSS is running
     if let Ok(lss_uri) = env::var("VLS_LSS") {
-        // waits until LSS confirmation from signer
-        let lss_broker = loop {
-            match lss::lss_setup(&lss_uri, init_tx.clone()).await {
-                Ok(l) => {
-                    break l;
-                }
-                Err(e) => {
-                    let _ = error_tx.send(e.to_string().as_bytes().to_vec());
-                    log::error!("failed LSS setup, trying again...");
-                    tokio::time::sleep(Duration::from_secs(3)).await;
-                }
-            }
-        };
-        lss::lss_tasks(lss_broker, lss_rx, reconn_rx, init_tx);
-        log::info!("=> lss broker connection created!");
+        log::info!("Spawning lss tasks...");
+        lss::lss_tasks(lss_uri, lss_rx, conn_rx, init_tx);
     } else {
         log::warn!("running without LSS");
-    };
+    }
 
     if let Ok(btc_url) = env::var("BITCOIND_RPC_URL") {
         let signer_port = MqttSignerPort::new(mqtt_tx.clone(), lss_tx.clone());
@@ -142,7 +130,7 @@ pub async fn broker_setup(
     settings: Settings,
     mqtt_rx: mpsc::Receiver<ChannelRequest>,
     init_rx: mpsc::Receiver<ChannelRequest>,
-    reconn_tx: mpsc::Sender<(String, std_oneshot::Sender<bool>)>,
+    conn_tx: mpsc::Sender<(String, std_oneshot::Sender<bool>)>,
     error_tx: broadcast::Sender<Vec<u8>>,
 ) -> Arc<Mutex<Connections>> {
     let (auth_tx, auth_rx) = std::sync::mpsc::channel::<AuthMsg>();
@@ -177,22 +165,16 @@ pub async fn broker_setup(
     // client connections state
     let conns_ = conns.clone();
     std::thread::spawn(move || {
-        log::info!("=> wait for connected status");
-        // wait for connection = true
-        let (cid, connected) = status_rx.recv().expect("couldnt receive");
-        let mut cs = conns_.lock().unwrap();
-        cs.client_action(&cid, connected);
-        drop(cs);
-        log::info!("=> connected: {}: {}", cid, connected);
+        log::info!("=> waiting first connection...");
         while let Ok((cid, connected)) = status_rx.recv() {
-            log::info!("=> reconnected: {}: {}", cid, connected);
+            log::info!("=> connection status: {}: {}", cid, connected);
             let mut cs = conns_.lock().unwrap();
             // drop it from list until ready
             cs.client_action(&cid, false);
             drop(cs);
             if connected {
                 let (dance_complete_tx, dance_complete_rx) = std_oneshot::channel::<bool>();
-                let _ = reconn_tx.blocking_send((cid.clone(), dance_complete_tx));
+                let _ = conn_tx.blocking_send((cid.clone(), dance_complete_tx));
                 let dance_complete = dance_complete_rx.recv().unwrap_or_else(|e| {
                     log::info!(
                         "dance_complete channel died before receiving response: {}",
