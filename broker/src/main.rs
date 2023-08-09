@@ -76,15 +76,7 @@ async fn run_main(parent_fd: i32) -> rocket::Rocket<rocket::Build> {
 
     let (conn_tx, conn_rx) = mpsc::channel::<(String, std_oneshot::Sender<bool>)>(10000);
 
-    // this does not wait for the first connection
-    let conns = broker_setup(
-        settings,
-        mqtt_rx,
-        init_rx,
-        conn_tx,
-        error_tx.clone(),
-    )
-    .await;
+    let conns = broker_setup(settings, mqtt_rx, init_rx, conn_tx, error_tx.clone()).await;
 
     let (lss_tx, lss_rx) = mpsc::channel::<LssReq>(10000);
     // TODO: add a validation here of the uri setting to make sure LSS is running
@@ -112,7 +104,12 @@ async fn run_main(parent_fd: i32) -> rocket::Rocket<rocket::Build> {
     }
 
     // test sleep FIXME
-    tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+    while conns.lock().unwrap().len() == 0 {
+        log::debug!(
+            "waiting for first connection before proceeding with SignerLoop and Rocket launch"
+        );
+        tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+    }
 
     let cln_client = UnixClient::new(UnixConnection::new(parent_fd));
     // TODO pass status_rx into SignerLoop?
@@ -182,6 +179,7 @@ pub async fn broker_setup(
                     );
                     false
                 });
+                log::info!("adding client to the list? {}", dance_complete);
                 let mut cs = conns_.lock().unwrap();
                 cs.client_action(&cid, dance_complete);
                 log::debug!("List: {:?}, action: {}", cs, dance_complete);
