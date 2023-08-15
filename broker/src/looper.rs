@@ -168,8 +168,7 @@ impl<C: 'static + Client> SignerLoop<C> {
         log::info!("SEND ON {}", topics::VLS);
         let (res_topic, res) = self.send_request_wait(topics::VLS, md)?;
         log::info!("GOT ON {}", res_topic);
-        let mut the_res = res.clone();
-        if res_topic == topics::LSS_RES {
+        let the_res = if res_topic == topics::LSS_RES {
             // send reply to LSS to store muts
             let lss_reply = self.send_lss(res)?;
             log::info!("LSS REPLY LEN {}", &lss_reply.len());
@@ -180,8 +179,10 @@ impl<C: 'static + Client> SignerLoop<C> {
             if res_topic2 != topics::VLS_RES {
                 log::warn!("got a topic NOT on {}", topics::VLS_RES);
             }
-            the_res = res2;
-        }
+            res2
+        } else {
+            res
+        };
         // create reply bytes for CLN
         let reply = parser::raw_response_from_bytes(the_res, COUNTER.load(Ordering::Relaxed))?;
         // add to the sequence
