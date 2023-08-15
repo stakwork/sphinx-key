@@ -18,6 +18,9 @@ impl Connections {
             current: None,
         }
     }
+    pub fn len(&self) -> usize {
+        self.clients.len()
+    }
     pub fn set_pubkey(&mut self, pk: &str) {
         self.pubkey = Some(pk.to_string())
     }

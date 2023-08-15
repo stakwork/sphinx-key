@@ -3,64 +3,38 @@ use anyhow::{anyhow, Result};
 use lss_connector::{InitResponse, LssBroker, Response, SignerMutations};
 use rocket::tokio;
 use rumqttd::oneshot;
+use rumqttd::oneshot as std_oneshot;
 use sphinx_signer::sphinx_glyph::topics;
-use std::time::Duration;
 use tokio::sync::mpsc;
 
-pub async fn lss_setup(uri: &str, mqtt_tx: mpsc::Sender<ChannelRequest>) -> Result<LssBroker> {
-    // LSS required
-    let (spk, msg_bytes) = LssBroker::get_server_pubkey(uri).await?;
-    let ir = loop {
-        if let Ok(ir) = send_init(msg_bytes.clone(), &mqtt_tx).await {
-            break ir;
-        }
-        sleep(2).await;
-    };
-
-    let lss_conn = LssBroker::new(uri, ir.clone(), spk).await?;
-    // this only returns the initial state if it was requested by signer
-    let msg_bytes2 = lss_conn.get_created_state_msg(&ir).await?;
-    let cr = loop {
-        if let Ok(ir) = send_created(msg_bytes2.clone(), &mqtt_tx).await {
-            break ir;
-        }
-        sleep(2).await;
-    };
-
-    lss_conn.handle(Response::Created(cr)).await?;
-
-    Ok(lss_conn)
-}
-
-async fn send_init(
-    msg_bytes: Vec<u8>,
-    mqtt_tx: &mpsc::Sender<ChannelRequest>,
-) -> Result<InitResponse> {
-    let reply = ChannelRequest::send(topics::INIT_1_MSG, msg_bytes, &mqtt_tx).await?;
-    let ir = Response::from_slice(&reply)?.into_init()?;
-    Ok(ir)
-}
-
-async fn send_created(
-    msg_bytes: Vec<u8>,
-    mqtt_tx: &mpsc::Sender<ChannelRequest>,
-) -> Result<SignerMutations> {
-    let reply2 = ChannelRequest::send(topics::INIT_2_MSG, msg_bytes, &mqtt_tx).await?;
-    let cr = Response::from_slice(&reply2)?.into_created()?;
-    Ok(cr)
-}
-
 pub fn lss_tasks(
-    lss_conn: LssBroker,
-    mut lss_rx: mpsc::Receiver<LssReq>,
-    mut reconn_rx: mpsc::Receiver<(String, oneshot::Sender<bool>)>,
+    uri: String,
+    lss_rx: mpsc::Receiver<LssReq>,
+    mut conn_rx: mpsc::Receiver<(String, oneshot::Sender<bool>)>,
     init_tx: mpsc::Sender<ChannelRequest>,
 ) {
-    // msg handler (from CLN looper)
-    let lss_conn_ = lss_conn.clone();
+    tokio::task::spawn(async move {
+        // first connection - initializes lssbroker
+        let lss_conn = loop {
+            let (cid, dance_complete_tx) = conn_rx.recv().await.unwrap();
+            match try_dance(&cid, &uri, None, &init_tx, dance_complete_tx).await {
+                Some(broker) => break broker,
+                None => log::warn!("broker not initialized, try connecting again..."),
+            }
+        };
+        spawn_lss_rx(lss_conn.clone(), lss_rx);
+        // connect handler for all subsequent connections
+        while let Some((cid, dance_complete_tx)) = conn_rx.recv().await {
+            log::info!("CLIENT {} connected!", cid);
+            let _ = try_dance(&cid, &uri, Some(&lss_conn), &init_tx, dance_complete_tx).await;
+        }
+    });
+}
+
+fn spawn_lss_rx(lss_conn: LssBroker, mut lss_rx: mpsc::Receiver<LssReq>) {
     tokio::task::spawn(async move {
         while let Some(req) = lss_rx.recv().await {
-            match lss_conn_.handle_bytes(&req.message).await {
+            match lss_conn.handle_bytes(&req.message).await {
                 Ok(msg) => {
                     let _ = req.reply_tx.send(msg);
                 }
@@ -70,50 +44,64 @@ pub fn lss_tasks(
             }
         }
     });
-
-    // reconnect handler (when a client reconnects)
-    let lss_conn_ = lss_conn.clone();
-    let init_tx_ = init_tx.clone();
-    tokio::task::spawn(async move {
-        while let Some((cid, dance_complete_tx)) = reconn_rx.recv().await {
-            log::info!("CLIENT {} reconnected!", cid);
-            if let Err(e) = reconnect_dance(&cid, &lss_conn_, &init_tx_).await {
-                log::error!("reconnect dance failed {:?}", e);
-                let _ = dance_complete_tx.send(false);
-            } else {
-                let _ = dance_complete_tx.send(true);
-            }
-        }
-    });
 }
 
-async fn reconnect_dance(
+async fn try_dance(
     cid: &str,
-    lss_conn: &LssBroker,
-    mqtt_tx: &mpsc::Sender<ChannelRequest>,
-) -> Result<()> {
-    log::debug!("Reconnect dance started, proceeding with step 1");
-    let ir = dance_step_1(cid, lss_conn, mqtt_tx).await?;
-    log::debug!("Step 1 finished, now onto step 2");
-    let _ = dance_step_2(cid, lss_conn, mqtt_tx, &ir).await?;
-    log::debug!("Reconnect dance finished!");
-    Ok(())
+    uri: &str,
+    lss_conn: Option<&LssBroker>,
+    init_tx: &mpsc::Sender<ChannelRequest>,
+    dance_complete_tx: std_oneshot::Sender<bool>,
+) -> Option<LssBroker> {
+    match connect_dance(cid, uri, lss_conn, init_tx).await {
+        Ok(broker) => {
+            let _ = dance_complete_tx.send(true);
+            // none if lss_conn is some, some otherwise
+            broker
+        }
+        Err(e) => {
+            log::warn!("connect_dance failed: {:?}", e);
+            let _ = dance_complete_tx.send(false);
+            None
+        }
+    }
 }
 
+async fn connect_dance(
+    cid: &str,
+    uri: &str,
+    lss_conn: Option<&LssBroker>,
+    mqtt_tx: &mpsc::Sender<ChannelRequest>,
+) -> Result<Option<LssBroker>> {
+    let (new_broker, ir) = dance_step_1(cid, uri, lss_conn, mqtt_tx).await?;
+    let lss_conn = new_broker.as_ref().xor(lss_conn).ok_or(anyhow!(
+        "should never happen, either we use the newly initialized, or the one passed in"
+    ))?;
+    let _ = dance_step_2(cid, lss_conn, mqtt_tx, &ir).await?;
+    // only some when lss_conn is none
+    Ok(new_broker)
+}
+
+// initializes a new broker in case lss_conn is none
 async fn dance_step_1(
     cid: &str,
-    lss_conn: &LssBroker,
+    uri: &str,
+    lss_conn: Option<&LssBroker>,
     mqtt_tx: &mpsc::Sender<ChannelRequest>,
-) -> Result<InitResponse> {
-    let init_bytes = lss_conn.make_init_msg().await?;
-    log::debug!("starting dance_step_1 send for {}", cid);
-    let reply = ChannelRequest::send_for(cid, topics::INIT_1_MSG, init_bytes, mqtt_tx).await?;
-    log::debug!("dance_step_1 send for completed");
-    if reply.is_empty() {
-        return Err(anyhow!("dance step 1 did not complete"));
+) -> Result<(Option<LssBroker>, InitResponse)> {
+    match lss_conn {
+        Some(lss_conn) => {
+            let init_bytes = lss_conn.make_init_msg().await?;
+            let ir = send_init(cid, init_bytes, mqtt_tx).await?;
+            Ok((None, ir))
+        }
+        None => {
+            let (spk, init_bytes) = LssBroker::get_server_pubkey(uri).await?;
+            let ir = send_init(cid, init_bytes, mqtt_tx).await?;
+            let lss_conn = Some(LssBroker::new(uri, ir.clone(), spk).await?);
+            Ok((lss_conn, ir))
+        }
     }
-    let ir = Response::from_slice(&reply)?.into_init()?;
-    Ok(ir)
 }
 
 async fn dance_step_2(
@@ -123,17 +111,33 @@ async fn dance_step_2(
     ir: &InitResponse,
 ) -> Result<()> {
     let state_bytes = lss_conn.get_created_state_msg(ir).await?;
-    log::debug!("starting dance_step_2 send for {}", cid);
-    let reply2 = ChannelRequest::send_for(cid, topics::INIT_2_MSG, state_bytes, mqtt_tx).await?;
-    log::debug!("dance_step_2 send for completed");
-    if reply2.is_empty() {
-        return Err(anyhow!("dance step 2 did not complete"));
-    }
-    let cr = Response::from_slice(&reply2)?.into_created()?;
+    let cr = send_created(cid, state_bytes, mqtt_tx).await?;
     lss_conn.handle(Response::Created(cr)).await?;
     Ok(())
 }
 
-async fn sleep(s: u64) {
-    tokio::time::sleep(Duration::from_secs(s)).await;
+async fn send_init(
+    cid: &str,
+    msg_bytes: Vec<u8>,
+    mqtt_tx: &mpsc::Sender<ChannelRequest>,
+) -> Result<InitResponse> {
+    let reply = ChannelRequest::send_for(cid, topics::INIT_1_MSG, msg_bytes, mqtt_tx).await?;
+    if reply.is_empty() {
+        return Err(anyhow!("send init did not complete, reply is empty"));
+    }
+    let ir = Response::from_slice(&reply)?.into_init()?;
+    Ok(ir)
+}
+
+async fn send_created(
+    cid: &str,
+    msg_bytes: Vec<u8>,
+    mqtt_tx: &mpsc::Sender<ChannelRequest>,
+) -> Result<SignerMutations> {
+    let reply = ChannelRequest::send_for(cid, topics::INIT_2_MSG, msg_bytes, mqtt_tx).await?;
+    if reply.is_empty() {
+        return Err(anyhow!("send created did not complete, reply is empty"));
+    }
+    let cr = Response::from_slice(&reply)?.into_created()?;
+    Ok(cr)
 }
