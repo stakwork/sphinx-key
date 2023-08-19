@@ -52,6 +52,7 @@ pub struct ChannelRequest {
     pub message: Vec<u8>,
     pub reply_tx: oneshot::Sender<ChannelReply>,
     pub cid: Option<String>, // if it exists, only try the one client
+    pub signer_type: Option<SignerType>, // if it exists, only try clients of these types
 }
 impl ChannelRequest {
     pub fn new(topic: &str, message: Vec<u8>) -> (Self, oneshot::Receiver<ChannelReply>) {
@@ -61,6 +62,7 @@ impl ChannelRequest {
             message,
             reply_tx,
             cid: None,
+            signer_type: None,
         };
         (cr, reply_rx)
     }
@@ -75,6 +77,7 @@ impl ChannelRequest {
             message,
             reply_tx,
             cid: None,
+            signer_type: None,
         };
         let _ = sender.send(req).await;
         let reply = reply_rx.await?;
@@ -92,13 +95,14 @@ impl ChannelRequest {
             message,
             reply_tx,
             cid: Some(cid.to_string()),
+            signer_type: None,
         };
         let _ = sender.send(req).await;
         let reply = reply_rx.await?;
         Ok(reply.reply)
     }
     pub fn for_cid(&mut self, cid: &str) {
-        self.cid = Some(cid.to_string())
+        self.cid = Some(cid.to_string());
     }
     pub fn new_for(
         cid: &str,
@@ -107,6 +111,18 @@ impl ChannelRequest {
     ) -> (Self, oneshot::Receiver<ChannelReply>) {
         let (mut cr, reply_rx) = ChannelRequest::new(topic, message);
         cr.for_cid(cid);
+        (cr, reply_rx)
+    }
+    pub fn for_type(&mut self, signer_type: SignerType) {
+        self.signer_type = Some(signer_type);
+    }
+    pub fn new_for_type(
+        signer_type: SignerType,
+        topic: &str,
+        message: Vec<u8>,
+    ) -> (Self, oneshot::Receiver<ChannelReply>) {
+        let (mut cr, reply_rx) = ChannelRequest::new(topic, message);
+        cr.for_type(signer_type);
         (cr, reply_rx)
     }
 }
