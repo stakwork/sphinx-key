@@ -163,27 +163,32 @@ pub async fn broker_setup(
     let conns_ = conns.clone();
     std::thread::spawn(move || {
         log::info!("=> waiting first connection...");
-        while let Ok((cid, connected)) = status_rx.recv() {
+        while let Ok((cid, connected, signer_type_opt)) = status_rx.recv() {
             log::info!("=> connection status: {}: {}", cid, connected);
             let mut cs = conns_.lock().unwrap();
             // drop it from list until ready
-            cs.client_action(&cid, false);
+            cs.remove_client(&cid);
             drop(cs);
             if connected {
+                // In mqtt.rs, we always send a signer type if connected == true
+                let signer_type = signer_type_opt.unwrap();
                 let (dance_complete_tx, dance_complete_rx) = std_oneshot::channel::<bool>();
                 let _ = conn_tx.blocking_send((cid.clone(), dance_complete_tx));
                 let dance_complete = dance_complete_rx.recv().unwrap_or_else(|e| {
-                    log::info!(
+                    log::warn!(
                         "dance_complete channel died before receiving response: {}",
                         e
                     );
                     false
                 });
-                log::info!("adding client to the list? {}", dance_complete);
-                let mut cs = conns_.lock().unwrap();
-                cs.client_action(&cid, dance_complete);
-                log::debug!("List: {:?}, action: {}", cs, dance_complete);
-                drop(cs);
+                if dance_complete {
+                    log::info!("adding client to the list: {}, type: {:?}", &cid, signer_type);
+                    let mut cs = conns_.lock().unwrap();
+                    cs.add_client(&cid, signer_type);
+                    drop(cs);
+                } else {
+                    log::warn!("dance failed, client not added to the list");
+                }
             }
         }
     });

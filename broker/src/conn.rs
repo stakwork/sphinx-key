@@ -1,12 +1,13 @@
 use anyhow::Result;
 use rocket::tokio::sync::{mpsc, oneshot};
 use serde::{Deserialize, Serialize};
+use sphinx_signer::sphinx_glyph::types::SignerType;
 use std::collections::HashMap;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Connections {
     pub pubkey: Option<String>,
-    pub clients: HashMap<String, bool>,
+    pub clients: HashMap<String, SignerType>,
     pub current: Option<String>,
 }
 
@@ -27,21 +28,14 @@ impl Connections {
     pub fn set_current(&mut self, cid: String) {
         self.current = Some(cid);
     }
-    fn add_client(&mut self, cid: &str) {
-        self.clients.insert(cid.to_string(), true);
+    pub fn add_client(&mut self, cid: &str, signer_type: SignerType) {
+        self.clients.insert(cid.to_string(), signer_type);
         self.current = Some(cid.to_string());
     }
-    fn remove_client(&mut self, cid: &str) {
+    pub fn remove_client(&mut self, cid: &str) {
         self.clients.remove(cid);
         if self.current == Some(cid.to_string()) {
             self.current = None;
-        }
-    }
-    pub fn client_action(&mut self, cid: &str, connected: bool) {
-        if connected {
-            self.add_client(cid);
-        } else {
-            self.remove_client(cid);
         }
     }
 }

@@ -1718,7 +1718,7 @@ dependencies = [
 [[package]]
 name = "lss-connector"
 version = "0.1.0"
-source = "git+https://github.com/stakwork/sphinx-rs?rev=1abce4dedfc6be8cb261e4faa11d9a753ee323ce#1abce4dedfc6be8cb261e4faa11d9a753ee323ce"
+source = "git+https://github.com/stakwork/sphinx-rs?rev=64d5c8aa166c4ff46b0817bc4011f39a3c949de7#64d5c8aa166c4ff46b0817bc4011f39a3c949de7"
 dependencies = [
  "anyhow",
  "lightning-storage-server",
@@ -2720,7 +2720,7 @@ dependencies = [
 [[package]]
 name = "rmp-utils"
 version = "0.1.0"
-source = "git+https://github.com/stakwork/sphinx-rs?rev=1abce4dedfc6be8cb261e4faa11d9a753ee323ce#1abce4dedfc6be8cb261e4faa11d9a753ee323ce"
+source = "git+https://github.com/stakwork/sphinx-rs?rev=64d5c8aa166c4ff46b0817bc4011f39a3c949de7#64d5c8aa166c4ff46b0817bc4011f39a3c949de7"
 dependencies = [
  "anyhow",
  "log",
@@ -3311,7 +3311,7 @@ dependencies = [
 [[package]]
 name = "sphinx-auther"
 version = "0.1.12"
-source = "git+https://github.com/stakwork/sphinx-rs?rev=1abce4dedfc6be8cb261e4faa11d9a753ee323ce#1abce4dedfc6be8cb261e4faa11d9a753ee323ce"
+source = "git+https://github.com/stakwork/sphinx-rs?rev=64d5c8aa166c4ff46b0817bc4011f39a3c949de7#64d5c8aa166c4ff46b0817bc4011f39a3c949de7"
 dependencies = [
  "anyhow",
  "base64 0.21.2",
@@ -3323,7 +3323,7 @@ dependencies = [
 [[package]]
 name = "sphinx-glyph"
 version = "0.1.2"
-source = "git+https://github.com/stakwork/sphinx-rs?rev=1abce4dedfc6be8cb261e4faa11d9a753ee323ce#1abce4dedfc6be8cb261e4faa11d9a753ee323ce"
+source = "git+https://github.com/stakwork/sphinx-rs?rev=64d5c8aa166c4ff46b0817bc4011f39a3c949de7#64d5c8aa166c4ff46b0817bc4011f39a3c949de7"
 dependencies = [
  "anyhow",
  "hex",
@@ -3369,7 +3369,7 @@ dependencies = [
 [[package]]
 name = "sphinx-signer"
 version = "0.1.0"
-source = "git+https://github.com/stakwork/sphinx-rs?rev=1abce4dedfc6be8cb261e4faa11d9a753ee323ce#1abce4dedfc6be8cb261e4faa11d9a753ee323ce"
+source = "git+https://github.com/stakwork/sphinx-rs?rev=64d5c8aa166c4ff46b0817bc4011f39a3c949de7#64d5c8aa166c4ff46b0817bc4011f39a3c949de7"
 dependencies = [
  "anyhow",
  "bip39",

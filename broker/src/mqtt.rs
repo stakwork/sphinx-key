@@ -4,7 +4,7 @@ use crate::util::Settings;
 use rocket::tokio::{sync::broadcast, sync::mpsc};
 use rumqttd::{local::LinkTx, AuthMsg, Broker, Config, Notification};
 use sphinx_signer::sphinx_glyph::sphinx_auther::token::Token;
-use sphinx_signer::sphinx_glyph::topics;
+use sphinx_signer::sphinx_glyph::{topics, types::SignerType};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
@@ -15,7 +15,7 @@ pub fn start_broker(
     settings: Settings,
     mut receiver: mpsc::Receiver<ChannelRequest>,
     mut init_receiver: mpsc::Receiver<ChannelRequest>,
-    status_sender: std::sync::mpsc::Sender<(String, bool)>,
+    status_sender: std::sync::mpsc::Sender<(String, bool, Option<SignerType>)>,
     error_sender: broadcast::Sender<Vec<u8>>,
     auth_sender: std::sync::mpsc::Sender<AuthMsg>,
     connections: Arc<Mutex<Connections>>,
@@ -39,18 +39,19 @@ pub fn start_broker(
     });
 
     // connected/disconnected status alerts
-    let (internal_status_tx, internal_status_rx) = std::sync::mpsc::channel::<(bool, String)>();
+    let (internal_status_tx, internal_status_rx) =
+        std::sync::mpsc::channel::<(bool, String, Option<SignerType>)>();
 
     // track connections
     let link_tx_ = link_tx.clone();
     let _conns_task = std::thread::spawn(move || {
-        while let Ok((is, cid)) = internal_status_rx.recv() {
+        while let Ok((is, cid, signer_type)) = internal_status_rx.recv() {
             if is {
                 subs(&cid, link_tx_.clone());
             } else {
                 unsubs(&cid, link_tx_.clone());
             }
-            let _ = status_sender.send((cid, is));
+            let _ = status_sender.send((cid, is, signer_type));
         }
     });
 
@@ -112,9 +113,21 @@ pub fn start_broker(
                     let topic_end = ts[1].to_string();
 
                     if topic.ends_with(topics::HELLO) {
-                        let _ = internal_status_tx.send((true, cid));
+                        let signer_type = match f.publish.payload.get(0) {
+                            Some(byte) => match SignerType::from_byte(*byte) {
+                                Ok(signer_type) => signer_type,
+                                Err(e) => {
+                                    log::warn!("Could not deserialize signer type: {}", e);
+                                    continue;
+                                }
+                            },
+                            // This is the ReceiveSend signer type
+                            None => SignerType::default(),
+                        };
+                        log::debug!("caught hello message for id: {}, type: {:?}", cid, signer_type);
+                        let _ = internal_status_tx.send((true, cid, Some(signer_type)));
                     } else if topic.ends_with(topics::BYE) {
-                        let _ = internal_status_tx.send((false, cid));
+                        let _ = internal_status_tx.send((false, cid, None));
                     } else {
                         // VLS, CONTROL, LSS
                         let pld = f.publish.payload.to_vec();
