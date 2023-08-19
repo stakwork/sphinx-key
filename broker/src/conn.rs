@@ -8,7 +8,7 @@ use std::collections::HashMap;
 pub struct Connections {
     pub pubkey: Option<String>,
     pub clients: HashMap<String, SignerType>,
-    pub current: Option<String>,
+    pub current: Option<(String, SignerType)>,
 }
 
 impl Connections {
@@ -25,17 +25,19 @@ impl Connections {
     pub fn set_pubkey(&mut self, pk: &str) {
         self.pubkey = Some(pk.to_string())
     }
-    pub fn set_current(&mut self, cid: String) {
-        self.current = Some(cid);
+    pub fn set_current(&mut self, cid: String, signer_type: SignerType) {
+        self.current = Some((cid, signer_type));
     }
     pub fn add_client(&mut self, cid: &str, signer_type: SignerType) {
         self.clients.insert(cid.to_string(), signer_type);
-        self.current = Some(cid.to_string());
+        self.current = Some((cid.to_string(), signer_type));
     }
     pub fn remove_client(&mut self, cid: &str) {
         self.clients.remove(cid);
-        if self.current == Some(cid.to_string()) {
-            self.current = None;
+        if let Some((id, _)) = &self.current {
+            if id == cid {
+                self.current = None;
+            }
         }
     }
 }

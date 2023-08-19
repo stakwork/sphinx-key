@@ -182,7 +182,11 @@ pub async fn broker_setup(
                     false
                 });
                 if dance_complete {
-                    log::info!("adding client to the list: {}, type: {:?}", &cid, signer_type);
+                    log::info!(
+                        "adding client to the list: {}, type: {:?}",
+                        &cid,
+                        signer_type
+                    );
                     let mut cs = conns_.lock().unwrap();
                     cs.add_client(&cid, signer_type);
                     drop(cs);

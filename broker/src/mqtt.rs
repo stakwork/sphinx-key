@@ -124,7 +124,11 @@ pub fn start_broker(
                             // This is the ReceiveSend signer type
                             None => SignerType::default(),
                         };
-                        log::debug!("caught hello message for id: {}, type: {:?}", cid, signer_type);
+                        log::debug!(
+                            "caught hello message for id: {}, type: {:?}",
+                            cid,
+                            signer_type
+                        );
                         let _ = internal_status_tx.send((true, cid, Some(signer_type)));
                     } else if topic.ends_with(topics::BYE) {
                         let _ = internal_status_tx.send((false, cid, None));
@@ -187,15 +191,25 @@ fn pub_and_wait(
             } else {
                 let current = current.unwrap();
                 // Try the current connection
-                let mut rep = pub_timeout(&current, &msg.topic, &msg.message, &msg_rx, link_tx);
+                // This returns None if 1) signer_type is set, and not equal to the current signer
+                // 2) If pub_timeout times out
+                let mut rep = if current.1 == msg.signer_type.unwrap_or(current.1) {
+                    pub_timeout(&current.0, &msg.topic, &msg.message, &msg_rx, link_tx)
+                } else {
+                    None
+                };
+
                 // If that failed, try looking for some other signer
                 if rep.is_none() {
-                    for cid in client_list.into_keys().filter(|k| k != &current) {
+                    // If signer_type is set, we also filter for only these types
+                    for (cid, signer_type) in client_list.into_iter().filter(|(k, v)| {
+                        k != &current.0 && v == msg.signer_type.as_ref().unwrap_or(v)
+                    }) {
                         rep = pub_timeout(&cid, &msg.topic, &msg.message, &msg_rx, link_tx);
                         if rep.is_some() {
                             let mut cs = conns_.lock().unwrap();
                             log::debug!("got the list lock!");
-                            cs.set_current(cid.to_string());
+                            cs.set_current(cid.to_string(), signer_type);
                             drop(cs);
                             break;
                         }
@@ -212,6 +226,7 @@ fn pub_and_wait(
             break;
         } else {
             log::debug!("couldn't reach any clients...");
+            std::thread::sleep(Duration::from_secs(1));
         }
         if let Some(max) = retries {
             log::debug!("counter: {}, retries: {}", counter, max);
