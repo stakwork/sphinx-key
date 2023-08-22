@@ -1,5 +1,6 @@
 # MODE=debug
 MODE=release
+BIN=sphinx-key
 check_exists() {
     command -v "$1" > /dev/null
 }
@@ -70,11 +71,11 @@ cd ../sphinx-key &&
 
 if [ $MODE = "release" ]
 then
-    cargo build --release --bin sphinx-key
+    cargo build --release --bin $BIN
 else
-    cargo build --bin sphinx-key
+    cargo build --bin $BIN
 fi &&
 
-esptool.py --chip esp32-c3 elf2image ../target/riscv32imc-esp-espidf/$MODE/sphinx-key &&
-esptool.py --chip esp32c3 -b 460800 --before=default_reset --after=hard_reset write_flash --flash_mode dio --flash_freq 40m --flash_size 4MB 0x90000 ../target/riscv32imc-esp-espidf/$MODE/sphinx-key.bin &&
+esptool.py --chip esp32-c3 elf2image ../target/riscv32imc-esp-espidf/$MODE/$BIN &&
+esptool.py --chip esp32c3 -b 460800 --before=default_reset --after=hard_reset write_flash --flash_mode dio --flash_freq 40m --flash_size 4MB 0x90000 ../target/riscv32imc-esp-espidf/$MODE/$BIN.bin &&
 cargo espflash monitor --port $PORT
