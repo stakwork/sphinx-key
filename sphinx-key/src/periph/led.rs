@@ -47,7 +47,7 @@ pub fn led_control_loop(
     let transmit = Arc::new(Mutex::new(
         TxRmtDriver::new(channel0, gpio0, &config).unwrap(),
     ));
-    let builder = thread::Builder::new().stack_size(1500);
+    let builder = thread::Builder::new().stack_size(2500);
     builder.spawn(move || {
         let mut led = Led::new(0x000001, 100);
         let states = states();
