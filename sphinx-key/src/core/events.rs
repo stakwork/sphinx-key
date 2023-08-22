@@ -14,6 +14,7 @@ use sphinx_signer::lightning_signer::persist::{DummyPersister, Persist};
 use sphinx_signer::persist::{BackupPersister, FsPersister, ThreadMemoPersister};
 use sphinx_signer::root::VlsHandlerError;
 use sphinx_signer::sphinx_glyph as glyph;
+use sphinx_signer::vls_protocol::msgs::{GetHeartbeat, Message};
 use sphinx_signer::{self, Handler, RootHandler};
 use std::sync::mpsc;
 use std::sync::Arc;
@@ -152,7 +153,7 @@ pub fn make_event_loop(
         if let Some(seq) = expected_sequence {
             if seq % 40 == 0 {
                 log::info!("get heartbeat!");
-                let _ = root_handler.node().get_heartbeat();
+                let _ = root_handler.handle(Message::GetHeartbeat(GetHeartbeat {}));
             }
         }
         match event {

@@ -127,7 +127,7 @@ impl<C: 'static + Client> SignerLoop<C> {
                         catch_init = true;
                         if let Some(set) = settings {
                             if ChainHash::using_genesis_block(set.network).as_bytes()
-                                != &m.chain_params.0
+                                != m.chain_params.as_ref()
                             {
                                 panic!("The network settings of CLN and broker don't match!");
                             }
