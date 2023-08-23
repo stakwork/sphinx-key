@@ -97,7 +97,7 @@ impl<C: 'static + Client> SignerLoop<C> {
             let raw_msg = self.client.read_raw()?;
             // debug!("loop {}: got raw", self.log_prefix);
             let msg = msgs::from_vec(raw_msg.clone())?;
-            // info!("loop {}: got {:x?}", self.log_prefix, msg);
+            info!("loop {}: got {:x?}", self.log_prefix, msg);
             match msg {
                 Message::ClientHsmFd(m) => {
                     self.client.write(msgs::ClientHsmFdReply {}).unwrap();
