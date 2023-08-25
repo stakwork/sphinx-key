@@ -1,6 +1,6 @@
 # MODE=debug
 MODE=release
-BIN=clear
+BIN=sphinx-key
 check_exists() {
     command -v "$1" > /dev/null
 }
