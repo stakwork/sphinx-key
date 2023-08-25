@@ -44,8 +44,34 @@ fn main() -> anyhow::Result<()> {
             let path = entry.path();
             if path.is_dir() {
                 println!("PATH {}", path.display());
-                if let Err(_e) = fs::remove_dir_all(path) {
-                    println!("err removing dir");
+                if let Err(e) = fs::remove_dir_all(path.clone()) {
+                    println!("err removing dir {:?}", e);
+                    // remove inner dirs too
+                    for entry in fs::read_dir(path)? {
+                        let entry = entry?;
+                        let path = entry.path();
+                        if path.is_dir() {
+                            println!("INNER PATH {:?}", path.display());
+                            if let Err(e) = fs::remove_dir_all(path) {
+                                println!("err removing inner dir {:?}", e);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    let dir = Path::new(ROOT_STORE);
+    println!("root store is dir {}", dir.is_dir());
+    if dir.is_dir() {
+        for entry in fs::read_dir(dir)? {
+            let entry = entry?;
+            let path = entry.path();
+            if path.is_dir() {
+                println!("PATH {}", path.display());
+                if let Err(e) = fs::remove_dir_all(path.clone()) {
+                    println!("err removing dir {:?}", e);
                 }
             }
         }
