@@ -24,15 +24,20 @@ pub fn make_client(
     tx: mpsc::Sender<CoreEvent>,
 ) -> Result<EspMqttClient<ConnState<MessageImpl, EspError>>> {
     log::info!("make_client with id {}", client_id);
-    let conf = MqttClientConfiguration {
+    let mut conf = MqttClientConfiguration {
         client_id: Some(client_id),
         buffer_size: 4096,
         task_stack: 12288,
         username: Some(username),
         password: Some(password),
-        crt_bundle_attach: Some(esp_idf_sys::esp_crt_bundle_attach),
+        // crt_bundle_attach: Some(esp_idf_sys::esp_crt_bundle_attach),
         ..Default::default()
     };
+
+    #[cfg(feature = "tls")]
+    {
+        conf.crt_bundle_attach = Some(esp_idf_sys::esp_crt_bundle_attach);
+    }
 
     let mut mqtturl = broker.to_string();
     if !(mqtturl.starts_with("mqtt://") || mqtturl.starts_with("mqtts://")) {
