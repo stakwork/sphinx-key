@@ -32,7 +32,7 @@ cargo install cargo-espflash ldproxy
 - `export SSID=wifi_name_you'll_use_to_configure_sphinx_key`
 - `export PASS=password_of_wifi_you'll_use_to_configure_sphinx_key`
 - `./deploy.sh`. This commands takes a while, it builds and flashes everything!
-- You will eventually be shown the logs of the signer.
+- CTRL + R to continue to the next step
 - Wait for the message `Waiting for data from the phone!`. The LED should blink green.
 - Open a new terminal window, and `cd ~/sphinx-key/tester && cargo build`
 - In the `~/sphinx-key/tester` directory, create a file `.env` with the settings shown below:
