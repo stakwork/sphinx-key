@@ -3,7 +3,7 @@ MODE=release
 
 BIN=sphinx-key
 
-if [ $1 = "clear" ]
+if [[ $1 = "clear" ]]
 then
 BIN=clear
 fi
