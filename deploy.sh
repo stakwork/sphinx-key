@@ -1,6 +1,15 @@
 # MODE=debug
 MODE=release
+
 BIN=sphinx-key
+
+if [ $1 = "clear" ]
+then
+BIN=clear
+fi
+
+echo "building and flashing $BIN"
+
 check_exists() {
     command -v "$1" > /dev/null
 }
