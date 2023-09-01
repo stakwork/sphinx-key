@@ -143,6 +143,7 @@ fn main() -> Result<()> {
                 }
                 drop(flash);
                 println!("CONFIG SAVED");
+                thread::sleep(Duration::from_secs(2));
                 unsafe { esp_idf_sys::esp_restart() };
             }
             Err(msg) => {
