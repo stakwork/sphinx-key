@@ -30,12 +30,10 @@ pub fn make_client(
         task_stack: 12288,
         username: Some(username),
         password: Some(password),
-        // crt_bundle_attach: Some(esp_idf_sys::esp_crt_bundle_attach),
         ..Default::default()
     };
 
-    #[cfg(feature = "tls")]
-    {
+    if cfg!(feature = "tls") {
         conf.crt_bundle_attach = Some(esp_idf_sys::esp_crt_bundle_attach);
     }
 
