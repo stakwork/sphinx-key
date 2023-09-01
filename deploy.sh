@@ -3,12 +3,39 @@ MODE=release
 
 BIN=sphinx-key
 
-if [[ $1 = "clear" ]]
+if [ -z "$SSID" ]
 then
-BIN=clear
+    echo "Please set environment variable SSID to the SSID of the wifi you'll use to configure your sphinx-key."
+    exit 1
+fi
+if [ -z "$PASS" ]
+then
+    echo "Please set environment variable PASS to the password of the wifi you'll use to configure your sphinx-key."
+    exit 1
 fi
 
-echo "building and flashing $BIN"
+if [ $# -eq 0 ]
+then
+    echo "Error: first argument missing."
+    echo "Usage: ./deploy.sh clear|reset|update"
+    exit 1
+fi
+
+METHOD=$1
+
+if [ $METHOD != "clear" ] && [ $METHOD != "reset" ] && [ $METHOD != "update" ]
+then
+    echo "Error: unknown argument."
+    echo "Usage: ./deploy.sh clear|reset|update"
+    exit 1
+fi
+
+if [ $METHOD = "clear" ] || [ $METHOD = "reset" ]
+then
+    BIN=clear
+fi
+
+echo "Building and flashing $BIN"
 
 check_exists() {
     command -v "$1" > /dev/null
@@ -32,16 +59,6 @@ if ! check_exists cargo-espflash
 then
     echo "cargo-espflash not installed!"
     echo "install with this command: cargo install cargo-espflash"
-    exit 1
-fi
-if [ -z "$SSID" ]
-then
-    echo "Please set environment variable SSID to the SSID of the wifi you'll use to configure your sphinx-key."
-    exit 1
-fi
-if [ -z "$PASS" ]
-then
-    echo "Please set environment variable PASS to the password of the wifi you'll use to configure your sphinx-key."
     exit 1
 fi
 if [ ${#PASS} -lt 8 ]
@@ -72,11 +89,34 @@ then
     echo "Make sure the ESP is connected with a data USB cable, and try again."
     exit 1
 fi
-esptool.py erase_flash &&
-git pull &&
-cd factory &&
-cargo espflash flash --release --port $PORT &&
-cd ../sphinx-key &&
+
+if [ $METHOD = "reset" ]
+then
+    read -p "This will erase all data on the ESP32 and the SD card. Proceed? [Y/n] " -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Y]$ ]]
+    then
+        echo "Reset cancelled"
+        exit 0
+    fi
+    esptool.py erase_flash &&
+    cd factory &&
+    cargo espflash flash --release --port $PORT &&
+    cd ..
+fi &&
+
+if [ $METHOD = "clear" ]
+then
+    read -p "This will erase all data on the SD card. Proceed? [Y/n] " -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Y]$ ]]
+    then
+        echo "Clear cancelled"
+        exit 0
+    fi
+fi &&
+
+cd sphinx-key &&
 
 if [ $MODE = "release" ]
 then
