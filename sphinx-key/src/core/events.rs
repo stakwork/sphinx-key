@@ -144,6 +144,8 @@ pub fn make_event_loop(
 
     // store the previous msgs processed, for LSS last step
     let mut msgs: Option<(Vec<u8>, Vec<u8>)> = None;
+    // persist them to sd card in case of crash
+    let msgs_persister = FsPersister::new(&ROOT_STORE, Some(8));
 
     // signing loop
     log::info!("=> starting the main signing loop...");
@@ -182,6 +184,7 @@ pub fn make_event_loop(
                         } else {
                             // muts! send LSS first!
                             mqtt_pub(&mut mqtt, client_id, topics::LSS_RES, &lss_b);
+                            msgs_persister.set_prevs(&vls_b, &lss_b);
                             msgs = Some((vls_b, lss_b));
                         }
                         expected_sequence = Some(sequence + 1);
@@ -214,6 +217,14 @@ pub fn make_event_loop(
                 }
             }
             Event::LssMessage(msg_bytes) => {
+                if msgs.is_none() {
+                    log::warn!("Restoring previous message from sd card");
+                    msgs = Some(
+                        msgs_persister
+                            .read_prevs()
+                            .map_err(|e| anyhow::anyhow!("{:?}", e))?,
+                    )
+                }
                 match lss::handle_lss_msg(&msg_bytes, msgs, &lss_signer) {
                     Ok((ret_topic, bytes)) => {
                         // set msgs back to None
@@ -224,6 +235,8 @@ pub fn make_event_loop(
                         }
                     }
                     Err(e) => {
+                        log::error!("LSS MESSAGE FAILED!");
+                        log::error!("{}", &e.to_string());
                         msgs = None;
                         let err_msg = GlyphError::new(1, &e.to_string());
                         mqtt_pub(&mut mqtt, client_id, topics::ERROR, &err_msg.to_vec()[..]);
