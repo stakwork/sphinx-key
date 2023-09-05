@@ -1,12 +1,13 @@
 use anyhow::Result;
 use rocket::tokio::sync::{mpsc, oneshot};
 use serde::{Deserialize, Serialize};
+use sphinx_signer::sphinx_glyph::types::SignerType;
 use std::collections::HashMap;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Connections {
     pub pubkey: Option<String>,
-    pub clients: HashMap<String, bool>,
+    pub clients: HashMap<String, SignerType>,
     pub current: Option<String>,
 }
 
@@ -27,21 +28,16 @@ impl Connections {
     pub fn set_current(&mut self, cid: String) {
         self.current = Some(cid);
     }
-    fn add_client(&mut self, cid: &str) {
-        self.clients.insert(cid.to_string(), true);
+    pub fn add_client(&mut self, cid: &str, signer_type: SignerType) {
+        self.clients.insert(cid.to_string(), signer_type);
         self.current = Some(cid.to_string());
     }
-    fn remove_client(&mut self, cid: &str) {
+    pub fn remove_client(&mut self, cid: &str) {
         self.clients.remove(cid);
-        if self.current == Some(cid.to_string()) {
-            self.current = None;
-        }
-    }
-    pub fn client_action(&mut self, cid: &str, connected: bool) {
-        if connected {
-            self.add_client(cid);
-        } else {
-            self.remove_client(cid);
+        if let Some(id) = &self.current {
+            if id == cid {
+                self.current = None;
+            }
         }
     }
 }
@@ -58,6 +54,7 @@ pub struct ChannelRequest {
     pub message: Vec<u8>,
     pub reply_tx: oneshot::Sender<ChannelReply>,
     pub cid: Option<String>, // if it exists, only try the one client
+    pub signer_type: Option<SignerType>, // if it exists, only try clients of these types
 }
 impl ChannelRequest {
     pub fn new(topic: &str, message: Vec<u8>) -> (Self, oneshot::Receiver<ChannelReply>) {
@@ -67,6 +64,7 @@ impl ChannelRequest {
             message,
             reply_tx,
             cid: None,
+            signer_type: None,
         };
         (cr, reply_rx)
     }
@@ -81,6 +79,7 @@ impl ChannelRequest {
             message,
             reply_tx,
             cid: None,
+            signer_type: None,
         };
         let _ = sender.send(req).await;
         let reply = reply_rx.await?;
@@ -98,13 +97,14 @@ impl ChannelRequest {
             message,
             reply_tx,
             cid: Some(cid.to_string()),
+            signer_type: None,
         };
         let _ = sender.send(req).await;
         let reply = reply_rx.await?;
         Ok(reply.reply)
     }
     pub fn for_cid(&mut self, cid: &str) {
-        self.cid = Some(cid.to_string())
+        self.cid = Some(cid.to_string());
     }
     pub fn new_for(
         cid: &str,
@@ -113,6 +113,18 @@ impl ChannelRequest {
     ) -> (Self, oneshot::Receiver<ChannelReply>) {
         let (mut cr, reply_rx) = ChannelRequest::new(topic, message);
         cr.for_cid(cid);
+        (cr, reply_rx)
+    }
+    pub fn for_type(&mut self, signer_type: SignerType) {
+        self.signer_type = Some(signer_type);
+    }
+    pub fn new_for_type(
+        signer_type: SignerType,
+        topic: &str,
+        message: Vec<u8>,
+    ) -> (Self, oneshot::Receiver<ChannelReply>) {
+        let (mut cr, reply_rx) = ChannelRequest::new(topic, message);
+        cr.for_type(signer_type);
         (cr, reply_rx)
     }
 }

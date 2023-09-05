@@ -4,7 +4,10 @@ use bitcoin::blockdata::constants::ChainHash;
 use log::*;
 use rocket::tokio::sync::mpsc;
 use secp256k1::PublicKey;
-use sphinx_signer::{parser, sphinx_glyph::topics};
+use sphinx_signer::{
+    parser,
+    sphinx_glyph::{topics, types::SignerType},
+};
 use std::sync::atomic::{AtomicBool, AtomicU16, Ordering};
 use std::thread;
 use std::time::Duration;
@@ -123,7 +126,7 @@ impl<C: 'static + Client> SignerLoop<C> {
                 }
                 msg => {
                     let mut catch_init = false;
-                    if let Message::HsmdInit(m) = msg {
+                    if let Message::HsmdInit(ref m) = msg {
                         catch_init = true;
                         if let Some(set) = settings {
                             if ChainHash::using_genesis_block(set.network).as_bytes()
@@ -135,7 +138,14 @@ impl<C: 'static + Client> SignerLoop<C> {
                             panic!("Got HsmdInit without settings - likely because HsmdInit was sent after startup");
                         }
                     }
-                    let reply = self.handle_message(raw_msg, catch_init)?;
+                    let reply = if let Message::PreapproveInvoice(_)
+                    | Message::PreapproveKeysend(_) = msg
+                    {
+                        self.handle_message(raw_msg, catch_init, Some(SignerType::ReceiveSend))?
+                    } else {
+                        // None for signer_type means no restrictions on which signer type to send the message to
+                        self.handle_message(raw_msg, catch_init, None)?
+                    };
                     // Write the reply to CLN
                     self.client.write_vec(reply)?;
                 }
@@ -143,7 +153,12 @@ impl<C: 'static + Client> SignerLoop<C> {
         }
     }
 
-    fn handle_message(&mut self, message: Vec<u8>, catch_init: bool) -> Result<Vec<u8>> {
+    fn handle_message(
+        &mut self,
+        message: Vec<u8>,
+        catch_init: bool,
+        signer_type: Option<SignerType>,
+    ) -> Result<Vec<u8>> {
         // wait until not busy
         loop {
             match try_to_get_busy() {
@@ -166,7 +181,7 @@ impl<C: 'static + Client> SignerLoop<C> {
         )?;
         // send to signer
         log::info!("SEND ON {}", topics::VLS);
-        let (res_topic, res) = self.send_request_wait(topics::VLS, md)?;
+        let (res_topic, res) = self.send_request_wait(topics::VLS, md, signer_type)?;
         log::info!("GOT ON {}", res_topic);
         let the_res = if res_topic == topics::LSS_RES {
             // send reply to LSS to store muts
@@ -174,7 +189,7 @@ impl<C: 'static + Client> SignerLoop<C> {
             log::info!("LSS REPLY LEN {}", &lss_reply.len());
             // send to signer for HMAC validation, and get final reply
             log::info!("SEND ON {}", topics::LSS_MSG);
-            let (res_topic2, res2) = self.send_request_wait(topics::LSS_MSG, lss_reply)?;
+            let (res_topic2, res2) = self.send_request_wait(topics::LSS_MSG, lss_reply, None)?;
             log::info!("GOT ON {}, send to CLN", res_topic2);
             if res_topic2 != topics::VLS_RES {
                 log::warn!("got a topic NOT on {}", topics::VLS_RES);
@@ -213,9 +228,17 @@ impl<C: 'static + Client> SignerLoop<C> {
 
     // returns (topic, payload)
     // might halt if signer is offline
-    fn send_request_wait(&mut self, topic: &str, message: Vec<u8>) -> Result<(String, Vec<u8>)> {
+    fn send_request_wait(
+        &mut self,
+        topic: &str,
+        message: Vec<u8>,
+        signer_type: Option<SignerType>,
+    ) -> Result<(String, Vec<u8>)> {
         // Send a request to the MQTT handler to send to signer
-        let (request, reply_rx) = ChannelRequest::new(topic, message);
+        let (request, reply_rx) = match signer_type {
+            Some(st) => ChannelRequest::new_for_type(st, topic, message),
+            None => ChannelRequest::new(topic, message),
+        };
         // This can fail if MQTT shuts down
         self.chan
             .sender
