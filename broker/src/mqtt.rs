@@ -193,8 +193,13 @@ fn pub_and_wait(
                 // Try the current connection
                 // This returns None if 1) signer_type is set, and not equal to the current signer
                 // 2) If pub_timeout times out
-                let mut rep = if current.1 == msg.signer_type.unwrap_or(current.1) {
-                    pub_timeout(&current.0, &msg.topic, &msg.message, &msg_rx, link_tx)
+                let mut rep = if client_list.get(&current).unwrap()
+                    == msg
+                        .signer_type
+                        .as_ref()
+                        .unwrap_or(client_list.get(&current).unwrap())
+                {
+                    pub_timeout(&current, &msg.topic, &msg.message, &msg_rx, link_tx)
                 } else {
                     None
                 };
@@ -202,14 +207,14 @@ fn pub_and_wait(
                 // If that failed, try looking for some other signer
                 if rep.is_none() {
                     // If signer_type is set, we also filter for only these types
-                    for (cid, signer_type) in client_list.into_iter().filter(|(k, v)| {
-                        k != &current.0 && v == msg.signer_type.as_ref().unwrap_or(v)
+                    for (cid, _) in client_list.into_iter().filter(|(k, v)| {
+                        k != &current && v == msg.signer_type.as_ref().unwrap_or(v)
                     }) {
                         rep = pub_timeout(&cid, &msg.topic, &msg.message, &msg_rx, link_tx);
                         if rep.is_some() {
                             let mut cs = conns_.lock().unwrap();
                             log::debug!("got the list lock!");
-                            cs.set_current(cid.to_string(), signer_type);
+                            cs.set_current(cid.to_string());
                             drop(cs);
                             break;
                         }
