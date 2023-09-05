@@ -11,7 +11,7 @@ use lss_connector::secp256k1::PublicKey;
 use sphinx_signer::approver::SphinxApprover;
 use sphinx_signer::lightning_signer::bitcoin::Network;
 //use sphinx_signer::lightning_signer::persist::DummyPersister;
-use sphinx_signer::kvv::{CloudKVVStore, FsKVVStore};
+use sphinx_signer::kvv::{CloudKVVStore, FsKVVStore, KVVStore};
 use sphinx_signer::lightning_signer::persist::Persist;
 use sphinx_signer::root::VlsHandlerError;
 use sphinx_signer::sphinx_glyph as glyph;
@@ -100,6 +100,7 @@ pub fn make_event_loop(
     }
 
     let kvv_store = FsKVVStore::new(&ROOT_STORE, None).0;
+    let msg_store = FsKVVStore::new(&ROOT_STORE, None).0;
     let fs_persister = CloudKVVStore::new(kvv_store);
 
     let _ = fs_persister.enter();
@@ -187,6 +188,12 @@ pub fn make_event_loop(
                         } else {
                             // muts! send LSS first!
                             mqtt_pub(&mut mqtt, client_id, topics::LSS_RES, &lss_b);
+                            msg_store
+                                .put("vls_b", &vls_b)
+                                .map_err(|_e| anyhow::anyhow!("failed to put vls_b"))?;
+                            msg_store
+                                .put("lss_b", &lss_b)
+                                .map_err(|_e| anyhow::anyhow!("failed to put lss_b"))?;
                             msgs = Some((vls_b, lss_b));
                         }
                         expected_sequence = Some(sequence + 1);
@@ -220,6 +227,20 @@ pub fn make_event_loop(
                 }
             }
             Event::LssMessage(msg_bytes) => {
+                if msgs.is_none() {
+                    log::warn!("Restoring previous message from sd card");
+                    let vls_b = msg_store
+                        .get("vls_b")
+                        .map_err(|e| anyhow::anyhow!("failed to get vls_b: {:?}", e))?
+                        .ok_or(anyhow::anyhow!("vls_b is none"))?
+                        .1;
+                    let lss_b = msg_store
+                        .get("lss_b")
+                        .map_err(|e| anyhow::anyhow!("failed to get lss_b: {:?}", e))?
+                        .ok_or(anyhow::anyhow!("lss_b is none"))?
+                        .1;
+                    msgs = Some((vls_b, lss_b));
+                }
                 match lss::handle_lss_msg(&msg_bytes, msgs, &lss_signer) {
                     Ok((ret_topic, bytes)) => {
                         // set msgs back to None
@@ -230,6 +251,8 @@ pub fn make_event_loop(
                         }
                     }
                     Err(e) => {
+                        log::error!("LSS MESSAGE FAILED!");
+                        log::error!("{}", &e.to_string());
                         msgs = None;
                         let err_msg = GlyphError::new(1, &e.to_string());
                         mqtt_pub(&mut mqtt, client_id, topics::ERROR, &err_msg.to_vec()[..]);
