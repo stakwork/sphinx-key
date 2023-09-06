@@ -5,24 +5,15 @@ use log::*;
 use rocket::tokio::sync::mpsc;
 use secp256k1::PublicKey;
 use sphinx_signer::{parser, sphinx_glyph::topics};
-use std::sync::atomic::{AtomicBool, AtomicU16, Ordering};
+use spin::mutex::TicketMutex;
+use std::sync::atomic::{AtomicU16, Ordering};
 use std::thread;
-use std::time::Duration;
 use vls_protocol::{msgs, msgs::Message, Error, Result};
 use vls_proxy::client::Client;
 
-pub static BUSY: AtomicBool = AtomicBool::new(false);
 pub static COUNTER: AtomicU16 = AtomicU16::new(0u16);
 
-// set BUSY to true if its false
-pub fn try_to_get_busy() -> std::result::Result<bool, bool> {
-    BUSY.compare_exchange(false, true, Ordering::Acquire, Ordering::Relaxed)
-}
-
-// set BUSY back to false
-pub fn done_being_busy() {
-    BUSY.store(false, Ordering::Release);
-}
+pub static BUSY: TicketMutex<()> = TicketMutex::<_>::new(());
 
 #[derive(Clone, Debug)]
 pub struct ClientId {
@@ -145,13 +136,7 @@ impl<C: 'static + Client> SignerLoop<C> {
 
     fn handle_message(&mut self, message: Vec<u8>, catch_init: bool) -> Result<Vec<u8>> {
         // wait until not busy
-        loop {
-            match try_to_get_busy() {
-                Ok(_) => break,
-                Err(_) => thread::sleep(Duration::from_millis(5)),
-            };
-        }
-
+        let lock = BUSY.lock();
         let dbid = self.client_id.as_ref().map(|c| c.dbid).unwrap_or(0);
         let peer_id = self
             .client_id
@@ -192,7 +177,7 @@ impl<C: 'static + Client> SignerLoop<C> {
             let _ = self.set_channel_pubkey(reply.clone());
         }
         // unlock
-        done_being_busy();
+        drop(lock);
         Ok(reply)
     }
 

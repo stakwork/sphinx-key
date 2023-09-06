@@ -3357,6 +3357,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sphinx-signer",
+ "spin 0.9.8",
  "thiserror",
  "toml 0.5.11",
  "url",
