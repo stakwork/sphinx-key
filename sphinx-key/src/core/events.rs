@@ -151,12 +151,6 @@ pub fn make_event_loop(
     let flash_db = ctrlr.persister();
     let mut expected_sequence = None;
     while let Ok(event) = rx.recv() {
-        if let Some(seq) = expected_sequence {
-            if seq % 40 == 0 {
-                log::info!("get heartbeat!");
-                let _ = root_handler.handle(Message::GetHeartbeat(GetHeartbeat {}));
-            }
-        }
         match event {
             Event::Connected => {
                 log::info!("GOT A Event::Connected msg!");
