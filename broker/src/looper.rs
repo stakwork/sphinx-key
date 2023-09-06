@@ -15,16 +15,16 @@ static COUNTER: AtomicU16 = AtomicU16::new(0u16);
 static CURRENT: AtomicU16 = AtomicU16::new(0u16);
 
 pub fn take_a_ticket() -> u16 {
-    COUNTER.fetch_add(1u16, Ordering::Relaxed)
+    COUNTER.fetch_add(1u16, Ordering::SeqCst)
 }
 
 pub fn is_my_turn(ticket: u16) -> bool {
-    let curr = CURRENT.load(Ordering::Relaxed);
+    let curr = CURRENT.load(Ordering::SeqCst);
     curr == ticket
 }
 
 pub fn my_turn_is_done() {
-    CURRENT.fetch_add(1u16, Ordering::Relaxed);
+    CURRENT.fetch_add(1u16, Ordering::SeqCst);
 }
 
 #[derive(Clone, Debug)]
