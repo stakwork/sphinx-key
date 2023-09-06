@@ -5,23 +5,26 @@ use log::*;
 use rocket::tokio::sync::mpsc;
 use secp256k1::PublicKey;
 use sphinx_signer::{parser, sphinx_glyph::topics};
-use std::sync::atomic::{AtomicBool, AtomicU16, Ordering};
+use std::sync::atomic::{AtomicU16, Ordering};
 use std::thread;
 use std::time::Duration;
 use vls_protocol::{msgs, msgs::Message, Error, Result};
 use vls_proxy::client::Client;
 
-pub static BUSY: AtomicBool = AtomicBool::new(false);
-pub static COUNTER: AtomicU16 = AtomicU16::new(0u16);
+static COUNTER: AtomicU16 = AtomicU16::new(0u16);
+static CURRENT: AtomicU16 = AtomicU16::new(0u16);
 
-// set BUSY to true if its false
-pub fn try_to_get_busy() -> std::result::Result<bool, bool> {
-    BUSY.compare_exchange(false, true, Ordering::Acquire, Ordering::Relaxed)
+pub fn take_a_ticket() -> u16 {
+    COUNTER.fetch_add(1u16, Ordering::SeqCst)
 }
 
-// set BUSY back to false
-pub fn done_being_busy() {
-    BUSY.store(false, Ordering::Release);
+pub fn is_my_turn(ticket: u16) -> bool {
+    let curr = CURRENT.load(Ordering::SeqCst);
+    curr == ticket
+}
+
+pub fn my_turn_is_done() {
+    CURRENT.fetch_add(1u16, Ordering::SeqCst);
 }
 
 #[derive(Clone, Debug)]
@@ -145,11 +148,13 @@ impl<C: 'static + Client> SignerLoop<C> {
 
     fn handle_message(&mut self, message: Vec<u8>, catch_init: bool) -> Result<Vec<u8>> {
         // wait until not busy
+        let ticket = take_a_ticket();
         loop {
-            match try_to_get_busy() {
-                Ok(_) => break,
-                Err(_) => thread::sleep(Duration::from_millis(5)),
-            };
+            if is_my_turn(ticket) {
+                break;
+            } else {
+                thread::sleep(Duration::from_millis(5));
+            }
         }
 
         let dbid = self.client_id.as_ref().map(|c| c.dbid).unwrap_or(0);
@@ -158,12 +163,7 @@ impl<C: 'static + Client> SignerLoop<C> {
             .as_ref()
             .map(|c| c.peer_id.serialize())
             .unwrap_or([0u8; 33]);
-        let md = parser::raw_request_from_bytes(
-            message,
-            COUNTER.load(Ordering::Relaxed),
-            peer_id,
-            dbid,
-        )?;
+        let md = parser::raw_request_from_bytes(message, ticket, peer_id, dbid)?;
         // send to signer
         log::info!("SEND ON {}", topics::VLS);
         let (res_topic, res) = self.send_request_wait(topics::VLS, md)?;
@@ -184,15 +184,16 @@ impl<C: 'static + Client> SignerLoop<C> {
             res
         };
         // create reply bytes for CLN
-        let reply = parser::raw_response_from_bytes(the_res, COUNTER.load(Ordering::Relaxed))?;
-        // add to the sequence
-        COUNTER.fetch_add(1u16, Ordering::Relaxed);
+        let reply = parser::raw_response_from_bytes(the_res, ticket)?;
+
         // catch the pubkey if its the first one connection
         if catch_init {
             let _ = self.set_channel_pubkey(reply.clone());
         }
-        // unlock
-        done_being_busy();
+
+        // next turn
+        my_turn_is_done();
+
         Ok(reply)
     }
 
