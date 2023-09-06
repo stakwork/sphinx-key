@@ -187,7 +187,7 @@ impl<C: 'static + Client> SignerLoop<C> {
             res
         };
         // create reply bytes for CLN
-        let reply = parser::raw_response_from_bytes(the_res, COUNTER.load(Ordering::Relaxed))?;
+        let reply = parser::raw_response_from_bytes(the_res, ticket)?;
 
         // catch the pubkey if its the first one connection
         if catch_init {
