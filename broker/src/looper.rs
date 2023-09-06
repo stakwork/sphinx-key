@@ -5,29 +5,26 @@ use log::*;
 use rocket::tokio::sync::mpsc;
 use secp256k1::PublicKey;
 use sphinx_signer::{parser, sphinx_glyph::topics};
-use std::sync::atomic::{AtomicBool, AtomicU16, Ordering};
+use std::sync::atomic::{AtomicU16, Ordering};
 use std::thread;
 use std::time::Duration;
 use vls_protocol::{msgs, msgs::Message, Error, Result};
 use vls_proxy::client::Client;
 
-pub static BUSY: AtomicBool = AtomicBool::new(false);
-pub static COUNTER: AtomicU16 = AtomicU16::new(0u16);
-pub static CURRENT: AtomicU16 = AtomicU16::new(0u16);
+static COUNTER: AtomicU16 = AtomicU16::new(0u16);
+static CURRENT: AtomicU16 = AtomicU16::new(0u16);
 
-// set BUSY to true if its false
-pub fn try_to_get_busy() -> std::result::Result<bool, bool> {
-    BUSY.compare_exchange(false, true, Ordering::Acquire, Ordering::Relaxed)
-}
-
-// set BUSY back to false
-pub fn done_being_busy() {
-    BUSY.store(false, Ordering::Release);
+pub fn take_a_ticket() -> u16 {
+    COUNTER.fetch_add(1u16, Ordering::Relaxed)
 }
 
 pub fn is_my_turn(ticket: u16) -> bool {
     let curr = CURRENT.load(Ordering::Relaxed);
     curr == ticket
+}
+
+pub fn my_turn_is_done() {
+    CURRENT.fetch_add(1u16, Ordering::Relaxed);
 }
 
 #[derive(Clone, Debug)]
@@ -151,7 +148,7 @@ impl<C: 'static + Client> SignerLoop<C> {
 
     fn handle_message(&mut self, message: Vec<u8>, catch_init: bool) -> Result<Vec<u8>> {
         // wait until not busy
-        let ticket = COUNTER.fetch_add(1u16, Ordering::Relaxed);
+        let ticket = take_a_ticket();
         loop {
             if is_my_turn(ticket) {
                 break;
@@ -195,7 +192,7 @@ impl<C: 'static + Client> SignerLoop<C> {
         }
 
         // next turn
-        CURRENT.fetch_add(1u16, Ordering::Relaxed);
+        my_turn_is_done();
 
         Ok(reply)
     }
