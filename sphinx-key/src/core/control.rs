@@ -26,6 +26,27 @@ impl FlashPersister {
         let store = EspDefaultNvs::new(nvs, "sphinx", true).expect("no storage");
         Self(store)
     }
+    pub fn set_prevs(&mut self, prev_vls: &Vec<u8>, prev_lss: &Vec<u8>) -> Result<()> {
+        self.0.set_raw("prev_vls", prev_vls)?;
+        self.0.set_raw("prev_lss", prev_lss)?;
+        Ok(())
+    }
+    pub fn _remove_prevs() {
+        todo!();
+    }
+    pub fn read_prevs(&self) -> Result<(Vec<u8>, Vec<u8>)> {
+        let mut vls_buf = [0u8; 4_096];
+        let mut lss_buf = [0u8; 4_096];
+        let prev_vls = self
+            .0
+            .get_raw("prev_vls", &mut vls_buf)?
+            .ok_or(anyhow!("no existing prev_vls"))?;
+        let prev_lss = self
+            .0
+            .get_raw("prev_lss", &mut lss_buf)?
+            .ok_or(anyhow!("no existing prev_lss"))?;
+        Ok((prev_vls.to_vec(), prev_lss.to_vec()))
+    }
 }
 
 impl ControlPersist for FlashPersister {

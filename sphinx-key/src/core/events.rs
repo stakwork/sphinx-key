@@ -1,5 +1,6 @@
 use crate::conn::mqtt::QOS;
 use crate::core::lss;
+use crate::core::FlashPersister;
 use crate::ota::{update_sphinx_key, validate_ota_message};
 use crate::status::Status;
 
@@ -16,8 +17,7 @@ use sphinx_signer::persist::{BackupPersister, FsPersister, ThreadMemoPersister};
 use sphinx_signer::root::VlsHandlerError;
 use sphinx_signer::sphinx_glyph as glyph;
 use sphinx_signer::{self, RootHandler};
-use std::sync::mpsc;
-use std::sync::Arc;
+use std::sync::{mpsc, Arc, Mutex};
 use std::thread;
 
 use embedded_svc::httpd::Result;
@@ -86,6 +86,7 @@ pub fn make_event_loop(
     mut ctrlr: Controller,
     client_id: &str,
     node_id: &PublicKey,
+    msgs_persister: Arc<Mutex<FlashPersister>>,
 ) -> Result<()> {
     while let Ok(event) = rx.recv() {
         log::info!("BROKER IP AND PORT: {}", config.broker);
@@ -144,8 +145,6 @@ pub fn make_event_loop(
 
     // store the previous msgs processed, for LSS last step
     let mut msgs: Option<(Vec<u8>, Vec<u8>)> = None;
-    // persist them to sd card in case of crash
-    let msgs_persister = FsPersister::new(&ROOT_STORE, Some(8));
 
     // signing loop
     log::info!("=> starting the main signing loop...");
@@ -184,7 +183,7 @@ pub fn make_event_loop(
                         } else {
                             // muts! send LSS first!
                             mqtt_pub(&mut mqtt, client_id, topics::LSS_RES, &lss_b);
-                            msgs_persister.set_prevs(&vls_b, &lss_b);
+                            msgs_persister.lock().unwrap().set_prevs(&vls_b, &lss_b)?;
                             msgs = Some((vls_b, lss_b));
                         }
                         expected_sequence = Some(sequence + 1);
@@ -221,6 +220,8 @@ pub fn make_event_loop(
                     log::warn!("Restoring previous message from sd card");
                     msgs = Some(
                         msgs_persister
+                            .lock()
+                            .unwrap()
                             .read_prevs()
                             .map_err(|e| anyhow::anyhow!("{:?}", e))?,
                     )

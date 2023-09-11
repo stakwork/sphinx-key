@@ -176,7 +176,7 @@ fn make_and_launch_client(
     };
 
     // make the controller to validate Control messages
-    let ctrlr = controller_from_seed(&network, &seed[..], flash);
+    let ctrlr = controller_from_seed(&network, &seed[..], flash.clone());
 
     let pubkey = ctrlr.pubkey();
     let pubkey_str = hex::encode(&pubkey.serialize());
@@ -206,6 +206,7 @@ fn make_and_launch_client(
         ctrlr,
         &client_id,
         &pubkey,
+        flash,
     )?;
     Ok(())
 }
