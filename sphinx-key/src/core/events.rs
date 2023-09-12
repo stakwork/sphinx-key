@@ -15,7 +15,7 @@ use sphinx_signer::kvv::{CloudKVVStore, FsKVVStore};
 use sphinx_signer::lightning_signer::persist::Persist;
 use sphinx_signer::root::VlsHandlerError;
 use sphinx_signer::sphinx_glyph as glyph;
-use sphinx_signer::{self, RootHandler};
+use sphinx_signer::{self, Handler, RootHandler};
 use std::sync::mpsc;
 use std::sync::Arc;
 use std::thread;
@@ -190,6 +190,7 @@ pub fn make_event_loop(
                             msgs = Some((vls_b, lss_b));
                         }
                         expected_sequence = Some(sequence + 1);
+                        root_handler.commit();
                     }
                     Err(e) => match e {
                         VlsHandlerError::BadSequence(current, expected) => unsafe {
