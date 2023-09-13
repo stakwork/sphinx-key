@@ -99,7 +99,7 @@ pub fn make_event_loop(
         }
     }
 
-    let kvv_store = FsKVVStore::new(&ROOT_STORE, Some(8)).0;
+    let kvv_store = FsKVVStore::new(&ROOT_STORE, None).0;
     let fs_persister = CloudKVVStore::new(kvv_store);
 
     let _ = fs_persister.enter();
