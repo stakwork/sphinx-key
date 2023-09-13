@@ -11,11 +11,11 @@ use lss_connector::secp256k1::PublicKey;
 use sphinx_signer::approver::SphinxApprover;
 use sphinx_signer::lightning_signer::bitcoin::Network;
 //use sphinx_signer::lightning_signer::persist::DummyPersister;
+use sphinx_signer::kvv::{CloudKVVStore, FsKVVStore};
 use sphinx_signer::lightning_signer::persist::Persist;
-use sphinx_signer::persist::{BackupPersister, FsPersister, ThreadMemoPersister};
 use sphinx_signer::root::VlsHandlerError;
 use sphinx_signer::sphinx_glyph as glyph;
-use sphinx_signer::{self, RootHandler};
+use sphinx_signer::{self, Handler, RootHandler};
 use std::sync::mpsc;
 use std::sync::Arc;
 use std::thread;
@@ -99,25 +99,30 @@ pub fn make_event_loop(
         }
     }
 
-    // create the fs persister
-    // 8 character max file names
-    // let persister: Arc<dyn Persist> = Arc::new(FsPersister::new(&ROOT_STORE, Some(8)));
-    // let persister = Arc::new(ThreadMemoPersister {});
+    let kvv_store = FsKVVStore::new(&ROOT_STORE, None).0;
+    let fs_persister = CloudKVVStore::new(kvv_store);
 
-    //let sd_persister = DummyPersister {};
-    //let initial_allowlist = Vec::new();
-
-    let sd_persister = FsPersister::new(&ROOT_STORE, Some(8));
-    let initial_allowlist = match sd_persister.get_node_allowlist(node_id) {
-        Ok(al) => al,
-        Err(_) => {
-            log::warn!("no allowlist found in fs persister!");
-            Vec::new()
+    let _ = fs_persister.enter();
+    let initial_allowlist = match fs_persister.get_nodes() {
+        Ok(ns) => {
+            if !ns.is_empty() {
+                match fs_persister.get_node_allowlist(&node_id) {
+                    Ok(al) => al,
+                    Err(_) => {
+                        log::warn!("no allowlist found in fs persister!");
+                        Vec::new()
+                    }
+                }
+            } else {
+                Vec::new()
+            }
         }
+        Err(_) => Vec::new(),
     };
+    let _ = fs_persister.prepare();
+    let _ = fs_persister.commit();
 
-    let lss_persister = ThreadMemoPersister {};
-    let persister = Arc::new(BackupPersister::new(sd_persister, lss_persister));
+    let persister = Arc::new(fs_persister);
 
     // initialize the RootHandler
     let (rhb, approver) = sphinx_signer::root::builder(
@@ -185,6 +190,7 @@ pub fn make_event_loop(
                             msgs = Some((vls_b, lss_b));
                         }
                         expected_sequence = Some(sequence + 1);
+                        root_handler.commit();
                     }
                     Err(e) => match e {
                         VlsHandlerError::BadSequence(current, expected) => unsafe {
