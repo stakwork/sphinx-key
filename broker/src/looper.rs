@@ -5,7 +5,6 @@ use log::*;
 use rocket::tokio::sync::mpsc;
 use secp256k1::PublicKey;
 use sphinx_signer::{parser, sphinx_glyph::topics};
-use std::num::Wrapping;
 use std::sync::atomic::{AtomicU16, Ordering};
 use std::thread;
 use std::time::Duration;
@@ -99,7 +98,7 @@ impl<C: 'static + Client> SignerLoop<C> {
 
     fn do_loop(&mut self, settings: Option<Settings>) -> Result<()> {
         // This counter is only used in the root loop to periodically send heartbeats to the hardware signer
-        let mut send_heartbeat = Wrapping(0u8);
+        let mut send_heartbeat = 0u8;
         loop {
             let raw_msg = self.client.read_raw()?;
             // debug!("loop {}: got raw", self.log_prefix);
@@ -147,14 +146,13 @@ impl<C: 'static + Client> SignerLoop<C> {
                     self.client.write_vec(reply)?;
                     // Only send heartbeat messages from the root loop, as roothandler alone can process them, not channelhandler
                     // Send it every ten messages to prune extraneous data on hardware signer
-                    if self.client_id.is_none() && send_heartbeat % Wrapping(10u8) == Wrapping(0u8)
-                    {
+                    if self.client_id.is_none() && send_heartbeat % 10u8 == 0u8 {
                         let beat = msgs::GetHeartbeat {};
                         let _ = self.handle_message(beat.as_vec(), false)?;
                     }
                 }
             }
-            send_heartbeat += 1;
+            send_heartbeat = send_heartbeat.wrapping_add(1u8);
         }
     }
 

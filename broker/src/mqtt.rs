@@ -185,7 +185,7 @@ fn pub_and_wait(
                 drop(cs);
                 if new_current != current {
                     log::warn!("Client list changed, starting over!");
-                    counter = 0;
+                    counter = 0u8;
                     continue;
                 }
 
@@ -199,7 +199,7 @@ fn pub_and_wait(
                         if new_current != current {
                             log::info!("Client list changed, starting over!");
                             drop(cs);
-                            counter = 0;
+                            counter = 0u8;
                             rep = None;
                             break;
                         }
@@ -234,7 +234,7 @@ fn pub_and_wait(
         } else {
             log::debug!("retrying indefinitely");
         }
-        counter = counter + 1;
+        counter = counter.wrapping_add(1u8);
     }
 }
 
