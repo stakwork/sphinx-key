@@ -266,17 +266,9 @@ fn pub_timeout(
 }
 
 fn subs(cid: &str, mut ltx: LinkTx) {
-    ltx.subscribe(format!("{}/{}", cid, topics::VLS_RES))
-        .unwrap();
-    ltx.subscribe(format!("{}/{}", cid, topics::CONTROL_RES))
-        .unwrap();
-    ltx.subscribe(format!("{}/{}", cid, topics::ERROR)).unwrap();
-    ltx.subscribe(format!("{}/{}", cid, topics::LSS_RES))
-        .unwrap();
-    ltx.subscribe(format!("{}/{}", cid, topics::INIT_1_RES))
-        .unwrap();
-    ltx.subscribe(format!("{}/{}", cid, topics::INIT_2_RES))
-        .unwrap();
+    for t in topics::BROKER_SUBS {
+        ltx.subscribe(format!("{}/{}", cid, t)).unwrap();
+    }
 }
 
 fn unsubs(_cid: &str, mut _ltx: LinkTx) {
