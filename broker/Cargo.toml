@@ -30,17 +30,17 @@ thiserror         = "1.0.31"
 toml              = "0.5.9"
 url               = { version = "2.2" }
 
-vls-frontend        = { git = "https://gitlab.com/lightning-signer/validating-lightning-signer.git", rev = "66b77ac71363ac3ea4504d4fce3f4813a52acd84" }
-vls-protocol        = { git = "https://gitlab.com/lightning-signer/validating-lightning-signer.git", rev = "66b77ac71363ac3ea4504d4fce3f4813a52acd84" }
-vls-protocol-client = { git = "https://gitlab.com/lightning-signer/validating-lightning-signer.git", rev = "66b77ac71363ac3ea4504d4fce3f4813a52acd84" }
-vls-proxy           = { git = "https://gitlab.com/lightning-signer/validating-lightning-signer.git", rev = "66b77ac71363ac3ea4504d4fce3f4813a52acd84" }
+vls-frontend        = { git = "https://gitlab.com/lightning-signer/validating-lightning-signer.git", rev = "0370e6a124ac5f64c91b755d7ab1a9e9cc27597d" }
+vls-protocol        = { git = "https://gitlab.com/lightning-signer/validating-lightning-signer.git", rev = "0370e6a124ac5f64c91b755d7ab1a9e9cc27597d" }
+vls-protocol-client = { git = "https://gitlab.com/lightning-signer/validating-lightning-signer.git", rev = "0370e6a124ac5f64c91b755d7ab1a9e9cc27597d" }
+vls-proxy           = { git = "https://gitlab.com/lightning-signer/validating-lightning-signer.git", rev = "0370e6a124ac5f64c91b755d7ab1a9e9cc27597d" }
 # vls-frontend        = { path = "../../vls/vls-frontend" }
 # vls-protocol        = { path = "../../vls/vls-protocol" }
 # vls-protocol-client = { path = "../../vls/vls-protocol-client" }
 # vls-proxy           = { path = "../../vls/vls-proxy" }
 
-lss-connector = { git = "https://github.com/stakwork/sphinx-rs", rev = "66d7032705918146552473dc27ef1bcfae45aa4b" }
-sphinx-signer = { git = "https://github.com/stakwork/sphinx-rs", rev = "66d7032705918146552473dc27ef1bcfae45aa4b" }
+lss-connector = { git = "https://github.com/stakwork/sphinx-rs", rev = "dd11b74164a330a4dd3ceac4ee7601f8b3210b71" }
+sphinx-signer = { git = "https://github.com/stakwork/sphinx-rs", rev = "dd11b74164a330a4dd3ceac4ee7601f8b3210b71" }
 # lss-connector = { path = "../../sphinx-rs/lss-connector" }
 # sphinx-signer = { path = "../../sphinx-rs/signer" }
 

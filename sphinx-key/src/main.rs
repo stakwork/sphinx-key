@@ -25,7 +25,7 @@ use std::thread;
 use std::time::Duration;
 use std::time::SystemTime;
 
-const ID_LEN: usize = 12;
+const ID_LEN: usize = 16;
 
 fn main() -> Result<()> {
     // Temporary. Will disappear once ESP-IDF 4.4 is released, but for now it is necessary to call this function once,
@@ -137,9 +137,7 @@ fn main() -> Result<()> {
                         Some(s) => flash.write_seed(s).expect("could not store seed"),
                         None => panic!("SEED REQUIRED!!!"),
                     }
-                    flash
-                        .write_id(random_word(ID_LEN))
-                        .expect("could not store id");
+                    flash.write_id(random_16()).expect("could not store id");
                 }
                 drop(flash);
                 println!("CONFIG SAVED");
@@ -158,7 +156,7 @@ fn main() -> Result<()> {
 fn make_and_launch_client(
     config: Config,
     seed: [u8; 32],
-    client_id: String,
+    signer_id: [u8; ID_LEN],
     policy: &Policy,
     velocity: &Option<Velocity>,
     led_tx: mpsc::Sender<Status>,
@@ -184,7 +182,7 @@ fn make_and_launch_client(
     log::info!("PUBKEY {} TOKEN {}", &pubkey_str, &token);
 
     let mqtt_client =
-        conn::mqtt::make_client(&config.broker, &client_id, &pubkey_str, &token, tx.clone())?;
+        conn::mqtt::make_client(&config.broker, &signer_id, &pubkey_str, &token, tx.clone())?;
     // let mqtt_client = conn::mqtt::start_listening(mqtt, connection, tx)?;
 
     // this blocks forever... the "main thread"
@@ -204,7 +202,7 @@ fn make_and_launch_client(
         policy,
         velocity,
         ctrlr,
-        &client_id,
+        &signer_id,
         &pubkey,
     )?;
     Ok(())
@@ -217,4 +215,11 @@ pub fn random_word(n: usize) -> String {
         .take(n)
         .map(char::from)
         .collect()
+}
+
+pub fn random_16() -> [u8; 16] {
+    use sphinx_crypter::secp256k1::rand::{thread_rng, RngCore};
+    let mut signer_id = [0u8; 16];
+    thread_rng().fill_bytes(&mut signer_id);
+    signer_id
 }

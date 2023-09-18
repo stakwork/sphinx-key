@@ -17,7 +17,7 @@ use std::fs;
 use std::path::Path;
 
 pub const ROOT_STORE: &str = "/sdcard/store";
-pub const ID_LEN: usize = 8usize;
+pub const ID_LEN: usize = 16usize;
 
 fn main() -> anyhow::Result<()> {
     // NvsDefault::new();

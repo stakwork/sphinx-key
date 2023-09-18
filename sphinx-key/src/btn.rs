@@ -20,7 +20,7 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
 
-const ID_LEN: usize = 12;
+const ID_LEN: usize = 16;
 
 fn main() -> anyhow::Result<()> {
     esp_idf_sys::link_patches();

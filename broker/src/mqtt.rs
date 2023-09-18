@@ -22,7 +22,6 @@ pub fn start_broker(
 ) -> anyhow::Result<()> {
     let conf = config(settings);
     // println!("CONF {:?}", conf);
-    // let client_id = expected_client_id.to_string();
 
     let mut broker = Broker::new(conf);
 

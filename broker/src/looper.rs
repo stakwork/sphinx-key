@@ -175,29 +175,23 @@ impl<C: 'static + Client> SignerLoop<C> {
             .unwrap_or([0u8; 33]);
         let md = parser::raw_request_from_bytes(message, ticket, peer_id, dbid)?;
         // send to signer
-        let the_res = loop {
-            log::info!("SEND ON {}", topics::VLS);
-            let (res_topic, res) = self.send_request_wait(topics::VLS, md.clone())?;
-            log::info!("GOT ON {}", res_topic);
-            if res_topic == topics::LSS_RES {
-                // send reply to LSS to store muts
-                let lss_reply = self.send_lss(topics::LSS_MSG.to_string(), res)?;
-                log::info!("LSS REPLY LEN {}", &lss_reply.1.len());
-                // send to signer for HMAC validation, and get final reply
-                log::info!("SEND ON {}", lss_reply.0);
-                let (res_topic2, res2) = self.send_request_wait(&lss_reply.0, lss_reply.1)?;
-                log::info!("GOT ON {}, send to CLN?", res_topic2);
-                if res_topic2 != topics::VLS_RES {
-                    log::warn!("got a topic NOT on {}", topics::VLS_RES);
-                }
-                if res_topic2 == topics::LSS_CONFLICT_RES {
-                    // try again...
-                    continue;
-                }
-                break res2;
-            } else {
-                break res;
-            };
+        log::info!("SEND ON {}", topics::VLS);
+        let (res_topic, res) = self.send_request_wait(topics::VLS, md)?;
+        log::info!("GOT ON {}", res_topic);
+        let the_res = if res_topic == topics::LSS_RES {
+            // send reply to LSS to store muts
+            let lss_reply = self.send_lss(topics::LSS_MSG.to_string(), res)?;
+            log::info!("LSS REPLY LEN {}", &lss_reply.1.len());
+            // send to signer for HMAC validation, and get final reply
+            log::info!("SEND ON {}", lss_reply.0);
+            let (res_topic2, res2) = self.send_request_wait(&lss_reply.0, lss_reply.1)?;
+            log::info!("GOT ON {}, send to CLN?", res_topic2);
+            if res_topic2 != topics::VLS_RES {
+                log::warn!("got a topic NOT on {}", topics::VLS_RES);
+            }
+            res2
+        } else {
+            res
         };
         // create reply bytes for CLN
         let reply = parser::raw_response_from_bytes(the_res, ticket)?;
