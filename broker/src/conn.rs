@@ -1,12 +1,16 @@
 use anyhow::Result;
+use once_cell::sync::Lazy;
 use rocket::tokio::sync::{mpsc, oneshot};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::collections::HashMap; // 1.3.1
+use std::sync::Mutex;
 
-#[derive(Debug, Serialize, Deserialize)]
+pub static CONNS: Lazy<Mutex<Connections>> = Lazy::new(|| Mutex::new(Connections::new()));
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Connections {
     pub pubkey: Option<String>,
-    pub clients: HashMap<String, bool>,
+    pub clients: HashMap<String, bool>, // bool is "synced" state (done with dance)
     pub current: Option<String>,
 }
 
@@ -18,17 +22,8 @@ impl Connections {
             current: None,
         }
     }
-    pub fn len(&self) -> usize {
-        self.clients.len()
-    }
-    pub fn set_pubkey(&mut self, pk: &str) {
-        self.pubkey = Some(pk.to_string())
-    }
-    pub fn set_current(&mut self, cid: String) {
-        self.current = Some(cid);
-    }
-    fn add_client(&mut self, cid: &str) {
-        self.clients.insert(cid.to_string(), true);
+    fn connect_client(&mut self, cid: &str, synced: bool) {
+        self.clients.insert(cid.to_string(), synced);
         self.current = Some(cid.to_string());
     }
     fn remove_client(&mut self, cid: &str) {
@@ -37,18 +32,48 @@ impl Connections {
             self.current = None;
         }
     }
-    pub fn client_action(&mut self, cid: &str, connected: bool) {
-        if connected {
-            self.add_client(cid);
-        } else {
-            self.remove_client(cid);
-        }
-    }
 }
 
-pub struct Channel {
-    pub sender: mpsc::Sender<ChannelRequest>,
-    pub pubkey: [u8; 33],
+pub fn current_client() -> Option<String> {
+    CONNS.lock().unwrap().current.clone()
+}
+
+pub fn current_client_and_synced() -> (Option<String>, bool) {
+    let cs = CONNS.lock().unwrap();
+    let c = cs.current.clone();
+    let mut b = false;
+    if let Some(ref client) = c {
+        b = cs.clients.get(client).unwrap_or(&false).clone();
+    }
+    (c, b)
+}
+
+pub fn current_pubkey() -> Option<String> {
+    CONNS.lock().unwrap().pubkey.clone()
+}
+
+pub fn current_conns() -> Connections {
+    CONNS.lock().unwrap().clone()
+}
+
+pub fn conns_set_pubkey(pubkey: String) {
+    let mut cs = CONNS.lock().unwrap();
+    cs.pubkey = Some(pubkey);
+}
+
+pub fn new_connection(cid: &str, connected: bool) {
+    let mut cs = CONNS.lock().unwrap();
+    cs.connect_client(cid, connected);
+}
+
+pub fn cycle_clients(cid: &str) {
+    let mut cs = CONNS.lock().unwrap();
+    let clients = cs.clients.clone();
+    let other_clients: Vec<String> = clients.into_keys().filter(|k| k != cid).collect();
+    if let Some(nc) = other_clients.get(0) {
+        log::info!("=> client switched to {}", nc);
+        cs.current = Some(nc.to_string());
+    }
 }
 
 /// Responses are received on the oneshot sender
@@ -57,36 +82,24 @@ pub struct ChannelRequest {
     pub topic: String,
     pub message: Vec<u8>,
     pub reply_tx: oneshot::Sender<ChannelReply>,
-    pub cid: Option<String>, // if it exists, only try the one client
+    pub cid: String, // if it exists, only try the one client
 }
 impl ChannelRequest {
-    pub fn new(topic: &str, message: Vec<u8>) -> (Self, oneshot::Receiver<ChannelReply>) {
+    pub fn new(
+        cid: &str,
+        topic: &str,
+        message: Vec<u8>,
+    ) -> (Self, oneshot::Receiver<ChannelReply>) {
         let (reply_tx, reply_rx) = oneshot::channel();
         let cr = ChannelRequest {
             topic: topic.to_string(),
             message,
             reply_tx,
-            cid: None,
+            cid: cid.to_string(),
         };
         (cr, reply_rx)
     }
     pub async fn send(
-        topic: &str,
-        message: Vec<u8>,
-        sender: &mpsc::Sender<ChannelRequest>,
-    ) -> Result<Vec<u8>> {
-        let (reply_tx, reply_rx) = oneshot::channel();
-        let req = ChannelRequest {
-            topic: topic.to_string(),
-            message,
-            reply_tx,
-            cid: None,
-        };
-        let _ = sender.send(req).await;
-        let reply = reply_rx.await?;
-        Ok(reply.reply)
-    }
-    pub async fn send_for(
         cid: &str,
         topic: &str,
         message: Vec<u8>,
@@ -97,23 +110,11 @@ impl ChannelRequest {
             topic: topic.to_string(),
             message,
             reply_tx,
-            cid: Some(cid.to_string()),
+            cid: cid.to_string(),
         };
         let _ = sender.send(req).await;
         let reply = reply_rx.await?;
         Ok(reply.reply)
-    }
-    pub fn for_cid(&mut self, cid: &str) {
-        self.cid = Some(cid.to_string())
-    }
-    pub fn new_for(
-        cid: &str,
-        topic: &str,
-        message: Vec<u8>,
-    ) -> (Self, oneshot::Receiver<ChannelReply>) {
-        let (mut cr, reply_rx) = ChannelRequest::new(topic, message);
-        cr.for_cid(cid);
-        (cr, reply_rx)
     }
 }
 
@@ -150,7 +151,11 @@ pub struct LssReq {
 impl LssReq {
     pub fn new(topic: String, message: Vec<u8>) -> (Self, oneshot::Receiver<(String, Vec<u8>)>) {
         let (reply_tx, reply_rx) = oneshot::channel();
-        let cr = Self { topic, message, reply_tx };
+        let cr = Self {
+            topic,
+            message,
+            reply_tx,
+        };
         (cr, reply_rx)
     }
 }

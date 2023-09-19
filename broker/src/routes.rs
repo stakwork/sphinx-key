@@ -1,5 +1,4 @@
-use crate::conn::ChannelRequest;
-use crate::conn::Connections;
+use crate::conn::{current_conns, ChannelRequest};
 use crate::util::Settings;
 use rocket::fairing::{Fairing, Info, Kind};
 use rocket::http::Header;
@@ -13,15 +12,12 @@ use rocket::*;
 use sphinx_signer::sphinx_glyph::{error::Error as GlyphError, topics};
 use std::net::IpAddr::V4;
 use std::net::Ipv4Addr;
-use std::sync::{Arc, Mutex};
 
 pub type Result<T> = std::result::Result<T, Error>;
 
 #[get("/clients")]
-pub async fn get_clients(conns: &State<Arc<Mutex<Connections>>>) -> Result<String> {
-    use std::ops::Deref;
-    let cs = conns.lock().unwrap();
-    Ok(serde_json::to_string(&cs.deref())?)
+pub async fn get_clients() -> Result<String> {
+    Ok(serde_json::to_string(&current_conns())?)
 }
 
 #[post("/control?<msg>&<cid>")]
@@ -35,7 +31,7 @@ pub async fn control(
     if message.len() < 65 {
         return Err(Error::Fail);
     }
-    let (request, reply_rx) = ChannelRequest::new_for(cid, topics::CONTROL, message);
+    let (request, reply_rx) = ChannelRequest::new(cid, topics::CONTROL, message);
     // send to ESP
     let _ = sender.send(request).await.map_err(|_| Error::Fail)?;
     // wait for reply
@@ -69,7 +65,6 @@ pub fn launch_rocket(
     tx: Sender<ChannelRequest>,
     error_tx: broadcast::Sender<Vec<u8>>,
     settings: Settings,
-    conns: Arc<Mutex<Connections>>,
 ) -> Rocket<Build> {
     let config = Config {
         address: V4(Ipv4Addr::UNSPECIFIED),
@@ -82,7 +77,6 @@ pub fn launch_rocket(
         .attach(CORS)
         .manage(tx)
         .manage(error_tx)
-        .manage(conns)
 }
 
 #[derive(Debug, thiserror::Error)]

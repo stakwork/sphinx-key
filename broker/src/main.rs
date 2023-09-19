@@ -2,6 +2,7 @@
 mod chain_tracker;
 mod conn;
 mod error_log;
+mod handle;
 mod looper;
 mod lss;
 mod mqtt;
@@ -10,7 +11,7 @@ mod run_test;
 mod util;
 
 use crate::chain_tracker::MqttSignerPort;
-use crate::conn::{ChannelRequest, Connections, LssReq};
+use crate::conn::{new_connection, conns_set_pubkey, current_pubkey, ChannelRequest, LssReq};
 use crate::looper::SignerLoop;
 use crate::mqtt::{check_auth, start_broker};
 use crate::util::{read_broker_config, Settings};
@@ -21,7 +22,7 @@ use rocket::tokio::{
 };
 use rumqttd::{oneshot as std_oneshot, AuthMsg};
 use std::env;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use url::Url;
 use vls_frontend::{frontend::SourceFactory, Frontend};
 use vls_proxy::client::UnixClient;
@@ -52,9 +53,9 @@ async fn rocket() -> _ {
         panic!("end")
     } else {
         if matches.is_present("test") {
-            run_test::run_test().await
+            run_test::run_test()
         } else {
-            run_main(parent_fd).await
+            run_main(parent_fd)
         }
     }
 }
@@ -66,7 +67,7 @@ fn make_clap_app() -> App<'static> {
     add_hsmd_args(app)
 }
 
-async fn run_main(parent_fd: i32) -> rocket::Rocket<rocket::Build> {
+fn run_main(parent_fd: i32) -> rocket::Rocket<rocket::Build> {
     let settings = read_broker_config();
 
     let (mqtt_tx, mqtt_rx) = mpsc::channel(10000);
@@ -76,7 +77,7 @@ async fn run_main(parent_fd: i32) -> rocket::Rocket<rocket::Build> {
 
     let (conn_tx, conn_rx) = mpsc::channel::<(String, std_oneshot::Sender<bool>)>(10000);
 
-    let conns = broker_setup(settings, mqtt_rx, init_rx, conn_tx, error_tx.clone()).await;
+    broker_setup(settings, mqtt_rx, init_rx, conn_tx, error_tx.clone());
 
     let (lss_tx, lss_rx) = mpsc::channel::<LssReq>(10000);
     // TODO: add a validation here of the uri setting to make sure LSS is running
@@ -103,45 +104,41 @@ async fn run_main(parent_fd: i32) -> rocket::Rocket<rocket::Build> {
         log::warn!("Running without a frontend")
     }
 
-    // test sleep FIXME
-    while conns.lock().unwrap().len() == 0 {
-        log::debug!(
-            "waiting for first connection before proceeding with SignerLoop and Rocket launch"
-        );
-        tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-    }
+    // tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+    std::thread::sleep(std::time::Duration::from_secs(1));
+
+    // handle::handle_message(&None, vec![], &mqtt_tx, &lss_tx);
 
     let cln_client = UnixClient::new(UnixConnection::new(parent_fd));
     // TODO pass status_rx into SignerLoop?
-    let mut signer_loop = SignerLoop::new(cln_client, lss_tx.clone(), mqtt_tx.clone());
+    let mut signer_loop = SignerLoop::new(cln_client, mqtt_tx.clone(), lss_tx.clone());
     // spawn CLN listener
     std::thread::spawn(move || {
-        signer_loop.start(Some(settings));
+        signer_loop.start(Some(settings.network));
     });
 
-    routes::launch_rocket(mqtt_tx, error_tx, settings, conns)
+    routes::launch_rocket(mqtt_tx, error_tx, settings)
 }
 
 // blocks until a connection received
-pub async fn broker_setup(
+pub fn broker_setup(
     settings: Settings,
     mqtt_rx: mpsc::Receiver<ChannelRequest>,
     init_rx: mpsc::Receiver<ChannelRequest>,
     conn_tx: mpsc::Sender<(String, std_oneshot::Sender<bool>)>,
     error_tx: broadcast::Sender<Vec<u8>>,
-) -> Arc<Mutex<Connections>> {
+) {
     let (auth_tx, auth_rx) = std::sync::mpsc::channel::<AuthMsg>();
     let (status_tx, status_rx) = std::sync::mpsc::channel();
 
-    let conns1 = Connections::new();
-    let conns = Arc::new(Mutex::new(conns1));
-
     // authenticator
-    let conns_ = conns.clone();
     std::thread::spawn(move || {
         while let Ok(am) = auth_rx.recv() {
-            let mut cs = conns_.lock().unwrap();
-            let ok = check_auth(&am.username, &am.password, &mut cs);
+            let pubkey = current_pubkey();
+            let (ok, new_pubkey) = check_auth(&am.username, &am.password, &pubkey);
+            if let Some(np) = new_pubkey {
+                conns_set_pubkey(np);
+            }
             let _ = am.reply.send(ok);
         }
     });
@@ -155,20 +152,16 @@ pub async fn broker_setup(
         status_tx,
         error_tx.clone(),
         auth_tx,
-        conns.clone(),
     )
     .expect("BROKER FAILED TO START");
 
     // client connections state
-    let conns_ = conns.clone();
     std::thread::spawn(move || {
         log::info!("=> waiting first connection...");
         while let Ok((cid, connected)) = status_rx.recv() {
             log::info!("=> connection status: {}: {}", cid, connected);
-            let mut cs = conns_.lock().unwrap();
             // drop it from list until ready
-            cs.client_action(&cid, false);
-            drop(cs);
+            new_connection(&cid, false);
             if connected {
                 let (dance_complete_tx, dance_complete_rx) = std_oneshot::channel::<bool>();
                 let _ = conn_tx.blocking_send((cid.clone(), dance_complete_tx));
@@ -180,13 +173,8 @@ pub async fn broker_setup(
                     false
                 });
                 log::info!("adding client to the list? {}", dance_complete);
-                let mut cs = conns_.lock().unwrap();
-                cs.client_action(&cid, dance_complete);
-                log::debug!("List: {:?}, action: {}", cs, dance_complete);
-                drop(cs);
+                new_connection(&cid, dance_complete);
             }
         }
     });
-
-    conns
 }

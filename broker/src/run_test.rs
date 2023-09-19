@@ -8,7 +8,7 @@ use vls_protocol::serde_bolt::WireString;
 
 // const CLIENT_ID: &str = "test-1";
 
-pub async fn run_test() -> rocket::Rocket<rocket::Build> {
+pub fn run_test() -> rocket::Rocket<rocket::Build> {
     log::info!("TEST...");
 
     // let mut id = 0u16;
@@ -23,14 +23,13 @@ pub async fn run_test() -> rocket::Rocket<rocket::Build> {
     crate::error_log::log_errors(error_rx);
 
     // block until connection
-    let conns = crate::broker_setup(
+    crate::broker_setup(
         settings,
         mqtt_rx,
         init_rx,
         conn_tx.clone(),
         error_tx.clone(),
-    )
-    .await;
+    );
     log::info!("=> off to the races!");
 
     let tx_ = mqtt_tx.clone();
@@ -71,7 +70,7 @@ pub async fn run_test() -> rocket::Rocket<rocket::Build> {
         }
     });
 
-    launch_rocket(mqtt_tx, error_tx, settings, conns)
+    launch_rocket(mqtt_tx, error_tx, settings)
 }
 
 #[allow(dead_code)]
@@ -94,7 +93,8 @@ pub async fn iteration(
     let peer_id = [0u8; 33];
     let ping_bytes = parser::request_from_msg(ping, sequence, peer_id, 0)?;
     // Send a request to the MQTT handler to send to signer
-    let (request, reply_rx) = ChannelRequest::new(topics::VLS, ping_bytes);
+    let cid = hex::encode(peer_id);
+    let (request, reply_rx) = ChannelRequest::new(&cid, topics::VLS, ping_bytes);
     tx.send(request).await?;
     let res = reply_rx.await?;
     let reply = parser::response_from_bytes(res.reply, sequence)?;

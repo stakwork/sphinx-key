@@ -1,11 +1,9 @@
-use crate::conn::Connections;
 use crate::conn::{ChannelReply, ChannelRequest};
 use crate::util::Settings;
 use rocket::tokio::{sync::broadcast, sync::mpsc};
 use rumqttd::{local::LinkTx, AuthMsg, Broker, Config, Notification};
 use sphinx_signer::sphinx_glyph::sphinx_auther::token::Token;
 use sphinx_signer::sphinx_glyph::topics;
-use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 // must get a reply within this time, or disconnects
@@ -18,7 +16,6 @@ pub fn start_broker(
     status_sender: std::sync::mpsc::Sender<(String, bool)>,
     error_sender: broadcast::Sender<Vec<u8>>,
     auth_sender: std::sync::mpsc::Sender<AuthMsg>,
-    connections: Arc<Mutex<Connections>>,
 ) -> anyhow::Result<()> {
     let conf = config(settings);
     // println!("CONF {:?}", conf);
@@ -57,12 +54,11 @@ pub fn start_broker(
     let (init_tx, init_rx) = std::sync::mpsc::channel::<(String, String, Vec<u8>)>();
 
     let mut link_tx_ = link_tx.clone();
-    let conns_ = connections.clone();
     // receive replies from LSS initialization
     let _init_task = std::thread::spawn(move || {
         while let Some(msg) = init_receiver.blocking_recv() {
             // Retry three times
-            pub_and_wait(msg, &conns_, &init_rx, &mut link_tx_, Some(3));
+            pub_and_wait(msg, &init_rx, &mut link_tx_, Some(3));
         }
     });
 
@@ -77,10 +73,10 @@ pub fn start_broker(
                 // Don't retry
                 Some(0)
             } else {
-                // Retry indefinitely
-                None
+                // Retry 1 times
+                Some(1)
             };
-            pub_and_wait(msg, &connections, &msg_rx, &mut link_tx, retries);
+            pub_and_wait(msg, &msg_rx, &mut link_tx, retries);
         }
     });
 
@@ -146,7 +142,6 @@ pub fn start_broker(
 // waits forever until the reply is returned
 fn pub_and_wait(
     msg: ChannelRequest,
-    conns_: &Arc<Mutex<Connections>>,
     msg_rx: &std::sync::mpsc::Receiver<(String, String, Vec<u8>)>,
     link_tx: &mut LinkTx,
     retries: Option<u8>,
@@ -154,65 +149,9 @@ fn pub_and_wait(
     let mut counter = 0u8;
     loop {
         log::debug!("looping in pub_and_wait");
-        let reply = if let Some(cid) = msg.cid.clone() {
-            // for a specific client
-            log::debug!("publishing to a specific client");
-            pub_timeout(&cid, &msg.topic, &msg.message, &msg_rx, link_tx)
-        } else {
-            log::debug!("publishing to all clients");
-            let cs = conns_.lock().unwrap();
-            let current = cs.current.clone();
-            let client_list = cs.clients.clone();
-            log::debug!("got the list lock!");
-            drop(cs);
-            // send to each client in turn
-            if client_list.len() == 0 || current.is_none() {
-                // wait a second if there are no clients
-                std::thread::sleep(Duration::from_secs(1));
-                None
-            } else {
-                let current_cid = current.clone().unwrap();
-                // Try the current connection
-                let mut rep = pub_timeout(&current_cid, &msg.topic, &msg.message, &msg_rx, link_tx);
 
-                // We restart the loop in case a new signer connects while pinging for connections
-                // as this could mean that the LSS state advanced broker side only, and signer side
-                // it's one step behind. Here and also in the for loop.
-                // We do it as soon as we know.
-                let cs = conns_.lock().unwrap();
-                let new_current = cs.current.clone();
-                drop(cs);
-                if new_current != current {
-                    log::warn!("Client list changed, starting over!");
-                    counter = 0u8;
-                    continue;
-                }
+        let reply = pub_timeout(&msg.cid, &msg.topic, &msg.message, &msg_rx, link_tx);
 
-                // If that failed, try looking for some other signer
-                if rep.is_none() {
-                    for cid in client_list.into_keys().filter(|k| k != &current_cid) {
-                        rep = pub_timeout(&cid, &msg.topic, &msg.message, &msg_rx, link_tx);
-                        let mut cs = conns_.lock().unwrap();
-                        log::debug!("got the list lock!");
-                        let new_current = cs.current.clone();
-                        if new_current != current {
-                            log::info!("Client list changed, starting over!");
-                            drop(cs);
-                            counter = 0u8;
-                            rep = None;
-                            break;
-                        }
-                        if rep.is_some() {
-                            cs.set_current(cid.to_string());
-                            drop(cs);
-                            break;
-                        }
-                        drop(cs);
-                    }
-                }
-                rep
-            }
-        };
         if let Some(reply) = reply {
             log::debug!("MQTT got this response: {:?}", reply);
             if let Err(_) = msg.reply_tx.send(reply) {
@@ -230,8 +169,6 @@ fn pub_and_wait(
                 }
                 break;
             }
-        } else {
-            log::debug!("retrying indefinitely");
         }
         counter = counter.wrapping_add(1u8);
     }
@@ -279,27 +216,31 @@ fn unsubs(_cid: &str, mut _ltx: LinkTx) {
     //     .unwrap();
 }
 
-pub fn check_auth(username: &str, password: &str, conns: &mut crate::Connections) -> bool {
+pub fn check_auth(
+    username: &str,
+    password: &str,
+    already_pubkey: &Option<String>,
+) -> (bool, Option<String>) {
+    let nope = (false, None);
     match Token::from_base64(password) {
         Ok(t) => match t.recover() {
             Ok(pubkey) => {
                 // pubkey must match signature
                 if &pubkey.to_string() == username {
-                    if let Some(pk) = &conns.pubkey {
+                    if let Some(pk) = already_pubkey {
                         // if there is an existing pubkey then new client must match
-                        pk == username
+                        (pk == username, None)
                     } else {
-                        // set the Connections pubkey
-                        conns.set_pubkey(username);
-                        true
+                        // set the connections pubkey
+                        (true, Some(username.to_string()))
                     }
                 } else {
-                    false
+                    nope
                 }
             }
-            Err(_) => false,
+            Err(_) => nope,
         },
-        Err(_) => false,
+        Err(_) => nope,
     }
 }
 

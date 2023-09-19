@@ -121,7 +121,7 @@ async fn send_init(
     msg_bytes: Vec<u8>,
     mqtt_tx: &mpsc::Sender<ChannelRequest>,
 ) -> Result<InitResponse> {
-    let reply = ChannelRequest::send_for(cid, topics::INIT_1_MSG, msg_bytes, mqtt_tx).await?;
+    let reply = ChannelRequest::send(cid, topics::INIT_1_MSG, msg_bytes, mqtt_tx).await?;
     if reply.is_empty() {
         return Err(anyhow!("send init did not complete, reply is empty"));
     }
@@ -134,7 +134,7 @@ async fn send_created(
     msg_bytes: Vec<u8>,
     mqtt_tx: &mpsc::Sender<ChannelRequest>,
 ) -> Result<SignerMutations> {
-    let reply = ChannelRequest::send_for(cid, topics::INIT_2_MSG, msg_bytes, mqtt_tx).await?;
+    let reply = ChannelRequest::send(cid, topics::INIT_2_MSG, msg_bytes, mqtt_tx).await?;
     if reply.is_empty() {
         return Err(anyhow!("send created did not complete, reply is empty"));
     }
