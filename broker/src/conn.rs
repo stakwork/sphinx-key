@@ -143,13 +143,14 @@ impl ChannelReply {
 /// Responses are received on the oneshot sender
 #[derive(Debug)]
 pub struct LssReq {
+    pub topic: String,
     pub message: Vec<u8>,
-    pub reply_tx: oneshot::Sender<Vec<u8>>,
+    pub reply_tx: oneshot::Sender<(String, Vec<u8>)>,
 }
 impl LssReq {
-    pub fn new(message: Vec<u8>) -> (Self, oneshot::Receiver<Vec<u8>>) {
+    pub fn new(topic: String, message: Vec<u8>) -> (Self, oneshot::Receiver<(String, Vec<u8>)>) {
         let (reply_tx, reply_rx) = oneshot::channel();
-        let cr = Self { message, reply_tx };
+        let cr = Self { topic, message, reply_tx };
         (cr, reply_rx)
     }
 }

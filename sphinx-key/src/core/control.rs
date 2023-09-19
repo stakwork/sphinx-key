@@ -79,18 +79,17 @@ impl ControlPersist for FlashPersister {
         self.0.remove(FlashKey::Seed.as_str())?;
         Ok(())
     }
-    fn write_id(&mut self, id: String) -> Result<()> {
-        let id = id.into_bytes();
+    fn write_id(&mut self, id: [u8; ID_LEN]) -> Result<()> {
         self.0.set_raw(FlashKey::Id.as_str(), &id[..])?;
         Ok(())
     }
-    fn read_id(&self) -> Result<String> {
+    fn read_id(&self) -> Result<[u8; ID_LEN]> {
         let mut buf = [0u8; ID_LEN];
         let existing = self
             .0
             .get_raw(FlashKey::Id.as_str(), &mut buf)?
             .ok_or(anyhow!("no existing id"))?;
-        Ok(String::from_utf8(existing.to_vec())?)
+        Ok(existing.try_into()?)
     }
     fn read_policy(&self) -> Result<Policy> {
         let mut buf = [0u8; 250];

@@ -14,11 +14,13 @@ use std::time::Duration;
 pub use lss_connector::handle_lss_msg;
 
 pub fn init_lss(
-    client_id: &str,
+    signer_id: &[u8; 16],
     rx: &mpsc::Receiver<Event>,
     handler_builder: RootHandlerBuilder,
     mqtt: &mut EspMqttClient<ConnState<MessageImpl, EspError>>,
 ) -> Result<(RootHandler, LssSigner)> {
+    let client_id = hex::encode(signer_id);
+
     let server_pubkey = loop {
         let event = rx.recv_timeout(Duration::from_secs(30))?;
         match server_pubkey_from_event(event) {

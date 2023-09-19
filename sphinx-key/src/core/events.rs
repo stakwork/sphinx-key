@@ -39,14 +39,6 @@ pub enum Event {
 
 pub const ROOT_STORE: &str = "/sdcard/store";
 
-pub const SUB_TOPICS: &[&str] = &[
-    topics::INIT_1_MSG,
-    topics::INIT_2_MSG,
-    topics::LSS_MSG,
-    topics::VLS,
-    topics::CONTROL,
-];
-
 fn mqtt_sub(
     mqtt: &mut EspMqttClient<ConnState<MessageImpl, EspError>>,
     client_id: &str,
@@ -84,23 +76,25 @@ pub fn make_event_loop(
     policy: &Policy,
     velocity: &Option<Velocity>,
     mut ctrlr: Controller,
-    client_id: &str,
+    signer_id: &[u8; 16],
     node_id: &PublicKey,
 ) -> Result<()> {
+    let client_id = hex::encode(signer_id);
+
     while let Ok(event) = rx.recv() {
         log::info!("BROKER IP AND PORT: {}", config.broker);
         // wait for a Connection first.
         match event {
             Event::Connected => {
-                mqtt_sub(&mut mqtt, client_id, SUB_TOPICS);
+                mqtt_sub(&mut mqtt, &client_id, topics::SIGNER_SUBS);
                 break;
             }
             _ => (),
         }
     }
 
-    let kvv_store = FsKVVStore::new(&ROOT_STORE, None).0;
-    let msg_store = FsKVVStore::new(&ROOT_STORE, None).0;
+    let kvv_store = FsKVVStore::new(&ROOT_STORE, signer_id.clone(), None).0;
+    let msg_store = FsKVVStore::new(&ROOT_STORE, signer_id.clone(), None).0;
     let fs_persister = CloudKVVStore::new(kvv_store);
 
     let _ = fs_persister.enter();
@@ -138,9 +132,9 @@ pub fn make_event_loop(
 
     thread::sleep(std::time::Duration::from_secs(1));
     // send the initial HELLO
-    mqtt_pub(&mut mqtt, client_id, topics::HELLO, &[]);
+    mqtt_pub(&mut mqtt, &client_id, topics::HELLO, &[]);
 
-    let (root_handler, lss_signer) = match lss::init_lss(client_id, &rx, rhb, &mut mqtt) {
+    let (root_handler, lss_signer) = match lss::init_lss(signer_id, &rx, rhb, &mut mqtt) {
         Ok(rl) => rl,
         Err(e) => {
             log::error!("failed to init lss {:?}", e);
@@ -149,7 +143,7 @@ pub fn make_event_loop(
     };
 
     // store the previous msgs processed, for LSS last step
-    let mut msgs: Option<(Vec<u8>, Vec<u8>)> = None;
+    let mut msgs: Option<(Vec<u8>, [u8; 32])> = None;
 
     // signing loop
     log::info!("=> starting the main signing loop...");
@@ -159,10 +153,10 @@ pub fn make_event_loop(
         match event {
             Event::Connected => {
                 log::info!("GOT A Event::Connected msg!");
-                mqtt_sub(&mut mqtt, client_id, SUB_TOPICS);
+                mqtt_sub(&mut mqtt, &client_id, topics::SIGNER_SUBS);
                 thread::sleep(std::time::Duration::from_secs(1));
                 // send the initial HELLO again
-                mqtt_pub(&mut mqtt, client_id, topics::HELLO, &[]);
+                mqtt_pub(&mut mqtt, &client_id, topics::HELLO, &[]);
                 led_tx.send(Status::Connected).unwrap();
             }
             Event::Disconnected => {
@@ -180,24 +174,28 @@ pub fn make_event_loop(
                     expected_sequence,
                     do_log,
                 ) {
-                    Ok((vls_b, lss_b, sequence, _cmd)) => {
-                        if lss_b.len() == 0 {
-                            // no muts, respond directly back!
-                            mqtt_pub(&mut mqtt, client_id, topics::VLS_RES, &vls_b);
-                            restart_esp_if_memory_low();
-                        } else {
+                    Ok((vls_b, lss_b, sequence, _cmd, server_hmac_opt)) => {
+                        if let Some(server_hmac) = server_hmac_opt {
                             // muts! send LSS first!
-                            mqtt_pub(&mut mqtt, client_id, topics::LSS_RES, &lss_b);
+                            mqtt_pub(&mut mqtt, &client_id, topics::LSS_RES, &lss_b);
                             msg_store
-                                .put("vls_b", &vls_b)
+                                .set_raw("vls_b", &vls_b)
                                 .map_err(|_e| anyhow::anyhow!("failed to put vls_b"))?;
                             msg_store
-                                .put("lss_b", &lss_b)
+                                .set_raw("lss_b", &server_hmac)
                                 .map_err(|_e| anyhow::anyhow!("failed to put lss_b"))?;
-                            msgs = Some((vls_b, lss_b));
+                            msgs = Some((vls_b, server_hmac));
+                        } else {
+                            // no muts, respond directly back!
+                            mqtt_pub(&mut mqtt, &client_id, topics::VLS_RES, &vls_b);
+                            // and commit
+                            if let Err(e) = root_handler.node().get_persister().commit() {
+                                log::error!("LOCAL COMMIT ERROR! {:?}", e);
+                                unsafe { esp_idf_sys::esp_restart() };
+                            }
+                            restart_esp_if_memory_low();
                         }
                         expected_sequence = Some(sequence + 1);
-                        root_handler.commit();
                     }
                     Err(e) => match e {
                         VlsHandlerError::BadSequence(current, expected) => unsafe {
@@ -207,12 +205,12 @@ pub fn make_event_loop(
                                 expected
                             );
                             log::info!("restarting esp!");
-                            esp_idf_sys::esp_restart();
+                            unsafe { esp_idf_sys::esp_restart() };
                         },
                         _ => {
                             let err_msg = GlyphError::new(1, &e.to_string());
                             log::error!("HANDLE FAILED {:?}", e);
-                            mqtt_pub(&mut mqtt, client_id, topics::ERROR, &err_msg.to_vec()[..]);
+                            mqtt_pub(&mut mqtt, &client_id, topics::ERROR, &err_msg.to_vec()[..]);
                         }
                     },
                 };
@@ -230,24 +228,33 @@ pub fn make_event_loop(
                 if msgs.is_none() {
                     log::warn!("Restoring previous message from sd card");
                     let vls_b = msg_store
-                        .get("vls_b")
-                        .map_err(|e| anyhow::anyhow!("failed to get vls_b: {:?}", e))?
-                        .ok_or(anyhow::anyhow!("vls_b is none"))?
-                        .1;
+                        .get_raw("vls_b")
+                        .map_err(|e| anyhow::anyhow!("failed to get vls_b: {:?}", e))?;
                     let lss_b = msg_store
-                        .get("lss_b")
-                        .map_err(|e| anyhow::anyhow!("failed to get lss_b: {:?}", e))?
-                        .ok_or(anyhow::anyhow!("lss_b is none"))?
-                        .1;
-                    msgs = Some((vls_b, lss_b));
+                        .get_raw("lss_b")
+                        .map_err(|e| anyhow::anyhow!("failed to get lss_b: {:?}", e))?;
+                    let server_hmac: [u8; 32] = lss_b
+                        .try_into()
+                        .map_err(|e| anyhow::anyhow!("lss_b is not 32 bytes: {:?}", e))?;
+                    msgs = Some((vls_b, server_hmac));
                 }
                 match lss::handle_lss_msg(&msg_bytes, msgs, &lss_signer) {
                     Ok((ret_topic, bytes)) => {
                         // set msgs back to None
                         msgs = None;
-                        mqtt_pub(&mut mqtt, client_id, &ret_topic, &bytes);
+                        mqtt_pub(&mut mqtt, &client_id, &ret_topic, &bytes);
                         if ret_topic == topics::VLS_RES {
+                            log::info!("HMACs matched! commit now...");
+                            // and commit
+                            if let Err(e) = root_handler.node().get_persister().commit() {
+                                log::error!("LOCAL COMMIT ERROR AFTER LSS! {:?}", e);
+                                unsafe { esp_idf_sys::esp_restart() };
+                            }
                             restart_esp_if_memory_low();
+                        }
+                        if ret_topic == topics::LSS_CONFLICT_RES {
+                            log::error!("LSS PUT CONFLICT! RESTART...");
+                            unsafe { esp_idf_sys::esp_restart() };
                         }
                     }
                     Err(e) => {
@@ -255,7 +262,7 @@ pub fn make_event_loop(
                         log::error!("{}", &e.to_string());
                         msgs = None;
                         let err_msg = GlyphError::new(1, &e.to_string());
-                        mqtt_pub(&mut mqtt, client_id, topics::ERROR, &err_msg.to_vec()[..]);
+                        mqtt_pub(&mut mqtt, &client_id, topics::ERROR, &err_msg.to_vec()[..]);
                     }
                 }
             }
@@ -267,7 +274,7 @@ pub fn make_event_loop(
                 {
                     let mut bb = ByteBuf::new();
                     serialize_controlresponse(&mut bb, &res).expect("failed serialize_lssresponse");
-                    mqtt_pub(&mut mqtt, client_id, topics::CONTROL_RES, bb.as_slice());
+                    mqtt_pub(&mut mqtt, &client_id, topics::CONTROL_RES, bb.as_slice());
                 }
             }
         }

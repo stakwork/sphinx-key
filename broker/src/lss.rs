@@ -112,7 +112,7 @@ async fn dance_step_2(
 ) -> Result<()> {
     let state_bytes = lss_conn.get_created_state_msg(ir).await?;
     let cr = send_created(cid, state_bytes, mqtt_tx).await?;
-    lss_conn.handle(Response::Created(cr)).await?;
+    lss_conn.handle(Response::Created(cr)).await;
     Ok(())
 }
 

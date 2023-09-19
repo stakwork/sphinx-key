@@ -18,14 +18,16 @@ pub const QOS: QoS = QoS::AtMostOnce;
 
 pub fn make_client(
     broker: &str,
-    client_id: &str,
+    signer_id: &[u8; 16],
     username: &str,
     password: &str,
     tx: mpsc::Sender<CoreEvent>,
 ) -> Result<EspMqttClient<ConnState<MessageImpl, EspError>>> {
+    let client_id = hex::encode(signer_id);
     log::info!("make_client with id {}", client_id);
+
     let mut conf = MqttClientConfiguration {
-        client_id: Some(client_id),
+        client_id: Some(&client_id),
         buffer_size: 4096,
         task_stack: 12288,
         username: Some(username),
@@ -119,6 +121,7 @@ pub fn make_client(
                                 } else if topic.ends_with(topics::LSS_MSG)
                                     || topic.ends_with(topics::INIT_1_MSG)
                                     || topic.ends_with(topics::INIT_2_MSG)
+                                    || topic.ends_with(topics::LSS_CONFLICT)
                                 {
                                     log::debug!("received data len {}", data.len());
                                     tx.send(CoreEvent::LssMessage(data))
