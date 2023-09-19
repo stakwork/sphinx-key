@@ -143,7 +143,7 @@ pub fn make_event_loop(
     };
 
     // store the previous msgs processed, for LSS last step
-    let mut msgs: Option<(Vec<u8>, Vec<u8>)> = None;
+    let mut msgs: Option<(Vec<u8>, [u8; 32])> = None;
 
     // signing loop
     log::info!("=> starting the main signing loop...");
@@ -174,8 +174,18 @@ pub fn make_event_loop(
                     expected_sequence,
                     do_log,
                 ) {
-                    Ok((vls_b, lss_b, sequence, _cmd)) => {
-                        if lss_b.len() == 0 {
+                    Ok((vls_b, lss_b, sequence, _cmd, server_hmac_opt)) => {
+                        if let Some(server_hmac) = server_hmac_opt {
+                            // muts! send LSS first!
+                            mqtt_pub(&mut mqtt, &client_id, topics::LSS_RES, &lss_b);
+                            msg_store
+                                .set_raw("vls_b", &vls_b)
+                                .map_err(|_e| anyhow::anyhow!("failed to put vls_b"))?;
+                            msg_store
+                                .set_raw("lss_b", &server_hmac)
+                                .map_err(|_e| anyhow::anyhow!("failed to put lss_b"))?;
+                            msgs = Some((vls_b, server_hmac));
+                        } else {
                             // no muts, respond directly back!
                             mqtt_pub(&mut mqtt, &client_id, topics::VLS_RES, &vls_b);
                             // and commit
@@ -184,16 +194,6 @@ pub fn make_event_loop(
                                 unsafe { esp_idf_sys::esp_restart() };
                             }
                             restart_esp_if_memory_low();
-                        } else {
-                            // muts! send LSS first!
-                            mqtt_pub(&mut mqtt, &client_id, topics::LSS_RES, &lss_b);
-                            msg_store
-                                .put("vls_b", &vls_b)
-                                .map_err(|_e| anyhow::anyhow!("failed to put vls_b"))?;
-                            msg_store
-                                .put("lss_b", &lss_b)
-                                .map_err(|_e| anyhow::anyhow!("failed to put lss_b"))?;
-                            msgs = Some((vls_b, lss_b));
                         }
                         expected_sequence = Some(sequence + 1);
                     }
@@ -228,16 +228,15 @@ pub fn make_event_loop(
                 if msgs.is_none() {
                     log::warn!("Restoring previous message from sd card");
                     let vls_b = msg_store
-                        .get("vls_b")
-                        .map_err(|e| anyhow::anyhow!("failed to get vls_b: {:?}", e))?
-                        .ok_or(anyhow::anyhow!("vls_b is none"))?
-                        .1;
+                        .get_raw("vls_b")
+                        .map_err(|e| anyhow::anyhow!("failed to get vls_b: {:?}", e))?;
                     let lss_b = msg_store
-                        .get("lss_b")
-                        .map_err(|e| anyhow::anyhow!("failed to get lss_b: {:?}", e))?
-                        .ok_or(anyhow::anyhow!("lss_b is none"))?
-                        .1;
-                    msgs = Some((vls_b, lss_b));
+                        .get_raw("lss_b")
+                        .map_err(|e| anyhow::anyhow!("failed to get lss_b: {:?}", e))?;
+                    let server_hmac: [u8; 32] = lss_b
+                        .try_into()
+                        .map_err(|e| anyhow::anyhow!("lss_b is not 32 bytes: {:?}", e))?;
+                    msgs = Some((vls_b, server_hmac));
                 }
                 match lss::handle_lss_msg(&msg_bytes, msgs, &lss_signer) {
                     Ok((ret_topic, bytes)) => {
@@ -245,6 +244,7 @@ pub fn make_event_loop(
                         msgs = None;
                         mqtt_pub(&mut mqtt, &client_id, &ret_topic, &bytes);
                         if ret_topic == topics::VLS_RES {
+                            log::info!("HMACs matched! commit now...");
                             // and commit
                             if let Err(e) = root_handler.node().get_persister().commit() {
                                 log::error!("LOCAL COMMIT ERROR AFTER LSS! {:?}", e);
