@@ -5,27 +5,9 @@ use bitcoin::Network;
 use log::*;
 use rocket::tokio::sync::mpsc;
 use secp256k1::PublicKey;
-use std::sync::atomic::{AtomicU16, Ordering};
 use std::thread;
-use vls_protocol::msgs::SerBolt;
 use vls_protocol::{msgs, msgs::Message, Error, Result};
 use vls_proxy::client::Client;
-
-static COUNTER: AtomicU16 = AtomicU16::new(0u16);
-static CURRENT: AtomicU16 = AtomicU16::new(0u16);
-
-pub fn take_a_ticket() -> u16 {
-    COUNTER.fetch_add(1u16, Ordering::SeqCst)
-}
-
-pub fn is_my_turn(ticket: u16) -> bool {
-    let curr = CURRENT.load(Ordering::SeqCst);
-    curr == ticket
-}
-
-pub fn my_turn_is_done() {
-    CURRENT.fetch_add(1u16, Ordering::SeqCst);
-}
 
 #[derive(Clone, Debug)]
 pub struct ClientId {
@@ -87,8 +69,6 @@ impl<C: 'static + Client> SignerLoop<C> {
     }
 
     fn do_loop(&mut self, network: Option<Network>) -> Result<()> {
-        // This counter is only used in the root loop to periodically send heartbeats to the hardware signer
-        let mut send_heartbeat = 0u8;
         loop {
             let raw_msg = self.client.read_raw()?;
             // debug!("loop {}: got raw", self.log_prefix);
@@ -133,20 +113,8 @@ impl<C: 'static + Client> SignerLoop<C> {
                         handle_message(&self.client_id, raw_msg, &self.vls_tx, &self.lss_tx);
                     // Write the reply to CLN
                     self.client.write_vec(reply)?;
-                    // Only send heartbeat messages from the root loop, as roothandler alone can process them, not channelhandler
-                    // Send it every ten messages to prune extraneous data on hardware signer
-                    if self.client_id.is_none() && send_heartbeat % 10u8 == 0u8 {
-                        let beat = msgs::GetHeartbeat {};
-                        let _ = handle_message(
-                            &self.client_id,
-                            beat.as_vec(),
-                            &self.vls_tx,
-                            &self.lss_tx,
-                        );
-                    }
                 }
             }
-            send_heartbeat = send_heartbeat.wrapping_add(1u8);
         }
     }
 }

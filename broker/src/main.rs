@@ -11,7 +11,7 @@ mod run_test;
 mod util;
 
 use crate::chain_tracker::MqttSignerPort;
-use crate::conn::{new_connection, conns_set_pubkey, current_pubkey, ChannelRequest, LssReq};
+use crate::conn::{conns_set_pubkey, current_pubkey, new_connection, ChannelRequest, LssReq};
 use crate::looper::SignerLoop;
 use crate::mqtt::{check_auth, start_broker};
 use crate::util::{read_broker_config, Settings};

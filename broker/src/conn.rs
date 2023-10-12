@@ -26,12 +26,14 @@ impl Connections {
         self.clients.insert(cid.to_string(), synced);
         self.current = Some(cid.to_string());
     }
+    /*
     fn remove_client(&mut self, cid: &str) {
         self.clients.remove(cid);
         if self.current == Some(cid.to_string()) {
             self.current = None;
         }
     }
+    */
 }
 
 pub fn current_client() -> Option<String> {
