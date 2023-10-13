@@ -1213,7 +1213,7 @@ checksum = "b06a4cde4c0f271a446782e3eff8de789548ce57dbc8eca9292c27f4a42004b4"
 [[package]]
 name = "lss-connector"
 version = "0.1.0"
-source = "git+https://github.com/stakwork/sphinx-rs.git?rev=4f8f9ee02814e17d7c3888cbef0addd6844c0fe7#4f8f9ee02814e17d7c3888cbef0addd6844c0fe7"
+source = "git+https://github.com/stakwork/sphinx-rs.git?rev=9709ba23b49aca8d8ea09197c901913f44d5fa00#9709ba23b49aca8d8ea09197c901913f44d5fa00"
 dependencies = [
  "anyhow",
  "log",
@@ -1585,7 +1585,7 @@ dependencies = [
 [[package]]
 name = "rmp-utils"
 version = "0.1.0"
-source = "git+https://github.com/stakwork/sphinx-rs.git?rev=4f8f9ee02814e17d7c3888cbef0addd6844c0fe7#4f8f9ee02814e17d7c3888cbef0addd6844c0fe7"
+source = "git+https://github.com/stakwork/sphinx-rs.git?rev=9709ba23b49aca8d8ea09197c901913f44d5fa00#9709ba23b49aca8d8ea09197c901913f44d5fa00"
 dependencies = [
  "anyhow",
  "log",
@@ -1792,7 +1792,7 @@ dependencies = [
 [[package]]
 name = "sphinx-auther"
 version = "0.1.12"
-source = "git+https://github.com/stakwork/sphinx-rs.git?rev=4f8f9ee02814e17d7c3888cbef0addd6844c0fe7#4f8f9ee02814e17d7c3888cbef0addd6844c0fe7"
+source = "git+https://github.com/stakwork/sphinx-rs.git?rev=9709ba23b49aca8d8ea09197c901913f44d5fa00#9709ba23b49aca8d8ea09197c901913f44d5fa00"
 dependencies = [
  "anyhow",
  "base64",
@@ -1804,7 +1804,7 @@ dependencies = [
 [[package]]
 name = "sphinx-crypter"
 version = "0.1.0"
-source = "git+https://github.com/stakwork/sphinx-rs.git?rev=4f8f9ee02814e17d7c3888cbef0addd6844c0fe7#4f8f9ee02814e17d7c3888cbef0addd6844c0fe7"
+source = "git+https://github.com/stakwork/sphinx-rs.git?rev=9709ba23b49aca8d8ea09197c901913f44d5fa00#9709ba23b49aca8d8ea09197c901913f44d5fa00"
 dependencies = [
  "anyhow",
  "chacha20poly1305",
@@ -1815,7 +1815,7 @@ dependencies = [
 [[package]]
 name = "sphinx-glyph"
 version = "0.1.2"
-source = "git+https://github.com/stakwork/sphinx-rs.git?rev=4f8f9ee02814e17d7c3888cbef0addd6844c0fe7#4f8f9ee02814e17d7c3888cbef0addd6844c0fe7"
+source = "git+https://github.com/stakwork/sphinx-rs.git?rev=9709ba23b49aca8d8ea09197c901913f44d5fa00#9709ba23b49aca8d8ea09197c901913f44d5fa00"
 dependencies = [
  "anyhow",
  "hex",
@@ -1866,7 +1866,7 @@ dependencies = [
 [[package]]
 name = "sphinx-signer"
 version = "0.1.0"
-source = "git+https://github.com/stakwork/sphinx-rs.git?rev=4f8f9ee02814e17d7c3888cbef0addd6844c0fe7#4f8f9ee02814e17d7c3888cbef0addd6844c0fe7"
+source = "git+https://github.com/stakwork/sphinx-rs.git?rev=9709ba23b49aca8d8ea09197c901913f44d5fa00#9709ba23b49aca8d8ea09197c901913f44d5fa00"
 dependencies = [
  "anyhow",
  "bip39",
