@@ -166,7 +166,7 @@ pub fn make_event_loop(
             Event::VlsMessage(msg_bytes) => {
                 led_tx.send(Status::Signing).unwrap();
                 let state1 = approver.control().get_state();
-                log::info!("FULL MSG {:?}", &msg_bytes);
+                //log::info!("FULL MSG {:?}", &msg_bytes);
                 let _ret = match sphinx_signer::root::handle_with_lss(
                     &root_handler,
                     &lss_signer,
