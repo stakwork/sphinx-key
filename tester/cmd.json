@@ -1,1 +1,6 @@
-"Nonce"
+{
+  "Ota": {
+    "url": "http://192.168.86.21:12346/sphinx-update-",
+    "version": 0
+  }
+}
