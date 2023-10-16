@@ -43,7 +43,7 @@ async fn main() -> anyhow::Result<()> {
         .expect("couldnt build reqwest client");
 
     let res = client
-        .post(format!("{}/control?msg={}", broker_url, msg_hex))
+        .post(format!("{}/control?msg={}&cid={}", broker_url, msg_hex, "2a79fae7f7c5349621242192f8a4a11d"))
         .header("Content-Type", "application/json")
         .send()
         .await?;
