@@ -25,13 +25,7 @@ async fn main() -> anyhow::Result<()> {
     let seed = hex::decode(seed_string).expect("yo");
     let mut ctrl = controller_from_seed(&Network::Regtest, &seed, nonce);
 
-    let mut command = ControlMessage::Nonce;
-    if let Ok(cmd_content) = std::fs::read_to_string("./tester/cmd.json") {
-        if let Ok(cmd) = serde_json::from_str::<ControlMessage>(&cmd_content) {
-            command = cmd;
-        }
-    }
-
+    let command = serde_json::from_str::<ControlMessage>(&std::fs::read_to_string("./cmd.json").unwrap()).unwrap();
     println!("COMMAND! {:?}", command);
 
     let msg = ctrl.build_msg(command)?;
