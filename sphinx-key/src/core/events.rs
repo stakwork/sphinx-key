@@ -94,7 +94,6 @@ pub fn make_event_loop(
     }
 
     let kvv_store = FsKVVStore::new(&ROOT_STORE, signer_id.clone(), None).0;
-    let msg_store = FsKVVStore::new(&ROOT_STORE, signer_id.clone(), None).0;
     let fs_persister = CloudKVVStore::new(kvv_store);
 
     let _ = fs_persister.enter();
@@ -178,12 +177,6 @@ pub fn make_event_loop(
                         if let Some(server_hmac) = server_hmac_opt {
                             // muts! send LSS first!
                             mqtt_pub(&mut mqtt, &client_id, topics::LSS_RES, &lss_b);
-                            msg_store
-                                .set_raw("vls_b", &vls_b)
-                                .map_err(|_e| anyhow::anyhow!("failed to put vls_b"))?;
-                            msg_store
-                                .set_raw("lss_b", &server_hmac)
-                                .map_err(|_e| anyhow::anyhow!("failed to put lss_b"))?;
                             msgs = Some((vls_b, server_hmac));
                         } else {
                             // no muts, respond directly back!
@@ -225,19 +218,6 @@ pub fn make_event_loop(
                 }
             }
             Event::LssMessage(msg_bytes) => {
-                if msgs.is_none() {
-                    log::warn!("Restoring previous message from sd card");
-                    let vls_b = msg_store
-                        .get_raw("vls_b")
-                        .map_err(|e| anyhow::anyhow!("failed to get vls_b: {:?}", e))?;
-                    let lss_b = msg_store
-                        .get_raw("lss_b")
-                        .map_err(|e| anyhow::anyhow!("failed to get lss_b: {:?}", e))?;
-                    let server_hmac: [u8; 32] = lss_b
-                        .try_into()
-                        .map_err(|e| anyhow::anyhow!("lss_b is not 32 bytes: {:?}", e))?;
-                    msgs = Some((vls_b, server_hmac));
-                }
                 match lss::handle_lss_msg(&msg_bytes, msgs, &lss_signer) {
                     Ok((ret_topic, bytes)) => {
                         // set msgs back to None
