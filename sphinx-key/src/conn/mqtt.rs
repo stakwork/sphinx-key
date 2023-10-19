@@ -28,8 +28,8 @@ pub fn make_client(
 
     let mut conf = MqttClientConfiguration {
         client_id: Some(&client_id),
-        buffer_size: 4096,
-        task_stack: 12288,
+        //buffer_size: 1024,
+        //task_stack: 12288,
         username: Some(username),
         password: Some(password),
         ..Default::default()
@@ -54,7 +54,8 @@ pub fn make_client(
 
     info!("MQTT client started");
 
-    thread::spawn(move || {
+    let builder = thread::Builder::new().stack_size(1524);
+    builder.spawn(move || {
         info!("MQTT Listening for messages");
         let mut inflight = Vec::new();
         let mut inflight_topic = "".to_string();
@@ -113,7 +114,7 @@ pub fn make_client(
                                     }
                                 }
                             };
-
+                            drop(msg);
                             if let Some((topic, data)) = incoming_message {
                                 if topic.ends_with(topics::VLS) {
                                     tx.send(CoreEvent::VlsMessage(data))
@@ -141,7 +142,7 @@ pub fn make_client(
             }
         }
         //info!("MQTT connection loop exit");
-    });
+    })?;
 
     Ok(client)
 }
