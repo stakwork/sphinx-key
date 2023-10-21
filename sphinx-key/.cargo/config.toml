@@ -12,6 +12,6 @@ build-std = ["std", "panic_abort"]
 [env]
 CC                         = { value = "../.embuild/espressif/tools/riscv32-esp-elf/esp-2022r1-11.2.0/riscv32-esp-elf/bin/riscv32-esp-elf-gcc", relative = true }
 CFLAGS                     = { value = "-fno-pic" }
-ESP_IDF_SDKCONFIG_DEFAULTS = "sphinx-key/sdkconfig.defaults"
 ESP_IDF_VERSION            = "tag:v5.0.2"
 MCU                        = { value = "esp32c3" }
+ESP_IDF_TOOLS_INSTALL_DIR  = "custom:../.embuild/espressif"

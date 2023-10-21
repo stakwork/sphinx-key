@@ -1849,21 +1849,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "sphinx-key-factory"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "bitflags",
- "embedded-hal 1.0.0-alpha.10",
- "embedded-svc",
- "embuild",
- "esp-idf-hal",
- "esp-idf-svc",
- "esp-idf-sys",
- "log",
-]
-
-[[package]]
 name = "sphinx-signer"
 version = "0.1.0"
 source = "git+https://github.com/stakwork/sphinx-rs.git?rev=1b6b89123171e621617125e8ab59faa246aa2ee3#1b6b89123171e621617125e8ab59faa246aa2ee3"

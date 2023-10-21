@@ -1,37 +1,68 @@
+#![no_std]
+#![no_main]
+
+mod colors;
 mod led;
 mod ota;
 mod sdcard;
-use crate::led::set_ota_led;
-use esp_idf_sys as _; // If using the `binstart` feature of `esp-idf-sys`, always keep this module imported
-use log::{error, info, warn};
-use ota::{run_sdcard_ota_update, set_boot_main_app, UPDATE_BIN_PATH};
-use std::path::Path;
-use std::thread;
-use std::time::Duration;
 
-fn main() {
-    // Temporary. Will disappear once ESP-IDF 4.4 is released, but for now it is necessary to call this function once,
-    // or else some patches to the runtime implemented by esp-idf-sys might not link properly.
-    esp_idf_svc::log::EspLogger::initialize_default();
-    esp_idf_sys::link_patches();
+use embedded_sdmmc::{Error, SdCardError};
+use esp_idf_svc::{
+    hal::{delay::FreeRtos, prelude::Peripherals},
+    sys::EspError,
+};
+use esp_println::println;
 
-    thread::sleep(Duration::from_secs(10));
-    set_ota_led();
-    info!("Hello, world! Mounting sd card...");
-    sdcard::mount_sd_card();
-    info!("SD card mounted! Checking for update...");
-    if let Ok(true) = Path::new(UPDATE_BIN_PATH).try_exists() {
-        info!("Found update.bin file! Launching the update process...");
-        while let Err(e) = run_sdcard_ota_update() {
-            error!("OTA update failed: {}", e.to_string());
-            error!("Trying again...");
-            thread::sleep(Duration::from_secs(5));
-        }
-        info!("OTA update complete!");
+#[derive(Debug)]
+pub(crate) enum FactoryError {
+    SdCardError(Error<SdCardError>),
+    OtaError(EspError),
+    EspError(EspError),
+}
+
+#[no_mangle]
+fn main() -> Result<(), FactoryError> {
+    esp_idf_svc::sys::link_patches();
+    println!("Launcher started");
+    let (sd_card_peripherals, led_peripherals) = assign_peripherals()?;
+    println!("Assigned peripherals");
+    let mut manager = sdcard::setup(sd_card_peripherals)?;
+    println!("Setup sdcard");
+    let mut led_tx = led::setup(led_peripherals)?;
+    println!("Setup led");
+    led::setup_complete(&mut led_tx)?; // BLUE
+    println!("Setup complete");
+    FreeRtos::delay_ms(5000u32);
+    if ota::update_present(&mut manager)? {
+        led::update_launch(&mut led_tx)?; // ORANGE
+        println!("Update present, proceeding with update");
+        ota::write_update(&mut manager)?;
+        led::update_complete(&mut led_tx)?; // GREEN
+        println!("Update finished, restarting the chip");
     } else {
-        warn!("Update file not found! Setting up main app boot...");
-        set_boot_main_app();
+        println!("No update present, setting boot to main app");
+        ota::set_boot_main_app()?;
+        led::main_app_launch(&mut led_tx)?; // WHITE
+        println!("Boot set to main app");
     }
-    info!("Restarting ESP, booting the main app...");
-    unsafe { esp_idf_sys::esp_restart() };
+    println!("Restarting esp");
+    FreeRtos::delay_ms(5000u32);
+    unsafe { esp_idf_svc::sys::esp_restart() };
+}
+
+fn assign_peripherals() -> Result<(sdcard::Peripherals, led::Peripherals), FactoryError> {
+    // this function here must be called only once
+    let peripherals = Peripherals::take().map_err(|e| FactoryError::EspError(e))?;
+    let sd_card_peripherals = sdcard::Peripherals {
+        spi: peripherals.spi2,
+        sck: peripherals.pins.gpio6,
+        mosi: peripherals.pins.gpio7,
+        miso: peripherals.pins.gpio2,
+        cs: peripherals.pins.gpio10,
+    };
+    let led_peripherals = led::Peripherals {
+        led: peripherals.pins.gpio0,
+        channel: peripherals.rmt.channel0,
+    };
+    Ok((sd_card_peripherals, led_peripherals))
 }
