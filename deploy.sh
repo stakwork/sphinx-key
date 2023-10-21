@@ -85,6 +85,6 @@ else
     cargo build --bin $BIN
 fi &&
 
-esptool.py --chip esp32-c3 elf2image ../target/riscv32imc-esp-espidf/$MODE/$BIN &&
-esptool.py --chip esp32c3 -b 460800 --before=default_reset --after=hard_reset write_flash --flash_mode dio --flash_freq 40m --flash_size 4MB 0x90000 ../target/riscv32imc-esp-espidf/$MODE/$BIN.bin &&
+esptool.py --chip esp32-c3 elf2image target/riscv32imc-esp-espidf/$MODE/$BIN &&
+esptool.py --chip esp32c3 -b 460800 --before=default_reset --after=hard_reset write_flash --flash_mode dio --flash_freq 40m --flash_size 4MB 0x50000 target/riscv32imc-esp-espidf/$MODE/$BIN.bin &&
 cargo espflash monitor --port $PORT

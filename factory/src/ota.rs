@@ -1,51 +1,69 @@
-use anyhow::Result;
-use embedded_svc::io::Write;
-use embedded_svc::ota::Ota;
-use embedded_svc::ota::OtaUpdate;
-use esp_idf_svc::ota::EspOta;
-use esp_idf_sys::{esp, esp_ota_get_next_update_partition, esp_ota_set_boot_partition};
-use log::info;
-use std::fs::File;
-use std::io::BufReader;
-use std::io::Read;
-use std::ptr;
+use crate::sdcard::Manager;
+use crate::FactoryError;
+use core::ptr;
+use embedded_sdmmc::{Error::FileNotFound, Mode, VolumeIdx};
+use esp_idf_svc::{
+    ota::EspOta,
+    sys::{esp, esp_ota_get_next_update_partition, esp_ota_set_boot_partition},
+};
 
-pub const UPDATE_BIN_PATH: &str = "/sdcard/update.bin";
+const FILE: &str = "update.bin";
 const BUFFER_LEN: usize = 1024;
 
-pub fn run_sdcard_ota_update() -> Result<()> {
-    let f = File::open(UPDATE_BIN_PATH)?;
-    let mut reader = BufReader::with_capacity(BUFFER_LEN, f);
+pub(crate) fn update_present(volume_mgr: &mut Manager) -> Result<bool, FactoryError> {
+    let volume0 = volume_mgr
+        .get_volume(VolumeIdx(0))
+        .map_err(|e| FactoryError::SdCardError(e))?;
+    let root_dir = volume_mgr
+        .open_root_dir(&volume0)
+        .map_err(|e| FactoryError::SdCardError(e))?;
+    let ret = match volume_mgr.find_directory_entry(&volume0, &root_dir, FILE) {
+        Ok(_) => Ok(true),
+        Err(FileNotFound) => Ok(false),
+        Err(e) => Err(FactoryError::SdCardError(e)),
+    };
+    volume_mgr.close_dir(&volume0, root_dir);
+    ret
+}
 
-    let mut ota = EspOta::new()?;
-    let mut ota = ota.initiate_update()?;
+pub(crate) fn write_update(volume_mgr: &mut Manager) -> Result<(), FactoryError> {
+    let mut volume0 = volume_mgr
+        .get_volume(VolumeIdx(0))
+        .map_err(|e| FactoryError::SdCardError(e))?;
+    let root_dir = volume_mgr
+        .open_root_dir(&volume0)
+        .map_err(|e| FactoryError::SdCardError(e))?;
+    let mut my_file = volume_mgr
+        .open_file_in_dir(&mut volume0, &root_dir, FILE, Mode::ReadOnly)
+        .map_err(|e| FactoryError::SdCardError(e))?;
 
-    let mut buf = [0_u8; BUFFER_LEN];
-    let mut read_tot: usize = 0;
-    let mut write_tot: usize = 0;
-    let mut i = 0;
-    loop {
-        let r = reader.read(&mut buf)?;
-        if r == 0 {
-            break;
-        }
-        let w = ota.write(&buf[..r])?;
-        read_tot += r;
-        write_tot += w;
-        i += 1;
-        if i % 20 == 0 {
-            info!("Cumulative bytes read: {}", read_tot);
-            info!("Cumulative bytes written: {}", write_tot);
-        }
+    let mut ota = EspOta::new().map_err(|e| FactoryError::OtaError(e))?;
+    let mut ota = ota
+        .initiate_update()
+        .map_err(|e| FactoryError::OtaError(e))?;
+
+    let mut buffer = [0u8; BUFFER_LEN];
+    while !my_file.eof() {
+        let r = volume_mgr
+            .read(&volume0, &mut my_file, &mut buffer)
+            .map_err(|e| FactoryError::SdCardError(e))?;
+        ota.write(&buffer[..r])
+            .map_err(|e| FactoryError::OtaError(e))?;
     }
-    info!("TOTAL read: {}", read_tot);
-    info!("TOTAL write: {}", write_tot);
-    ota.complete()?;
+
+    ota.complete().map_err(|e| FactoryError::OtaError(e))?;
+
+    volume_mgr
+        .close_file(&volume0, my_file)
+        .map_err(|e| FactoryError::SdCardError(e))?;
+    volume_mgr.close_dir(&volume0, root_dir);
     Ok(())
 }
 
-pub fn set_boot_main_app() {
-    let partition = unsafe { esp_ota_get_next_update_partition(ptr::null()) };
-    esp!(unsafe { esp_ota_set_boot_partition(partition) })
-        .expect("Couldn't set next boot partition...");
+pub(crate) fn set_boot_main_app() -> Result<(), FactoryError> {
+    esp!(unsafe {
+        let partition = esp_ota_get_next_update_partition(ptr::null());
+        esp_ota_set_boot_partition(partition)
+    })
+    .map_err(|e| FactoryError::OtaError(e))
 }

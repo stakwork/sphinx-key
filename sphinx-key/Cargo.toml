@@ -4,6 +4,7 @@ edition      = "2021"
 name         = "sphinx-key"
 rust-version = "1.66"
 version      = "0.1.0"
+resolver     = "2"
 
 [features]
 default    = ["std"]
@@ -28,17 +29,17 @@ sphinx-signer  = { git = "https://github.com/stakwork/sphinx-rs.git", optional =
 # sphinx-crypter  = { path = "../../sphinx-rs/crypter" }
 # sphinx-signer  = { path = "../../sphinx-rs/signer", optional = true }
 
-anyhow.workspace       = true
-bitflags.workspace     = true
-embedded-hal.workspace = true
-embedded-svc.workspace = true
-esp-idf-hal.workspace  = true
-esp-idf-svc.workspace  = true
-esp-idf-sys.workspace  = true
-log.workspace          = true
+anyhow       = { version = "1", features = ["backtrace"] }
+bitflags     = "1.3.2"
+embedded-hal = "=1.0.0-alpha.10"
+embedded-svc = "0.25.0"
+esp-idf-hal  = "0.41.1"
+esp-idf-svc  = { version = "0.46.0", features = ["experimental", "alloc"] }
+esp-idf-sys  = { version = "0.33.1", features = ["binstart"] }
+log          = "0.4.17"
 
 [build-dependencies]
-embuild.workspace = true
+embuild      = "0.31.2"
 
 [[bin]]
 name = "clear"
@@ -48,3 +49,13 @@ path = "src/clear.rs"
 name = "btn"
 path = "src/btn.rs"
 
+[profile.release]
+codegen-units = 1
+lto           = true
+opt-level     = "z"     # Optimize for size.
+panic         = "abort"
+strip         = true    # Automatically strip symbols from the binary.
+
+[profile.dev]
+debug     = true # Symbols are nice and they don't increase the size on Flash
+opt-level = "z"

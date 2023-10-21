@@ -1,47 +1,54 @@
-use esp_idf_hal::delay::Ets;
-use esp_idf_hal::delay::FreeRtos;
-use esp_idf_hal::peripherals::Peripherals;
-use esp_idf_hal::rmt::config::TransmitConfig;
-use esp_idf_hal::rmt::*;
-use std::time::Duration;
+use crate::{colors::*, FactoryError};
+use core::time::Duration;
+use esp_idf_svc::hal::{
+    delay::FreeRtos,
+    gpio::Gpio0,
+    rmt::{config::TransmitConfig, FixedLengthSignal, PinState, Pulse, TxRmtDriver, CHANNEL0},
+    sys::EspError,
+};
 
-pub fn set_ota_led() -> anyhow::Result<()> {
-    let peripherals = Peripherals::take().unwrap();
-    let led = peripherals.pins.gpio0;
-    let channel = peripherals.rmt.channel0;
+pub(crate) struct Peripherals {
+    pub led: Gpio0,
+    pub channel: CHANNEL0,
+}
+
+pub(crate) fn setup(peripherals: Peripherals) -> Result<TxRmtDriver<'static>, FactoryError> {
+    let led = peripherals.led;
+    let channel = peripherals.channel;
     let config = TransmitConfig::new().clock_divider(1);
-    let mut tx = TxRmtDriver::new(channel, led, &config).unwrap();
+    let tx = TxRmtDriver::new(channel, led, &config).map_err(|e| FactoryError::EspError(e))?;
+    Ok(tx)
+}
 
-    neopixel(
-        RGB {
-            r: 255,
-            g: 55,
-            b: 00,
-        },
-        &mut tx,
-    )?;
+pub(crate) fn setup_complete(led_tx: &mut TxRmtDriver) -> Result<(), FactoryError> {
+    neopixel(BLUE, led_tx).map_err(|e| FactoryError::EspError(e))?;
     FreeRtos::delay_ms(10);
-
     Ok(())
 }
 
-struct RGB {
-    r: u8,
-    g: u8,
-    b: u8,
+pub(crate) fn update_launch(led_tx: &mut TxRmtDriver) -> Result<(), FactoryError> {
+    neopixel(ORANGE, led_tx).map_err(|e| FactoryError::EspError(e))?;
+    FreeRtos::delay_ms(10);
+    Ok(())
+}
+
+pub(crate) fn update_complete(led_tx: &mut TxRmtDriver) -> Result<(), FactoryError> {
+    neopixel(GREEN, led_tx).map_err(|e| FactoryError::EspError(e))?;
+    FreeRtos::delay_ms(10);
+    Ok(())
+}
+
+pub(crate) fn main_app_launch(led_tx: &mut TxRmtDriver) -> Result<(), FactoryError> {
+    neopixel(WHITE, led_tx).map_err(|e| FactoryError::EspError(e))?;
+    FreeRtos::delay_ms(10);
+    Ok(())
 }
 
 fn ns(nanos: u64) -> Duration {
     Duration::from_nanos(nanos)
 }
 
-fn rotate_rgb(rgb: u32) -> u32 {
-    let b_mask: u32 = 0xff;
-    let blue = (rgb & b_mask) << 16;
-    blue | (rgb >> 8)
-}
-
-fn neopixel(rgb: RGB, tx: &mut TxRmtDriver) -> anyhow::Result<()> {
+fn neopixel(rgb: RGB, tx: &mut TxRmtDriver) -> Result<(), EspError> {
     // e.g. rgb: (1,2,4)
     // G        R        B
     // 7      0 7      0 7      0
