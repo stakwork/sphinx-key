@@ -2046,9 +2046,9 @@ dependencies = [
 
 [[package]]
 name = "txoo"
-version = "0.6.2-beta.2"
+version = "0.6.2-beta.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "15baf29308bcea1ef58d50bac31680bfde24f37116f82d853c3628ee33a6dc9d"
+checksum = "74fb0ae52e565a5e1364ed50933a2a884f2e6330e8ffe9ac32ec6c4084bd3a3a"
 dependencies = [
  "bitcoin",
  "log",
