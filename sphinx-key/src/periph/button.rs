@@ -1,8 +1,8 @@
 use crate::core::FlashPersister;
 use crate::status::Status;
 use anyhow::Result;
-use esp_idf_hal::gpio;
-use esp_idf_hal::gpio::*;
+use esp_idf_svc::hal::gpio;
+use esp_idf_svc::hal::gpio::*;
 use sphinx_signer::sphinx_glyph::control::ControlPersist;
 use std::sync::{mpsc, Arc, Mutex};
 use std::thread;
@@ -37,7 +37,7 @@ pub fn button_loop(
                 } else {
                     log::info!("restarting esp!");
                     drop(flash);
-                    unsafe { esp_idf_sys::esp_restart() };
+                    unsafe { esp_idf_svc::sys::esp_restart() };
                 }
             }
             thread::sleep(Duration::from_millis(PAUSE.into()));

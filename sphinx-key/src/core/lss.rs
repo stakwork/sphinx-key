@@ -1,10 +1,10 @@
 use crate::conn::mqtt::QOS;
 use crate::core::events::Event;
 use anyhow::{anyhow, Result};
-use embedded_svc::mqtt::client::MessageImpl;
-use embedded_svc::utils::mqtt::client::ConnState;
+use esp_idf_svc::mqtt::client::ConnState;
 use esp_idf_svc::mqtt::client::EspMqttClient;
-use esp_idf_sys::EspError;
+use esp_idf_svc::mqtt::client::MessageImpl;
+use esp_idf_svc::sys::EspError;
 use lss_connector::{secp256k1::PublicKey, BrokerMutations, LssSigner, Msg as LssMsg};
 use sphinx_signer::sphinx_glyph::topics;
 use sphinx_signer::{self, RootHandler, RootHandlerBuilder};

@@ -1,16 +1,17 @@
-use embedded_svc::httpd::Result;
-use embedded_svc::ipv4;
-use embedded_svc::wifi::*;
-use esp_idf_hal::peripheral;
+use anyhow::Result;
 use esp_idf_svc::eventloop::EspSystemEventLoop;
+use esp_idf_svc::hal::peripheral;
+use esp_idf_svc::ipv4::Ipv4Addr;
 use esp_idf_svc::nvs::EspDefaultNvsPartition;
-use esp_idf_svc::ping;
-use esp_idf_svc::wifi::*;
+use esp_idf_svc::ping::EspPing;
+use esp_idf_svc::wifi::{
+    AccessPointConfiguration, AuthMethod, BlockingWifi, ClientConfiguration, Configuration, EspWifi,
+};
 use log::*;
 use sphinx_signer::sphinx_glyph::control::Config;
 
 pub fn start_client(
-    modem: impl peripheral::Peripheral<P = esp_idf_hal::modem::Modem> + 'static,
+    modem: impl peripheral::Peripheral<P = esp_idf_svc::hal::modem::Modem> + 'static,
     default_nvs: EspDefaultNvsPartition,
     config: &Config,
 ) -> Result<BlockingWifi<EspWifi<'static>>> {
@@ -72,7 +73,7 @@ fn try_connection(wifi: &mut BlockingWifi<EspWifi<'static>>) -> Result<()> {
 }
 
 pub fn start_access_point(
-    modem: impl peripheral::Peripheral<P = esp_idf_hal::modem::Modem> + 'static,
+    modem: impl peripheral::Peripheral<P = esp_idf_svc::hal::modem::Modem> + 'static,
     default_nvs: EspDefaultNvsPartition,
 ) -> Result<BlockingWifi<EspWifi<'static>>> {
     let sysloop = EspSystemEventLoop::take()?;
@@ -121,15 +122,14 @@ pub fn start_access_point(
     Ok(wifi)
 }
 
-fn _ping(ip_settings: &ipv4::ClientSettings) -> Result<()> {
-    info!("About to do some pings for {:?}", ip_settings);
+fn _ping(ip_addr: Ipv4Addr) -> Result<()> {
+    info!("About to do some pings for {}", ip_addr);
 
-    let ping_summary =
-        ping::EspPing::default().ping(ip_settings.subnet.gateway, &Default::default())?;
+    let ping_summary = EspPing::default().ping(ip_addr, &Default::default())?;
     if ping_summary.transmitted != ping_summary.received {
         return Err(anyhow::anyhow!(
             "Pinging gateway {} resulted in timeouts",
-            ip_settings.subnet.gateway
+            ip_addr
         ));
     }
 

@@ -1,7 +1,7 @@
 use bitflags::bitflags;
-// use esp_idf_sys::c_types::c_char;
+// use esp_idf_svc::sys::c_types::c_char;
 use core::ffi::c_char;
-use esp_idf_sys::{
+use esp_idf_svc::sys::{
     esp, esp_vfs_fat_sdmmc_mount_config_t, esp_vfs_fat_sdspi_mount, gpio_num_t, sdmmc_card_t,
     sdmmc_host_t, sdspi_device_config_t, spi_bus_config_t, spi_bus_initialize, spi_host_device_t,
     spi_host_device_t_SPI2_HOST,
@@ -64,15 +64,15 @@ pub fn mount_sd_card() -> anyhow::Result<()> {
     let mut card: *mut sdmmc_card_t = ptr::null_mut();
 
     let bus_cfg = spi_bus_config_t {
-        __bindgen_anon_1: esp_idf_sys::spi_bus_config_t__bindgen_ty_1 {
+        __bindgen_anon_1: esp_idf_svc::sys::spi_bus_config_t__bindgen_ty_1 {
             mosi_io_num: SPI_GPIO_MOSI,
         },
-        __bindgen_anon_2: esp_idf_sys::spi_bus_config_t__bindgen_ty_2 {
+        __bindgen_anon_2: esp_idf_svc::sys::spi_bus_config_t__bindgen_ty_2 {
             miso_io_num: SPI_GPIO_MISO,
         },
         sclk_io_num: SPI_GPIO_CLK,
-        __bindgen_anon_3: esp_idf_sys::spi_bus_config_t__bindgen_ty_3 { quadwp_io_num: -1 },
-        __bindgen_anon_4: esp_idf_sys::spi_bus_config_t__bindgen_ty_4 { quadhd_io_num: -1 },
+        __bindgen_anon_3: esp_idf_svc::sys::spi_bus_config_t__bindgen_ty_3 { quadwp_io_num: -1 },
+        __bindgen_anon_4: esp_idf_svc::sys::spi_bus_config_t__bindgen_ty_4 { quadhd_io_num: -1 },
         data4_io_num: -1,
         data5_io_num: -1,
         data6_io_num: -1,
@@ -86,7 +86,7 @@ pub fn mount_sd_card() -> anyhow::Result<()> {
         spi_bus_initialize(
             SPI_HOST_SLOT as u32,
             &bus_cfg,
-            esp_idf_sys::spi_common_dma_t_SPI_DMA_CH_AUTO,
+            esp_idf_svc::sys::spi_common_dma_t_SPI_DMA_CH_AUTO,
         )
     }) {
         if error.code() != 259 {
@@ -109,17 +109,17 @@ pub fn mount_sd_card() -> anyhow::Result<()> {
         slot: SPI_HOST_SLOT as i32,
         max_freq_khz: SDMMCFreq::Default as i32, //SDMMC_FREQ_DEFAULT,
         io_voltage: 3.3f32,
-        init: Some(esp_idf_sys::sdspi_host_init),
+        init: Some(esp_idf_svc::sys::sdspi_host_init),
         set_bus_width: None,
         get_bus_width: None,
         set_bus_ddr_mode: None,
-        set_card_clk: Some(esp_idf_sys::sdspi_host_set_card_clk),
-        do_transaction: Some(esp_idf_sys::sdspi_host_do_transaction),
-        __bindgen_anon_1: esp_idf_sys::sdmmc_host_t__bindgen_ty_1 {
-            deinit_p: Some(esp_idf_sys::sdspi_host_remove_device),
+        set_card_clk: Some(esp_idf_svc::sys::sdspi_host_set_card_clk),
+        do_transaction: Some(esp_idf_svc::sys::sdspi_host_do_transaction),
+        __bindgen_anon_1: esp_idf_svc::sys::sdmmc_host_t__bindgen_ty_1 {
+            deinit_p: Some(esp_idf_svc::sys::sdspi_host_remove_device),
         },
-        io_int_enable: Some(esp_idf_sys::sdspi_host_io_int_enable),
-        io_int_wait: Some(esp_idf_sys::sdspi_host_io_int_wait),
+        io_int_enable: Some(esp_idf_svc::sys::sdspi_host_io_int_enable),
+        io_int_wait: Some(esp_idf_svc::sys::sdspi_host_io_int_wait),
         command_timeout_ms: 0,
     };
 

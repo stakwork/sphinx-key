@@ -11,13 +11,13 @@ use crate::periph::led::led_control_loop;
 #[allow(unused_imports)]
 use crate::periph::sd::{mount_sd_card, simple_fs_test};
 use crate::status::Status;
-
 use anyhow::Result;
-use esp_idf_hal::gpio::{Gpio0, Gpio9};
-use esp_idf_hal::peripheral::Peripheral;
-use esp_idf_hal::peripherals::Peripherals;
+use esp_idf_svc::hal::gpio::{Gpio0, Gpio9};
+use esp_idf_svc::hal::peripheral::Peripheral;
+use esp_idf_svc::hal::peripherals::Peripherals;
 use esp_idf_svc::nvs::EspDefaultNvsPartition;
-use esp_idf_sys as _; // If using the `binstart` feature of `esp-idf-sys`, always keep this module imported
+#[allow(unused_imports)]
+use esp_idf_svc::sys as _;
 use sphinx_signer::lightning_signer::bitcoin::Network;
 use sphinx_signer::sphinx_glyph::control::{Config, ControlPersist, Policy, Velocity};
 use std::sync::{mpsc, Arc, Mutex};
@@ -30,7 +30,7 @@ const ID_LEN: usize = 16;
 fn main() -> Result<()> {
     // Temporary. Will disappear once ESP-IDF 4.4 is released, but for now it is necessary to call this function once,
     // or else some patches to the runtime implemented by esp-idf-sys might not link properly.
-    esp_idf_sys::link_patches();
+    esp_idf_svc::sys::link_patches();
     esp_idf_svc::log::EspLogger::initialize_default();
     thread::sleep(Duration::from_secs(1));
     let mut peripherals = Peripherals::take().unwrap();
@@ -82,7 +82,7 @@ fn main() -> Result<()> {
             Err(e) => {
                 log::error!("Could not setup wifi: {}", e);
                 log::info!("Restarting esp!");
-                unsafe { esp_idf_sys::esp_restart() };
+                unsafe { esp_idf_svc::sys::esp_restart() };
             }
         };
 
@@ -90,7 +90,7 @@ fn main() -> Result<()> {
         if let Err(e) = conn::sntp::sync_time_timeout() {
             log::error!("Could not setup sntp: {}", e);
             log::info!("Restarting esp!");
-            unsafe { esp_idf_sys::esp_restart() };
+            unsafe { esp_idf_svc::sys::esp_restart() };
         }
         let now = SystemTime::now()
             .duration_since(SystemTime::UNIX_EPOCH)
@@ -142,7 +142,7 @@ fn main() -> Result<()> {
                 drop(flash);
                 println!("CONFIG SAVED");
                 thread::sleep(Duration::from_secs(2));
-                unsafe { esp_idf_sys::esp_restart() };
+                unsafe { esp_idf_svc::sys::esp_restart() };
             }
             Err(msg) => {
                 log::error!("{}", msg);
@@ -204,7 +204,7 @@ fn make_and_launch_client(
         ctrlr,
         &signer_id,
         &pubkey,
-    )?;
+    );
     Ok(())
 }
 

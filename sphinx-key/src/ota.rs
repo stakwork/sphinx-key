@@ -1,7 +1,6 @@
 use crate::status::Status;
 use anyhow::{anyhow, Result};
 use embedded_svc::http::client::Client;
-
 use esp_idf_svc::http::client::Configuration;
 use esp_idf_svc::http::client::EspHttpConnection;
 use esp_idf_svc::http::client::FollowRedirectsPolicy::FollowNone;

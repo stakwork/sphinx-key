@@ -9,7 +9,7 @@ use std::time::Duration;
 use esp_idf_svc::nvs::*;
 use esp_idf_svc::wifi::*;
 
-use esp_idf_hal::peripheral;
+use esp_idf_svc::hal::peripheral;
 
 use sphinx_crypter::chacha::{decrypt, PAYLOAD_LEN};
 use sphinx_crypter::ecdh::{derive_shared_secret_from_slice, PUBLIC_KEY_LEN};
@@ -41,7 +41,7 @@ arp -a
 */
 
 pub fn start_wifi_client(
-    modem: impl peripheral::Peripheral<P = esp_idf_hal::modem::Modem> + 'static,
+    modem: impl peripheral::Peripheral<P = esp_idf_svc::hal::modem::Modem> + 'static,
     default_nvs: EspDefaultNvsPartition,
     config: &Config,
 ) -> Result<BlockingWifi<EspWifi>> {
@@ -81,7 +81,7 @@ pub fn decrypt_seed(dto: ConfigDTO, sk1: SecretKey) -> Result<(Config, Option<[u
 }
 
 pub fn start_config_server_and_wait(
-    modem: impl peripheral::Peripheral<P = esp_idf_hal::modem::Modem> + 'static,
+    modem: impl peripheral::Peripheral<P = esp_idf_svc::hal::modem::Modem> + 'static,
     default_nvs: EspDefaultNvsPartition,
     has_stored_seed: bool,
 ) -> Result<(BlockingWifi<EspWifi<'static>>, Config, Option<[u8; 32]>)> {

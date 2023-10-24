@@ -11,7 +11,7 @@ use lss_connector::secp256k1::PublicKey;
 use sphinx_signer::approver::SphinxApprover;
 use sphinx_signer::lightning_signer::bitcoin::Network;
 //use sphinx_signer::lightning_signer::persist::DummyPersister;
-use sphinx_signer::kvv::{CloudKVVStore, FsKVVStore, KVVStore};
+use sphinx_signer::kvv::{CloudKVVStore, FsKVVStore};
 use sphinx_signer::lightning_signer::persist::Persist;
 use sphinx_signer::root::VlsHandlerError;
 use sphinx_signer::sphinx_glyph as glyph;
@@ -20,13 +20,9 @@ use std::sync::mpsc;
 use std::sync::Arc;
 use std::thread;
 
-use embedded_svc::httpd::Result;
 // use embedded_svc::mqtt::client::Client;
-use embedded_svc::mqtt::client::MessageImpl;
-use embedded_svc::utils::mqtt::client::ConnState;
 use esp_idf_svc::mqtt::client::*;
-use esp_idf_sys;
-use esp_idf_sys::EspError;
+use esp_idf_svc::sys::EspError;
 
 #[derive(Debug)]
 pub enum Event {
@@ -78,7 +74,7 @@ pub fn make_event_loop(
     mut ctrlr: Controller,
     signer_id: &[u8; 16],
     node_id: &PublicKey,
-) -> Result<()> {
+) {
     let client_id = hex::encode(signer_id);
 
     while let Ok(event) = rx.recv() {
@@ -137,7 +133,7 @@ pub fn make_event_loop(
         Ok(rl) => rl,
         Err(e) => {
             log::error!("failed to init lss {:?}", e);
-            unsafe { esp_idf_sys::esp_restart() };
+            unsafe { esp_idf_svc::sys::esp_restart() };
         }
     };
 
@@ -149,6 +145,8 @@ pub fn make_event_loop(
     let flash_db = ctrlr.persister();
     let mut expected_sequence = None;
     while let Ok(event) = rx.recv() {
+        log::info!("new event loop!");
+        check_memory();
         match event {
             Event::Connected => {
                 log::info!("GOT A Event::Connected msg!");
@@ -184,22 +182,22 @@ pub fn make_event_loop(
                             // and commit
                             if let Err(e) = root_handler.node().get_persister().commit() {
                                 log::error!("LOCAL COMMIT ERROR! {:?}", e);
-                                unsafe { esp_idf_sys::esp_restart() };
+                                unsafe { esp_idf_svc::sys::esp_restart() };
                             }
                             restart_esp_if_memory_low();
                         }
                         expected_sequence = Some(sequence + 1);
                     }
                     Err(e) => match e {
-                        VlsHandlerError::BadSequence(current, expected) => unsafe {
+                        VlsHandlerError::BadSequence(current, expected) => {
                             log::info!(
                                 "caught a badsequence error, current: {}, expected: {}",
                                 current,
                                 expected
                             );
                             log::info!("restarting esp!");
-                            unsafe { esp_idf_sys::esp_restart() };
-                        },
+                            unsafe { esp_idf_svc::sys::esp_restart() };
+                        }
                         _ => {
                             let err_msg = GlyphError::new(1, &e.to_string());
                             log::error!("HANDLE FAILED {:?}", e);
@@ -228,13 +226,13 @@ pub fn make_event_loop(
                             // and commit
                             if let Err(e) = root_handler.node().get_persister().commit() {
                                 log::error!("LOCAL COMMIT ERROR AFTER LSS! {:?}", e);
-                                unsafe { esp_idf_sys::esp_restart() };
+                                unsafe { esp_idf_svc::sys::esp_restart() };
                             }
                             restart_esp_if_memory_low();
                         }
                         if ret_topic == topics::LSS_CONFLICT_RES {
                             log::error!("LSS PUT CONFLICT! RESTART...");
-                            unsafe { esp_idf_sys::esp_restart() };
+                            unsafe { esp_idf_svc::sys::esp_restart() };
                         }
                     }
                     Err(e) => {
@@ -259,14 +257,12 @@ pub fn make_event_loop(
             }
         }
     }
-
-    Ok(())
 }
 
-fn restart_esp_if_memory_low() {
+pub(crate) fn restart_esp_if_memory_low() {
     unsafe {
-        let size = esp_idf_sys::heap_caps_get_free_size(4);
-        let block = esp_idf_sys::heap_caps_get_largest_free_block(4);
+        let size = esp_idf_svc::sys::heap_caps_get_free_size(4);
+        let block = esp_idf_svc::sys::heap_caps_get_largest_free_block(4);
         let threshold = 25000;
         log::info!(
             "Available DRAM: {}, Max block: {}, Restart Threshold: {}",
@@ -276,8 +272,16 @@ fn restart_esp_if_memory_low() {
         );
         if block < threshold {
             log::info!("Restarting esp!");
-            esp_idf_sys::esp_restart();
+            esp_idf_svc::sys::esp_restart();
         }
+    }
+}
+
+pub(crate) fn check_memory() {
+    unsafe {
+        let size = esp_idf_svc::sys::heap_caps_get_free_size(4);
+        let block = esp_idf_svc::sys::heap_caps_get_largest_free_block(4);
+        log::info!("CHECK: Available DRAM: {}, Max block: {}", size, block,);
     }
 }
 
@@ -331,7 +335,7 @@ fn handle_control_response(
                                     log::error!("OTA update failed {:?}", e.to_string());
                                 } else {
                                     log::info!("OTA flow complete, restarting esp...");
-                                    unsafe { esp_idf_sys::esp_restart() };
+                                    unsafe { esp_idf_svc::sys::esp_restart() };
                                 }
                             })
                             .unwrap();

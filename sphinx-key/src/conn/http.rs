@@ -1,16 +1,11 @@
 use crate::core::config::{decrypt_seed, ecdh_keypair, ConfigDTO};
-use sphinx_signer::sphinx_glyph::control::Config;
-
+use anyhow::Result;
+use esp_idf_svc::http::server::HandlerError;
+use esp_idf_svc::http::server::{Configuration, EspHttpServer};
+use esp_idf_svc::http::Method;
 use serde::Deserialize;
+use sphinx_signer::sphinx_glyph::control::Config;
 use std::sync::{Arc, Condvar, Mutex};
-
-// use embedded_svc::http::server::registry::Registry;
-// use embedded_svc::http::server::*;
-#[allow(deprecated)]
-use embedded_svc::httpd::registry::Registry;
-use embedded_svc::httpd::Result;
-
-use esp_idf_svc::httpd as idf;
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct Ecdh {
@@ -21,42 +16,37 @@ pub struct Params {
     pub config: String,
 }
 
-#[allow(unused_variables, deprecated)]
 pub fn config_server(
     mutex: Arc<(Mutex<Option<(Config, Option<[u8; 32]>)>>, Condvar)>,
     has_stored_seed: bool,
-) -> Result<idf::Server> {
+) -> Result<EspHttpServer<'static>> {
     let (sk1, pk1) = ecdh_keypair();
 
-    let server = idf::ServerRegistry::new()
-        .at("/ecdh")
-        .get(move |_| {
-            Ok(
-                format!("{{\"pubkey\":\"{}\"}}", hex::encode(pk1.serialize()))
-                    .to_owned()
-                    .into(),
-            )
+    let mut server = EspHttpServer::new(&Configuration::default()).unwrap();
+    server
+        .fn_handler("/ecdh", Method::Get, move |request| {
+            let mut response = request.into_ok_response()?;
+            response.write(
+                &format!("{{\"pubkey\":\"{}\"}}", hex::encode(pk1.serialize())).into_bytes(),
+            )?;
+            response.flush()?;
+            Ok(())
         })?
-        .at("/config")
-        .post(move |request| {
-            let bod = &request
-                .query_string()
-                .ok_or(anyhow::anyhow!("failed to parse query string"))?;
-            println!("bod {:?}", bod);
-            let params = serde_urlencoded::from_str::<Params>(bod)?;
-
+        .fn_handler("/config", Method::Post, move |request| {
+            let params =
+                serde_urlencoded::from_str::<Params>(request.uri().split_once("?").unwrap().1)?;
             let dto = serde_json::from_str::<ConfigDTO>(&params.config)?;
-
             let conf_seed_tuple = decrypt_seed(dto, sk1)?;
             if !has_stored_seed && conf_seed_tuple.1.is_none() {
-                return Err(anyhow::anyhow!("seed required"));
+                return Err(HandlerError::new("seed required"));
             }
-
             let mut wait = mutex.0.lock().unwrap();
             *wait = Some(conf_seed_tuple);
             mutex.1.notify_one();
-            Ok("{\"success\":true}".to_owned().into())
+            let mut response = request.into_ok_response()?;
+            response.write("{\"success\":true}".as_bytes())?;
+            response.flush()?;
+            Ok(())
         })?;
-
-    server.start(&Default::default())
+    Ok(server)
 }

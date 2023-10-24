@@ -68,7 +68,9 @@ async fn main() -> anyhow::Result<()> {
             .header("Content-Type", "application/json")
             .send()
             .await?;
+        println!("Response: {:?}", res);
         let their_ecdh: EcdhBody = res.json().await?;
+        println!("Received pubkey from signer");
         let their_pk = hex::decode(their_ecdh.pubkey)?;
 
         let their_pk_bytes: [u8; PUBLIC_KEY_LEN] = their_pk[..PUBLIC_KEY_LEN].try_into()?;
@@ -99,16 +101,15 @@ async fn main() -> anyhow::Result<()> {
     };
 
     let conf_encoded = urlencoding::encode(&conf_string).to_owned();
-
+    println!("Posting seed");
     let res2 = client
         .post(format!("{}/{}={}", url, "config?config", conf_encoded))
         .send()
         .await?;
     let conf_res: ConfigResponse = res2.json().await?;
-
+    println!("Got response");
     if conf_res.success {
         println!("SUCCESS!")
     }
-
     Ok(())
 }

@@ -1,8 +1,8 @@
 use crate::status::Status;
 use anyhow::Result;
-use esp_idf_hal::rmt::config::TransmitConfig;
-use esp_idf_hal::rmt::{FixedLengthSignal, PinState, Pulse, TxRmtDriver};
-use esp_idf_hal::{gpio, rmt};
+use esp_idf_svc::hal::rmt::config::TransmitConfig;
+use esp_idf_svc::hal::rmt::{FixedLengthSignal, PinState, Pulse, TxRmtDriver};
+use esp_idf_svc::hal::{gpio, rmt};
 use std::collections::BTreeMap;
 use std::sync::{mpsc, Arc, Mutex};
 use std::thread;

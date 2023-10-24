@@ -2,14 +2,10 @@ use crate::core::events::Event as CoreEvent;
 use sphinx_signer::sphinx_glyph::topics;
 
 use anyhow::Result;
-use embedded_svc::mqtt::client::Details;
-use embedded_svc::mqtt::client::{Connection, Event, Message as MqttMessage, MessageImpl, QoS};
-use embedded_svc::utils::mqtt::client::ConnState;
 // use embedded_svc::utils::mqtt::client::Connection as MqttConnection;
 // use embedded_svc::utils::mutex::Condvar;
 use esp_idf_svc::mqtt::client::*;
-use esp_idf_sys::EspError;
-use esp_idf_sys::{self};
+use esp_idf_svc::sys::EspError;
 use log::*;
 use std::sync::mpsc;
 use std::thread;
@@ -22,7 +18,7 @@ pub fn make_client(
     username: &str,
     password: &str,
     tx: mpsc::Sender<CoreEvent>,
-) -> Result<EspMqttClient<ConnState<MessageImpl, EspError>>> {
+) -> Result<EspMqttClient<'static, ConnState<MessageImpl, EspError>>> {
     let client_id = hex::encode(signer_id);
     log::info!("make_client with id {}", client_id);
 
@@ -36,7 +32,7 @@ pub fn make_client(
     };
 
     if cfg!(feature = "tls") {
-        conf.crt_bundle_attach = Some(esp_idf_sys::esp_crt_bundle_attach);
+        conf.crt_bundle_attach = Some(esp_idf_svc::sys::esp_crt_bundle_attach);
     }
 
     let mut mqtturl = broker.to_string();
