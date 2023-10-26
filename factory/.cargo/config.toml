@@ -10,6 +10,6 @@ rustflags = ["--cfg", "espidf_time64", "-C", "default-linker-libraries"]
 build-std = ["core", "alloc", "panic_abort"]
 
 [env]
-ESP_IDF_VERSION            = "tag:v5.0.2"
+ESP_IDF_VERSION            = "tag:v5.0.4"
 MCU                        = "esp32c3"
 ESP_IDF_TOOLS_INSTALL_DIR  = "custom:../.embuild/espressif"

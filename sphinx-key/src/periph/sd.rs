@@ -121,6 +121,7 @@ pub fn mount_sd_card() -> anyhow::Result<()> {
         io_int_enable: Some(esp_idf_svc::sys::sdspi_host_io_int_enable),
         io_int_wait: Some(esp_idf_svc::sys::sdspi_host_io_int_wait),
         command_timeout_ms: 0,
+        set_cclk_always_on: None,
     };
 
     esp!(unsafe {
