@@ -613,12 +613,10 @@ dependencies = [
  "embedded-io-async",
  "enumset",
  "heapless",
- "log",
  "no-std-net",
  "num_enum",
  "serde",
  "strum 0.25.0",
- "strum_macros 0.25.3",
 ]
 
 [[package]]
@@ -652,7 +650,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e875f1719c16de097dee81ed675e2d9bb63096823ed3f0ca827b7dea3028bbbb"
 dependencies = [
  "enumset_derive",
- "serde",
 ]
 
 [[package]]
@@ -937,7 +934,6 @@ dependencies = [
  "atomic-polyfill",
  "hash32",
  "rustc_version",
- "serde",
  "spin",
  "stable_deref_trait",
 ]
@@ -1240,9 +1236,6 @@ name = "no-std-net"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1bcece43b12349917e096cddfa66107277f123e6c96a5aea78711dc601a47152"
-dependencies = [
- "serde",
-]
 
 [[package]]
 name = "nom"
@@ -1774,8 +1767,6 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "bitflags",
- "embedded-hal 1.0.0-rc.1",
- "embedded-svc",
  "embuild",
  "esp-idf-svc",
  "hex",

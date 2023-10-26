@@ -9,7 +9,6 @@ use crate::periph::sd::mount_sd_card;
 
 use esp_idf_svc as _; // If using the `binstart` feature of `esp-idf-sys`, always keep this module imported
 
-// use embedded_svc::storage::StorageBase;
 // use esp_idf_svc::nvs::EspNvs;
 // use esp_idf_svc::nvs::*;
 

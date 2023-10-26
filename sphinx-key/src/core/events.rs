@@ -20,7 +20,6 @@ use std::sync::mpsc;
 use std::sync::Arc;
 use std::thread;
 
-// use embedded_svc::mqtt::client::Client;
 use esp_idf_svc::mqtt::client::*;
 use esp_idf_svc::sys::EspError;
 

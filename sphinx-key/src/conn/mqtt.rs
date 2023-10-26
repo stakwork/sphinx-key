@@ -2,8 +2,6 @@ use crate::core::events::Event as CoreEvent;
 use sphinx_signer::sphinx_glyph::topics;
 
 use anyhow::Result;
-// use embedded_svc::utils::mqtt::client::Connection as MqttConnection;
-// use embedded_svc::utils::mutex::Condvar;
 use esp_idf_svc::mqtt::client::*;
 use esp_idf_svc::sys::EspError;
 use log::*;

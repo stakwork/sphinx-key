@@ -1,9 +1,9 @@
 use crate::status::Status;
 use anyhow::{anyhow, Result};
-use embedded_svc::http::client::Client;
 use esp_idf_svc::http::client::Configuration;
 use esp_idf_svc::http::client::EspHttpConnection;
 use esp_idf_svc::http::client::FollowRedirectsPolicy::FollowNone;
+use esp_idf_svc::http::Method;
 use esp_idf_svc::ota::EspOta;
 use log::{error, info};
 use sphinx_signer::sphinx_glyph::control::OtaParams;
@@ -36,9 +36,10 @@ fn get_update(params: OtaParams, led_tx: mpsc::Sender<Status>) -> Result<()> {
         use_global_ca_store: true,
         ..Default::default()
     };
-    let mut client = Client::wrap(EspHttpConnection::new(&configuration)?);
+    let mut reader = EspHttpConnection::new(&configuration)?;
     let full_url = params_to_url(params);
-    let mut reader = client.get(&full_url)?.submit()?;
+    reader.initiate_request(Method::Get, &full_url, &[])?;
+    reader.initiate_response()?;
     // let mut reader = response.reader();
 
     let _ = remove_file(UPDATE_BIN_PATH);
@@ -86,11 +87,12 @@ pub fn validate_ota_message(params: OtaParams) -> Result<()> {
         use_global_ca_store: true,
         ..Default::default()
     };
-    let mut client = Client::wrap(EspHttpConnection::new(&configuration)?);
+    let mut reader = EspHttpConnection::new(&configuration)?;
     let full_url = params_to_url(params);
     info!("Pinging this url for an update: {}", full_url);
-    let response = client.get(&full_url)?.submit()?;
-    let status = response.status();
+    reader.initiate_request(Method::Get, &full_url, &[])?;
+    reader.initiate_response()?;
+    let status = reader.status();
     if status == 200 {
         info!("Got valid OTA url! Proceeding with OTA update...");
         Ok(())
