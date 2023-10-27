@@ -34,7 +34,12 @@ pub fn start_client(
     }))?;
     info!("Wifi configured");
 
-    try_connection(&mut wifi)?;
+    loop {
+        match try_connection(&mut wifi) {
+            Ok(_) => break,
+            Err(e) => info!("error: {}, trying wifi connection again!", e),
+        }
+    }
 
     // let status = wifi.get_status();
     // println!("=> wifi STATUS {:?}", status);
