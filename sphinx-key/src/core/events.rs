@@ -143,6 +143,7 @@ pub fn make_event_loop(
     log::info!("=> starting the main signing loop...");
     let flash_db = ctrlr.persister();
     let mut expected_sequence = None;
+    let mut current_status = Status::ConnectingToMqtt;
     while let Ok(event) = rx.recv() {
         log::info!("new event loop!");
         check_memory();
@@ -153,14 +154,14 @@ pub fn make_event_loop(
                 thread::sleep(std::time::Duration::from_secs(1));
                 // send the initial HELLO again
                 mqtt_pub(&mut mqtt, &client_id, topics::HELLO, &[]);
-                led_tx.send(Status::Connected).unwrap();
+                current_status = update_led(current_status, Status::Connected, &led_tx);
             }
             Event::Disconnected => {
-                led_tx.send(Status::ConnectingToMqtt).unwrap();
+                current_status = update_led(current_status, Status::ConnectingToMqtt, &led_tx);
                 log::info!("GOT A Event::Disconnected msg!");
             }
             Event::VlsMessage(msg_bytes) => {
-                led_tx.send(Status::Signing).unwrap();
+                current_status = update_led(current_status, Status::Signing, &led_tx);
                 let state1 = approver.control().get_state();
                 //log::info!("FULL MSG {:?}", &msg_bytes);
                 let _ret = match sphinx_signer::root::handle_with_lss(
@@ -246,15 +247,29 @@ pub fn make_event_loop(
             Event::Control(ref msg_bytes) => {
                 log::info!("GOT A CONTROL MSG");
                 let cres = ctrlr.handle(msg_bytes);
-                if let Some(res) =
-                    handle_control_response(&root_handler, &approver, cres, led_tx.clone())
-                {
-                    let mut bb = ByteBuf::new();
-                    serialize_controlresponse(&mut bb, &res).expect("failed serialize_lssresponse");
-                    mqtt_pub(&mut mqtt, &client_id, topics::CONTROL_RES, bb.as_slice());
+                let res = handle_control_response(&root_handler, &approver, cres, led_tx.clone());
+                let mut bb = ByteBuf::new();
+                serialize_controlresponse(&mut bb, &res).expect("failed serialize_lssresponse");
+                mqtt_pub(&mut mqtt, &client_id, topics::CONTROL_RES, bb.as_slice());
+                if let ControlResponse::OtaConfirm(params) = res {
+                    if let Err(e) = update_sphinx_key(params) {
+                        log::error!("OTA update failed {:?}", e.to_string());
+                    } else {
+                        log::info!("OTA flow complete, restarting esp...");
+                        unsafe { esp_idf_svc::sys::esp_restart() };
+                    }
                 }
             }
         }
+    }
+}
+
+fn update_led(current: Status, new: Status, led_tx: &mpsc::Sender<Status>) -> Status {
+    if current != new {
+        led_tx.send(new).unwrap();
+        new
+    } else {
+        current
     }
 }
 
@@ -289,7 +304,7 @@ fn handle_control_response(
     approver: &SphinxApprover,
     cres: anyhow::Result<(ControlMessage, ControlResponse)>,
     led_tx: mpsc::Sender<Status>,
-) -> Option<ControlResponse> {
+) -> ControlResponse {
     match cres {
         Ok((control_msg, mut control_res)) => {
             // the following msg types require other actions besides Flash persistence
@@ -325,30 +340,18 @@ fn handle_control_response(
                         control_res =
                             ControlResponse::Error(format!("OTA update cannot launch {:?}", e))
                     } else {
-                        // A 10kB size stack was consistently overflowing when doing a factory reset
-                        let builder = thread::Builder::new().stack_size(15000usize);
-                        builder
-                            .spawn(move || {
-                                led_tx.send(Status::Ota).unwrap();
-                                if let Err(e) = update_sphinx_key(params, led_tx) {
-                                    log::error!("OTA update failed {:?}", e.to_string());
-                                } else {
-                                    log::info!("OTA flow complete, restarting esp...");
-                                    unsafe { esp_idf_svc::sys::esp_restart() };
-                                }
-                            })
-                            .unwrap();
-                        log::info!("OTA update launched...");
+                        led_tx.send(Status::Ota).unwrap();
+                        log::info!("Launching OTA update...");
                     }
                 }
                 _ => (),
             };
-            Some(control_res)
+            control_res
         }
         Err(e) => {
             let control_res = ControlResponse::Error(e.to_string());
             log::warn!("error parsing ctrl msg {:?}", e);
-            Some(control_res)
+            control_res
         }
     }
 }

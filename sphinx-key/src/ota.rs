@@ -1,4 +1,3 @@
-use crate::status::Status;
 use anyhow::{anyhow, Result};
 use esp_idf_svc::http::client::Configuration;
 use esp_idf_svc::http::client::EspHttpConnection;
@@ -10,9 +9,8 @@ use sphinx_signer::sphinx_glyph::control::OtaParams;
 use std::fs::{remove_file, File};
 use std::io::BufWriter;
 use std::io::Write;
-use std::sync::mpsc;
 
-const BUFFER_LEN: usize = 512;
+const BUFFER_LEN: usize = 1024;
 const UPDATE_BIN_PATH: &str = "/sdcard/update.bin";
 
 fn factory_reset() -> Result<()> {
@@ -28,7 +26,7 @@ fn factory_reset() -> Result<()> {
     }
 }
 
-fn get_update(params: OtaParams, led_tx: mpsc::Sender<Status>) -> Result<()> {
+fn get_update(params: OtaParams) -> Result<()> {
     let configuration = Configuration {
         buffer_size: Some(BUFFER_LEN),
         buffer_size_tx: Some(BUFFER_LEN / 3),
@@ -49,7 +47,6 @@ fn get_update(params: OtaParams, led_tx: mpsc::Sender<Status>) -> Result<()> {
     let mut buf = [0_u8; BUFFER_LEN];
     let mut read_tot: usize = 0;
     let mut write_tot: usize = 0;
-    let mut i = 0;
     loop {
         let r = reader.read(&mut buf)?;
         if r == 0 {
@@ -58,21 +55,15 @@ fn get_update(params: OtaParams, led_tx: mpsc::Sender<Status>) -> Result<()> {
         let w = writer.write(&buf[..r])?;
         read_tot += r;
         write_tot += w;
-        i += 1;
-        if i % 20 == 0 {
-            led_tx.send(Status::Ota).unwrap();
-            info!("Cumulative bytes read: {}", read_tot);
-            info!("Cumulative bytes written: {}", write_tot);
-        }
     }
     info!("TOTAL read: {}", read_tot);
     info!("TOTAL written: {}", write_tot);
     Ok(())
 }
 
-pub fn update_sphinx_key(params: OtaParams, led_tx: mpsc::Sender<Status>) -> Result<()> {
+pub fn update_sphinx_key(params: OtaParams) -> Result<()> {
     info!("Getting the update...");
-    get_update(params, led_tx)?;
+    get_update(params)?;
     info!("Update written to sd card, performing factory reset");
     factory_reset()?;
     info!("Factory reset completed!");
