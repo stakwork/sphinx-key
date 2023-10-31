@@ -188,7 +188,7 @@ fn pub_timeout(
         log::error!("failed to pub to link_tx! {:?}", e);
     }
     // and receive from the correct client (or timeout to next)
-    let dur = Duration::from_secs(4);
+    let dur = Duration::from_secs(10);
     if let Ok((cid, topic_end, reply)) = msg_rx.recv_timeout(dur) {
         if &cid == client_id {
             return Some(ChannelReply::new(topic_end, reply));
