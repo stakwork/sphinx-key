@@ -31,7 +31,7 @@ fn get_update(params: OtaParams) -> Result<()> {
         buffer_size: Some(BUFFER_LEN),
         buffer_size_tx: Some(BUFFER_LEN / 3),
         follow_redirects_policy: FollowNone,
-        use_global_ca_store: true,
+        crt_bundle_attach: Some(esp_idf_svc::sys::esp_crt_bundle_attach),
         ..Default::default()
     };
     let mut reader = EspHttpConnection::new(&configuration)?;
@@ -75,7 +75,7 @@ pub fn validate_ota_message(params: OtaParams) -> Result<()> {
         buffer_size: Some(BUFFER_LEN / 3),
         buffer_size_tx: Some(BUFFER_LEN / 3),
         follow_redirects_policy: FollowNone,
-        use_global_ca_store: true,
+        crt_bundle_attach: Some(esp_idf_svc::sys::esp_crt_bundle_attach),
         ..Default::default()
     };
     let mut reader = EspHttpConnection::new(&configuration)?;
