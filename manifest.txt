@@ -1,0 +1,2 @@
+8bf13571f68fda5983c84e2fcea123354cf59c9c239a8ecbc9dbac86e8849c24  factory/target/riscv32imc-esp-espidf/release/sphinx-key-factory
+419e103ae95303384dd8fd14ee8b0844aad4688e8d7ab5b810b68b2558672e62  sphinx-key/target/riscv32imc-esp-espidf/release/sphinx-key.bin
