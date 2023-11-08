@@ -66,16 +66,17 @@ then
         PORT=/dev/ttyUSB0
     fi
 fi
-if [ -z "$PORT" ]
-then
-    echo "ESP likely not connected! Exiting now."
-    echo "Make sure the ESP is connected with a data USB cable, and try again."
-    exit 1
-fi
-esptool.py erase_flash &&
-git pull &&
+# if [ -z "$PORT" ]
+# then
+#     echo "ESP likely not connected! Exiting now."
+#     echo "Make sure the ESP is connected with a data USB cable, and try again."
+#     exit 1
+# fi
+# esptool.py erase_flash &&
+# git pull &&
 cd factory &&
-cargo espflash flash --release --port $PORT &&
+# cargo espflash flash --release --port $PORT &&
+cargo b -r
 cd ../sphinx-key &&
 
 if [ $MODE = "release" ]
@@ -86,8 +87,9 @@ else
 fi &&
 
 esptool.py --chip esp32-c3 elf2image target/riscv32imc-esp-espidf/$MODE/$BIN &&
-esptool.py --chip esp32c3 -b 460800 --before=default_reset --after=hard_reset write_flash --flash_mode dio --flash_freq 40m --flash_size 4MB 0x50000 target/riscv32imc-esp-espidf/$MODE/$BIN.bin &&
+# esptool.py --chip esp32c3 -b 460800 --before=default_reset --after=hard_reset write_flash --flash_mode dio --flash_freq 40m --flash_size 4MB 0x50000 target/riscv32imc-esp-espidf/$MODE/$BIN.bin &&
 cd .. &&
 shasum --algorithm 256 --check manifest.txt &&
-cd sphinx-key &&
-cargo espflash monitor --port $PORT
+echo done
+# cd sphinx-key &&
+# cargo espflash monitor --port $PORT
