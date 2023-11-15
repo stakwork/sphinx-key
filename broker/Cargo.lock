@@ -2813,7 +2813,7 @@ dependencies = [
 [[package]]
 name = "rumqttd"
 version = "0.15.0"
-source = "git+https://github.com/Evanfeenstra/rumqtt?branch=sphinx-3#5626e514e14e7a821113f8bb760f0477115fc91c"
+source = "git+https://github.com/Evanfeenstra/rumqtt?branch=sphinx-3#c087e39bf297c157d96de986f85733bfa0bb9f39"
 dependencies = [
  "async-tungstenite",
  "axum",
