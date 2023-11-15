@@ -45,7 +45,7 @@ pub fn current_client_and_synced() -> (Option<String>, bool) {
     let c = cs.current.clone();
     let mut b = false;
     if let Some(ref client) = c {
-        b = cs.clients.get(client).unwrap_or(&false).clone();
+        b = *cs.clients.get(client).unwrap_or(&false);
     }
     (c, b)
 }

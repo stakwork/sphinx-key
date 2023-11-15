@@ -23,13 +23,7 @@ pub fn run_test() -> rocket::Rocket<rocket::Build> {
     crate::error_log::log_errors(error_rx);
 
     // block until connection
-    crate::broker_setup(
-        settings,
-        mqtt_rx,
-        init_rx,
-        conn_tx.clone(),
-        error_tx.clone(),
-    );
+    crate::broker_setup(settings, mqtt_rx, init_rx, conn_tx, error_tx.clone());
     log::info!("=> off to the races!");
 
     let tx_ = mqtt_tx.clone();

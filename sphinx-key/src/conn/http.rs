@@ -16,6 +16,7 @@ pub struct Params {
     pub config: String,
 }
 
+#[allow(clippy::type_complexity)]
 pub fn config_server(
     mutex: Arc<(Mutex<Option<(Config, Option<[u8; 32]>)>>, Condvar)>,
     has_stored_seed: bool,
@@ -34,7 +35,7 @@ pub fn config_server(
         })?
         .fn_handler("/config", Method::Post, move |request| {
             let params =
-                serde_urlencoded::from_str::<Params>(request.uri().split_once("?").unwrap().1)?;
+                serde_urlencoded::from_str::<Params>(request.uri().split_once('?').unwrap().1)?;
             let dto = serde_json::from_str::<ConfigDTO>(&params.config)?;
             let conf_seed_tuple = decrypt_seed(dto, sk1)?;
             if !has_stored_seed && conf_seed_tuple.1.is_none() {

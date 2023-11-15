@@ -60,6 +60,7 @@ fn mqtt_pub(
 
 // the main event loop
 #[cfg(not(feature = "pingpong"))]
+#[allow(clippy::too_many_arguments)]
 pub fn make_event_loop(
     mut mqtt: EspMqttClient<ConnState<MessageImpl, EspError>>,
     rx: mpsc::Receiver<Event>,
@@ -79,23 +80,20 @@ pub fn make_event_loop(
     while let Ok(event) = rx.recv() {
         log::info!("BROKER IP AND PORT: {}", config.broker);
         // wait for a Connection first.
-        match event {
-            Event::Connected => {
-                mqtt_sub(&mut mqtt, &client_id, topics::SIGNER_SUBS);
-                break;
-            }
-            _ => (),
+        if let Event::Connected = event {
+            mqtt_sub(&mut mqtt, &client_id, topics::SIGNER_SUBS);
+            break;
         }
     }
 
-    let kvv_store = FsKVVStore::new(&ROOT_STORE, signer_id.clone(), None).0;
+    let kvv_store = FsKVVStore::new(ROOT_STORE, *signer_id, None).0;
     let fs_persister = CloudKVVStore::new(kvv_store);
 
     let _ = fs_persister.enter();
     let initial_allowlist = match fs_persister.get_nodes() {
         Ok(ns) => {
             if !ns.is_empty() {
-                match fs_persister.get_node_allowlist(&node_id) {
+                match fs_persister.get_node_allowlist(node_id) {
                     Ok(al) => al,
                     Err(_) => {
                         log::warn!("no allowlist found in fs persister!");
@@ -164,7 +162,7 @@ pub fn make_event_loop(
                 current_status = update_led(current_status, Status::Signing, &led_tx);
                 let state1 = approver.control().get_state();
                 //log::info!("FULL MSG {:?}", &msg_bytes);
-                let _ret = match sphinx_signer::root::handle_with_lss(
+                match sphinx_signer::root::handle_with_lss(
                     &root_handler,
                     &lss_signer,
                     msg_bytes,
@@ -317,7 +315,7 @@ fn handle_control_response(
                     }
                 }
                 ControlMessage::UpdateAllowlist(al) => {
-                    if let Err(e) = sphinx_signer::policy::set_allowlist(&root_handler, &al) {
+                    if let Err(e) = sphinx_signer::policy::set_allowlist(root_handler, &al) {
                         log::error!("set allowlist failed {:?}", e);
                         control_res =
                             ControlResponse::Error(format!("set allowlist failed {:?}", e))
@@ -325,7 +323,7 @@ fn handle_control_response(
                 }
                 // overwrite the real Allowlist response, loaded from Node
                 ControlMessage::QueryAllowlist => {
-                    match sphinx_signer::policy::get_allowlist(&root_handler) {
+                    match sphinx_signer::policy::get_allowlist(root_handler) {
                         Ok(al) => control_res = ControlResponse::AllowlistCurrent(al),
                         Err(e) => {
                             log::error!("read allowlist failed {:?}", e);
@@ -335,7 +333,7 @@ fn handle_control_response(
                     }
                 }
                 ControlMessage::Ota(params) => {
-                    if let Err(e) = validate_ota_message(params.clone()) {
+                    if let Err(e) = validate_ota_message(params) {
                         log::error!("OTA update cannot launch {:?}", e.to_string());
                         control_res =
                             ControlResponse::Error(format!("OTA update cannot launch {:?}", e))

@@ -15,9 +15,9 @@ use esp_println::println;
 
 #[derive(Debug)]
 pub(crate) enum FactoryError {
-    SdCardError(Error<SdCardError>),
-    OtaError(EspError),
-    EspError(EspError),
+    SdCard(Error<SdCardError>),
+    Ota(EspError),
+    Esp(EspError),
 }
 
 #[no_mangle]
@@ -52,7 +52,7 @@ fn main() -> Result<(), FactoryError> {
 
 fn assign_peripherals() -> Result<(sdcard::Peripherals, led::Peripherals), FactoryError> {
     // this function here must be called only once
-    let peripherals = Peripherals::take().map_err(|e| FactoryError::EspError(e))?;
+    let peripherals = Peripherals::take().map_err(FactoryError::Esp)?;
     let sd_card_peripherals = sdcard::Peripherals {
         spi: peripherals.spi2,
         sck: peripherals.pins.gpio6,

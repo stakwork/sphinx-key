@@ -43,7 +43,7 @@ pub fn handle_message(
 
     let res_bytes = loop {
         let (cid, is_synced) = current_client_and_synced();
-        if let None = cid {
+        if cid.is_none() {
             log::info!("no client yet... retry");
             thread::sleep(Duration::from_millis(96));
             continue;

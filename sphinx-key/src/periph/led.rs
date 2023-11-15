@@ -100,9 +100,7 @@ impl Led {
         // Set low
         let mut signal = FixedLengthSignal::<24>::new();
         for i in 0..24 {
-            let bit = 2_u32.pow(i) & 0x000000 != 0;
-            let (high_pulse, low_pulse) = if bit { (t1h, t1l) } else { (t0h, t0l) };
-            signal.set(i as usize, &(high_pulse, low_pulse)).unwrap();
+            signal.set(i as usize, &(t0h, t0l)).unwrap();
         }
         tx.start_blocking(&signal).unwrap();
     }

@@ -14,7 +14,7 @@ use std::io::Write;
 use std::ptr;
 use std::string::String;
 
-const C_MOUNT_POINT: &'static [u8] = b"/sdcard\0";
+const C_MOUNT_POINT: &[u8] = b"/sdcard\0";
 
 const SPI_HOST_SLOT: spi_host_device_t = spi_host_device_t_SPI2_HOST;
 const SPI_GPIO_MOSI: gpio_num_t = 7;
@@ -84,7 +84,7 @@ pub fn mount_sd_card() -> anyhow::Result<()> {
 
     if let Err(error) = esp!(unsafe {
         spi_bus_initialize(
-            SPI_HOST_SLOT as u32,
+            SPI_HOST_SLOT,
             &bus_cfg,
             esp_idf_svc::sys::spi_common_dma_t_SPI_DMA_CH_AUTO,
         )

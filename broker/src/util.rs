@@ -110,7 +110,7 @@ pub fn setup_logging(who: &str, level_arg: &str) {
 }
 
 fn read_network_setting(table: &Value) -> Option<Network> {
-    if let None = table.get("network") {
+    if table.get("network").is_none() {
         log::info!("Network not specified, setting to default regtest");
         None
     } else {
@@ -129,7 +129,7 @@ fn read_network_setting(table: &Value) -> Option<Network> {
 }
 
 fn read_mqtt_port_setting(table: &Value) -> Option<u16> {
-    if let None = table.get("mqtt_port") {
+    if table.get("mqtt_port").is_none() {
         log::info!("Broker mqtt port not specified, setting to default 1883");
         None
     } else {
@@ -149,7 +149,7 @@ fn read_mqtt_port_setting(table: &Value) -> Option<u16> {
 }
 
 fn read_http_port_setting(table: &Value) -> Option<u16> {
-    if let None = table.get("http_port") {
+    if table.get("http_port").is_none() {
         log::info!("Broker http port not specified, setting to default 8000");
         None
     } else {
@@ -169,7 +169,7 @@ fn read_http_port_setting(table: &Value) -> Option<u16> {
 }
 
 fn read_ws_port_setting(table: &Value) -> Option<u16> {
-    if let None = table.get("ws_port") {
+    if table.get("ws_port").is_none() {
         log::info!("Broker ws port not specified, setting to default 8083");
         None
     } else {

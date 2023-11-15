@@ -48,7 +48,7 @@ pub fn button_loop(
                     up_times = 0;
                 }
                 if !pressed {
-                    up_times = up_times + 1;
+                    up_times += 1;
 
                     // back to start after waiting for a button release
                     if machine.state == Status::Waiting {
@@ -70,10 +70,8 @@ pub fn button_loop(
                     }
 
                     // if stayed up, advance
-                    if PAUSE * up_times > MILLIS {
-                        if machine.state == Status::Reset1 {
-                            machine.update_status(Status::Reset2a);
-                        }
+                    if PAUSE * up_times > MILLIS && machine.state == Status::Reset1 {
+                        machine.update_status(Status::Reset2a);
                     }
 
                     // if stays up for much longer, reset
@@ -89,7 +87,7 @@ pub fn button_loop(
                     low_times = 0;
                 }
                 if pressed {
-                    low_times = low_times + 1;
+                    low_times += 1;
 
                     // if button press while in reset1, wait for a release, and reset
                     if machine.state == Status::Reset1 {

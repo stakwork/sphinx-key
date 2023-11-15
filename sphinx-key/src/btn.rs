@@ -10,10 +10,7 @@ use esp_idf_svc::hal::gpio::Gpio9;
 use esp_idf_svc::hal::peripheral::Peripheral;
 use esp_idf_svc::hal::peripherals::Peripherals;
 use esp_idf_svc::nvs::EspDefaultNvsPartition;
-use esp_idf_svc::nvs::EspNvs;
-use esp_idf_svc::nvs::*;
 use esp_idf_svc::sys as _; // If using the `binstart` feature of `esp-idf-sys`, always keep this module imported
-use log;
 use status::Status;
 use std::sync::mpsc;
 use std::sync::{Arc, Mutex};
@@ -42,7 +39,7 @@ fn main() -> anyhow::Result<()> {
 
     // BUTTON thread
     let default_nvs = EspDefaultNvsPartition::take()?;
-    let flash_per = FlashPersister::new(default_nvs.clone());
+    let flash_per = FlashPersister::new(default_nvs);
     let flash_arc = Arc::new(Mutex::new(flash_per));
     while let Err(e) =
         periph::button::button_loop(unsafe { Gpio9::new() }, led_tx.clone(), flash_arc.clone())

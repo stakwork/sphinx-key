@@ -49,8 +49,8 @@ impl ControlPersist for FlashPersister {
             .0
             .get_raw(FlashKey::Config.as_str(), &mut buf)?
             .ok_or(anyhow!("no existing config"))?;
-        let mut bytes = Bytes::new(&existing);
-        Ok(deserialize_config(&mut bytes)?)
+        let mut bytes = Bytes::new(existing);
+        deserialize_config(&mut bytes)
     }
     fn write_config(&mut self, conf: Config) -> Result<()> {
         let mut bb = ByteBuf::new();
@@ -97,8 +97,8 @@ impl ControlPersist for FlashPersister {
             .0
             .get_raw(FlashKey::Policy.as_str(), &mut buf)?
             .ok_or(anyhow!("no existing policy"))?;
-        let mut bytes = Bytes::new(&existing);
-        Ok(deserialize_policy(&mut bytes, None)?)
+        let mut bytes = Bytes::new(existing);
+        deserialize_policy(&mut bytes, None)
     }
     fn write_policy(&mut self, pol: Policy) -> Result<()> {
         let mut bb = ByteBuf::new();
@@ -118,7 +118,7 @@ impl ControlPersist for FlashPersister {
             .ok_or(anyhow!("no existing velocity"))?;
         let mut bytes = Bytes::new(existing);
         let desvel = deserialize_velocity(&mut bytes, None)?;
-        Ok(desvel.context(anyhow::anyhow!("no velocity"))?)
+        desvel.context(anyhow::anyhow!("no velocity"))
     }
     fn write_velocity(&mut self, vel: Velocity) -> Result<()> {
         let mut bb = ByteBuf::new();

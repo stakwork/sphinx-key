@@ -42,7 +42,7 @@ fn ecdh(keys: &State<Keys>) -> String {
 #[post("/config?<config>")]
 fn config(keys: &State<Keys>, config: &str) -> String {
     // println!("============> {:?}", config);
-    let dto = serde_json::from_str::<ConfigBody>(&config).expect("failed to parse");
+    let dto = serde_json::from_str::<ConfigBody>(config).expect("failed to parse");
     let conf = decrypt_seed(dto, keys.sk).expect("couldnt decrypt seed");
     println!("SEED: ===========> {:?}", hex::encode(conf.seed));
     "{\"success\":true}".to_string()
@@ -62,7 +62,7 @@ pub fn decrypt_seed(dto: ConfigBody, sk1: SecretKey) -> anyhow::Result<Config> {
         ssid: dto.ssid,
         pass: dto.pass,
         network: dto.network,
-        seed: seed,
+        seed,
     })
 }
 

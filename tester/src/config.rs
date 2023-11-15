@@ -100,7 +100,7 @@ async fn main() -> anyhow::Result<()> {
         serde_json::to_string(&config)?
     };
 
-    let conf_encoded = urlencoding::encode(&conf_string).to_owned();
+    let conf_encoded = urlencoding::encode(&conf_string).into_owned();
     println!("Posting seed");
     let res2 = client
         .post(format!("{}/{}={}", url, "config?config", conf_encoded))

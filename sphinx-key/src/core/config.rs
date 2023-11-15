@@ -115,9 +115,5 @@ pub fn start_config_server_and_wait(
     // drop(wifi);
     // thread::sleep(Duration::from_secs(1));
     println!("===> config! {:?}", config_seed_tuple.0);
-    Ok((
-        wifi,
-        config_seed_tuple.0.clone(),
-        config_seed_tuple.1.clone(),
-    ))
+    Ok((wifi, config_seed_tuple.0.clone(), config_seed_tuple.1))
 }

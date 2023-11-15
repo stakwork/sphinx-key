@@ -77,7 +77,7 @@ fn main() -> Result<()> {
             exist
         );
         led_tx.send(Status::ConnectingToWifi).unwrap();
-        let _wifi = match start_wifi_client(peripherals.modem, default_nvs.clone(), &exist) {
+        let _wifi = match start_wifi_client(peripherals.modem, default_nvs, &exist) {
             Ok(wifi) => wifi,
             Err(e) => {
                 log::error!("Could not setup wifi: {}", e);
@@ -106,7 +106,7 @@ fn main() -> Result<()> {
             if let Ok(()) = make_and_launch_client(
                 exist.clone(),
                 seed,
-                id.clone(),
+                id,
                 &policy,
                 &velocity,
                 led_tx.clone(),
@@ -124,11 +124,7 @@ fn main() -> Result<()> {
         println!("=============> START SERVER NOW AND WAIT <==============");
         let stored_seed = flash.read_seed().ok();
         drop(flash);
-        match start_config_server_and_wait(
-            peripherals.modem,
-            default_nvs.clone(),
-            stored_seed.is_some(),
-        ) {
+        match start_config_server_and_wait(peripherals.modem, default_nvs, stored_seed.is_some()) {
             Ok((_wifi, config, seed_opt)) => {
                 let mut flash = flash_arc.lock().unwrap();
                 flash.write_config(config).expect("could not store config");
@@ -177,12 +173,11 @@ fn make_and_launch_client(
     let ctrlr = controller_from_seed(&network, &seed[..], flash);
 
     let pubkey = ctrlr.pubkey();
-    let pubkey_str = hex::encode(&pubkey.serialize());
+    let pubkey_str = hex::encode(pubkey.serialize());
     let token = ctrlr.make_auth_token().expect("couldnt make auth token");
     log::info!("PUBKEY {} TOKEN {}", &pubkey_str, &token);
 
-    let mqtt_client =
-        conn::mqtt::make_client(&config.broker, &signer_id, &pubkey_str, &token, tx.clone())?;
+    let mqtt_client = conn::mqtt::make_client(&config.broker, &signer_id, &pubkey_str, &token, tx)?;
     // let mqtt_client = conn::mqtt::start_listening(mqtt, connection, tx)?;
 
     // this blocks forever... the "main thread"

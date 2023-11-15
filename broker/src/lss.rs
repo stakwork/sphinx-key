@@ -77,7 +77,7 @@ async fn connect_dance(
     let lss_conn = new_broker.as_ref().xor(lss_conn).ok_or(anyhow!(
         "should never happen, either we use the newly initialized, or the one passed in"
     ))?;
-    let _ = dance_step_2(cid, lss_conn, mqtt_tx, &ir).await?;
+    dance_step_2(cid, lss_conn, mqtt_tx, &ir).await?;
     // only some when lss_conn is none
     Ok(new_broker)
 }

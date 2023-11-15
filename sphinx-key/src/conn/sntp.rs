@@ -15,7 +15,7 @@ pub fn sync_time_timeout() -> Result<()> {
         } else if counter == 30 {
             break Err(anyhow!("SNTP setup timed out"));
         }
-        counter = counter + 1;
+        counter += 1;
         thread::sleep(Duration::from_secs(1));
     }
 }

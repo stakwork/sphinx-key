@@ -16,30 +16,30 @@ pub(crate) fn setup(peripherals: Peripherals) -> Result<TxRmtDriver<'static>, Fa
     let led = peripherals.led;
     let channel = peripherals.channel;
     let config = TransmitConfig::new().clock_divider(1);
-    let tx = TxRmtDriver::new(channel, led, &config).map_err(|e| FactoryError::EspError(e))?;
+    let tx = TxRmtDriver::new(channel, led, &config).map_err(FactoryError::Esp)?;
     Ok(tx)
 }
 
 pub(crate) fn setup_complete(led_tx: &mut TxRmtDriver) -> Result<(), FactoryError> {
-    neopixel(BLUE, led_tx).map_err(|e| FactoryError::EspError(e))?;
+    neopixel(BLUE, led_tx).map_err(FactoryError::Esp)?;
     FreeRtos::delay_ms(10);
     Ok(())
 }
 
 pub(crate) fn update_launch(led_tx: &mut TxRmtDriver) -> Result<(), FactoryError> {
-    neopixel(ORANGE, led_tx).map_err(|e| FactoryError::EspError(e))?;
+    neopixel(ORANGE, led_tx).map_err(FactoryError::Esp)?;
     FreeRtos::delay_ms(10);
     Ok(())
 }
 
 pub(crate) fn update_complete(led_tx: &mut TxRmtDriver) -> Result<(), FactoryError> {
-    neopixel(GREEN, led_tx).map_err(|e| FactoryError::EspError(e))?;
+    neopixel(GREEN, led_tx).map_err(FactoryError::Esp)?;
     FreeRtos::delay_ms(10);
     Ok(())
 }
 
 pub(crate) fn main_app_launch(led_tx: &mut TxRmtDriver) -> Result<(), FactoryError> {
-    neopixel(WHITE, led_tx).map_err(|e| FactoryError::EspError(e))?;
+    neopixel(WHITE, led_tx).map_err(FactoryError::Esp)?;
     FreeRtos::delay_ms(10);
     Ok(())
 }
@@ -48,7 +48,7 @@ fn ns(nanos: u64) -> Duration {
     Duration::from_nanos(nanos)
 }
 
-fn neopixel(rgb: RGB, tx: &mut TxRmtDriver) -> Result<(), EspError> {
+fn neopixel(rgb: Rgb, tx: &mut TxRmtDriver) -> Result<(), EspError> {
     // e.g. rgb: (1,2,4)
     // G        R        B
     // 7      0 7      0 7      0

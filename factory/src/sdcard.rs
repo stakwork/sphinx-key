@@ -46,13 +46,13 @@ pub(crate) fn setup(peripherals: Peripherals) -> Result<Manager<'static>, Factor
         Some(peripherals.miso),
         &DriverConfig::default(),
     )
-    .map_err(|e| FactoryError::EspError(e))?;
+    .map_err(FactoryError::Esp)?;
     let mut spi_config = SpiConfig::new();
     spi_config.duplex = Duplex::Full;
     spi_config = spi_config.baudrate(24.MHz().into());
     let spi = SpiDeviceDriver::new(driver, Option::<Gpio10>::None, &spi_config)
-        .map_err(|e| FactoryError::EspError(e))?;
-    let sdmmc_cs = PinDriver::output(peripherals.cs).map_err(|e| FactoryError::EspError(e))?;
+        .map_err(FactoryError::Esp)?;
+    let sdmmc_cs = PinDriver::output(peripherals.cs).map_err(FactoryError::Esp)?;
     let sdcard = SdCard::new(spi, sdmmc_cs, Ets {});
     let volume_mgr = VolumeManager::new(sdcard, SdMmcClock {});
     Ok(volume_mgr)

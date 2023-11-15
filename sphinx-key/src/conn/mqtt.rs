@@ -53,90 +53,83 @@ pub fn make_client(
         info!("MQTT Listening for messages");
         let mut inflight = Vec::new();
         let mut inflight_topic = "".to_string();
-        loop {
-            match connection.next() {
-                Some(msg) => match msg {
-                    Err(e) => match e.to_string().as_ref() {
-                        "ESP_FAIL" => {
-                            error!("ESP_FAIL msg!");
-                        }
-                        _ => error!("Unknown error: {}", e),
-                    },
-                    Ok(msg) => match msg {
-                        Event::BeforeConnect => info!("RECEIVED BeforeConnect MESSAGE"),
-                        Event::Connected(_flag) => {
-                            info!("RECEIVED Connected MESSAGE");
-                            tx.send(CoreEvent::Connected)
-                                .expect("couldnt send Event::Connected");
-                        }
-                        Event::Disconnected => {
-                            warn!("RECEIVED Disconnected MESSAGE");
-                            tx.send(CoreEvent::Disconnected)
-                                .expect("couldnt send Event::Disconnected");
-                        }
-                        Event::Subscribed(_mes_id) => info!("RECEIVED Subscribed MESSAGE"),
-                        Event::Unsubscribed(_mes_id) => info!("RECEIVED Unsubscribed MESSAGE"),
-                        Event::Published(_mes_id) => info!("RECEIVED Published MESSAGE"),
-                        Event::Received(msg) => {
-                            let incoming_message: Option<(String, Vec<u8>)> = match msg.details() {
-                                Details::Complete => {
-                                    if let Some(topic) = msg.topic() {
-                                        Some((topic.to_string(), msg.data().to_vec()))
-                                    } else {
-                                        None
-                                    }
-                                }
-                                Details::InitialChunk(chunk_info) => {
-                                    if let Some(topic) = msg.topic() {
-                                        inflight = Vec::with_capacity(chunk_info.total_data_size);
-                                        inflight_topic = topic.to_string();
-                                        inflight.extend_from_slice(msg.data());
-                                        None
-                                    } else {
-                                        None
-                                    }
-                                }
-                                Details::SubsequentChunk(chunk_data) => {
+        while let Some(msg) = connection.next() {
+            match msg {
+                Err(e) => match e.to_string().as_ref() {
+                    "ESP_FAIL" => {
+                        error!("ESP_FAIL msg!");
+                    }
+                    _ => error!("Unknown error: {}", e),
+                },
+                Ok(msg) => match msg {
+                    Event::BeforeConnect => info!("RECEIVED BeforeConnect MESSAGE"),
+                    Event::Connected(_flag) => {
+                        info!("RECEIVED Connected MESSAGE");
+                        tx.send(CoreEvent::Connected)
+                            .expect("couldnt send Event::Connected");
+                    }
+                    Event::Disconnected => {
+                        warn!("RECEIVED Disconnected MESSAGE");
+                        tx.send(CoreEvent::Disconnected)
+                            .expect("couldnt send Event::Disconnected");
+                    }
+                    Event::Subscribed(_mes_id) => info!("RECEIVED Subscribed MESSAGE"),
+                    Event::Unsubscribed(_mes_id) => info!("RECEIVED Unsubscribed MESSAGE"),
+                    Event::Published(_mes_id) => info!("RECEIVED Published MESSAGE"),
+                    Event::Received(msg) => {
+                        let incoming_message: Option<(String, Vec<u8>)> = match msg.details() {
+                            Details::Complete => msg
+                                .topic()
+                                .map(|topic| (topic.to_string(), msg.data().to_vec())),
+                            Details::InitialChunk(chunk_info) => {
+                                if let Some(topic) = msg.topic() {
+                                    inflight = Vec::with_capacity(chunk_info.total_data_size);
+                                    inflight_topic = topic.to_string();
                                     inflight.extend_from_slice(msg.data());
-                                    if inflight.len() == chunk_data.total_data_size {
-                                        let ret = Some((inflight_topic, inflight));
-                                        inflight_topic = String::new();
-                                        inflight = Vec::new();
-                                        ret
-                                    } else {
-                                        None
-                                    }
-                                }
-                            };
-                            drop(msg);
-                            if let Some((topic, data)) = incoming_message {
-                                if topic.ends_with(topics::VLS) {
-                                    tx.send(CoreEvent::VlsMessage(data))
-                                        .expect("couldnt send Event::VlsMessage");
-                                } else if topic.ends_with(topics::LSS_MSG)
-                                    || topic.ends_with(topics::INIT_1_MSG)
-                                    || topic.ends_with(topics::INIT_2_MSG)
-                                    || topic.ends_with(topics::LSS_CONFLICT)
-                                {
-                                    log::debug!("received data len {}", data.len());
-                                    tx.send(CoreEvent::LssMessage(data))
-                                        .expect("couldnt send Event::LssMessage");
-                                } else if topic.ends_with(topics::CONTROL) {
-                                    tx.send(CoreEvent::Control(data))
-                                        .expect("couldnt send Event::Control");
+                                    None
                                 } else {
-                                    log::warn!("unrecognized topic {}", topic);
+                                    None
                                 }
                             }
+                            Details::SubsequentChunk(chunk_data) => {
+                                inflight.extend_from_slice(msg.data());
+                                if inflight.len() == chunk_data.total_data_size {
+                                    let ret = Some((inflight_topic, inflight));
+                                    inflight_topic = String::new();
+                                    inflight = Vec::new();
+                                    ret
+                                } else {
+                                    None
+                                }
+                            }
+                        };
+                        drop(msg);
+                        if let Some((topic, data)) = incoming_message {
+                            if topic.ends_with(topics::VLS) {
+                                tx.send(CoreEvent::VlsMessage(data))
+                                    .expect("couldnt send Event::VlsMessage");
+                            } else if topic.ends_with(topics::LSS_MSG)
+                                || topic.ends_with(topics::INIT_1_MSG)
+                                || topic.ends_with(topics::INIT_2_MSG)
+                                || topic.ends_with(topics::LSS_CONFLICT)
+                            {
+                                log::debug!("received data len {}", data.len());
+                                tx.send(CoreEvent::LssMessage(data))
+                                    .expect("couldnt send Event::LssMessage");
+                            } else if topic.ends_with(topics::CONTROL) {
+                                tx.send(CoreEvent::Control(data))
+                                    .expect("couldnt send Event::Control");
+                            } else {
+                                log::warn!("unrecognized topic {}", topic);
+                            }
                         }
-                        Event::Deleted(_mes_id) => info!("RECEIVED Deleted MESSAGE"),
-                    },
+                    }
+                    Event::Deleted(_mes_id) => info!("RECEIVED Deleted MESSAGE"),
                 },
-                None => break,
-            }
-        }
-        //info!("MQTT connection loop exit");
-    })?;
+            } // match
+        } // while let
+          //info!("MQTT connection loop exit");
+    })?; // spawn
 
     Ok(client)
 }

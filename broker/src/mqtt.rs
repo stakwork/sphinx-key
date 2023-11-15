@@ -27,7 +27,7 @@ pub fn start_broker(
     let _ = link_tx.subscribe(format!("+/{}", topics::HELLO));
     let _ = link_tx.subscribe(format!("+/{}", topics::BYE));
 
-    let auth_sender_ = auth_sender.clone();
+    let auth_sender_ = auth_sender;
     std::thread::spawn(move || {
         broker
             .start(Some(auth_sender_))
@@ -83,13 +83,13 @@ pub fn start_broker(
     // receive replies back from glyph
     let _sub_task = std::thread::spawn(move || {
         while let Ok(message) = link_rx.recv() {
-            if let None = message {
+            if message.is_none() {
                 continue;
             }
             match message.unwrap() {
                 Notification::Forward(f) => {
                     let topic_res = std::str::from_utf8(&f.publish.topic);
-                    if let Err(_) = topic_res {
+                    if topic_res.is_err() {
                         continue;
                     }
 
@@ -99,7 +99,7 @@ pub fn start_broker(
                         continue;
                     }
 
-                    let ts: Vec<&str> = topic.split("/").collect();
+                    let ts: Vec<&str> = topic.split('/').collect();
                     if ts.len() != 2 {
                         continue;
                     }
@@ -117,10 +117,8 @@ pub fn start_broker(
                             if let Err(e) = init_tx.send((cid, topic_end, pld)) {
                                 log::error!("failed to pub to init_tx! {:?}", e);
                             }
-                        } else {
-                            if let Err(e) = msg_tx.send((cid, topic_end, pld)) {
-                                log::error!("failed to pub to msg_tx! {:?}", e);
-                            }
+                        } else if let Err(e) = msg_tx.send((cid, topic_end, pld)) {
+                            log::error!("failed to pub to msg_tx! {:?}", e);
                         }
                     }
                 }
@@ -150,11 +148,11 @@ fn pub_and_wait(
     loop {
         log::debug!("looping in pub_and_wait");
 
-        let reply = pub_timeout(&msg.cid, &msg.topic, &msg.message, &msg_rx, link_tx);
+        let reply = pub_timeout(&msg.cid, &msg.topic, &msg.message, msg_rx, link_tx);
 
         if let Some(reply) = reply {
             log::debug!("MQTT got this response: {:?}", reply);
-            if let Err(_) = msg.reply_tx.send(reply) {
+            if msg.reply_tx.send(reply).is_err() {
                 log::warn!("could not send on reply_tx");
             }
             break;
@@ -164,7 +162,7 @@ fn pub_and_wait(
         if let Some(max) = retries {
             log::debug!("counter: {}, retries: {}", counter, max);
             if counter == max {
-                if let Err(_) = msg.reply_tx.send(ChannelReply::empty()) {
+                if msg.reply_tx.send(ChannelReply::empty()).is_err() {
                     log::warn!("could not send on reply_tx");
                 }
                 break;
@@ -190,7 +188,7 @@ fn pub_timeout(
     // and receive from the correct client (or timeout to next)
     let dur = Duration::from_secs(10);
     if let Ok((cid, topic_end, reply)) = msg_rx.recv_timeout(dur) {
-        if &cid == client_id {
+        if cid == client_id {
             return Some(ChannelReply::new(topic_end, reply));
         } else {
             log::warn!("Mismatched client id!");
@@ -226,7 +224,7 @@ pub fn check_auth(
         Ok(t) => match t.recover() {
             Ok(pubkey) => {
                 // pubkey must match signature
-                if &pubkey.to_string() == username {
+                if pubkey.to_string() == username {
                     if let Some(pk) = already_pubkey {
                         // if there is an existing pubkey then new client must match
                         (pk == username, None)

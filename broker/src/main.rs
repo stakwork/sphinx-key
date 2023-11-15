@@ -51,12 +51,10 @@ async fn rocket() -> _ {
             env::var("GREENLIGHT_VERSION").expect("set GREENLIGHT_VERSION to match c-lightning");
         println!("{}", version);
         panic!("end")
+    } else if matches.is_present("test") {
+        run_test::run_test()
     } else {
-        if matches.is_present("test") {
-            run_test::run_test()
-        } else {
-            run_main(parent_fd)
-        }
+        run_main(parent_fd)
     }
 }
 
@@ -111,7 +109,7 @@ fn run_main(parent_fd: i32) -> rocket::Rocket<rocket::Build> {
 
     let cln_client = UnixClient::new(UnixConnection::new(parent_fd));
     // TODO pass status_rx into SignerLoop?
-    let mut signer_loop = SignerLoop::new(cln_client, mqtt_tx.clone(), lss_tx.clone());
+    let mut signer_loop = SignerLoop::new(cln_client, mqtt_tx.clone(), lss_tx);
     // spawn CLN listener
     std::thread::spawn(move || {
         signer_loop.start(Some(settings.network));
@@ -145,15 +143,8 @@ pub fn broker_setup(
 
     // broker
     log::info!("=> start broker on network: {}", settings.network);
-    start_broker(
-        settings,
-        mqtt_rx,
-        init_rx,
-        status_tx,
-        error_tx.clone(),
-        auth_tx,
-    )
-    .expect("BROKER FAILED TO START");
+    start_broker(settings, mqtt_rx, init_rx, status_tx, error_tx, auth_tx)
+        .expect("BROKER FAILED TO START");
 
     // client connections state
     std::thread::spawn(move || {
