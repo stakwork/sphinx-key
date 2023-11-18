@@ -5,10 +5,11 @@ use esp_idf_svc::http::client::FollowRedirectsPolicy::FollowNone;
 use esp_idf_svc::http::Method;
 use esp_idf_svc::ota::EspOta;
 use log::{error, info};
+use sphinx_signer::lightning_signer::bitcoin::hashes::{self, Hash};
 use sphinx_signer::sphinx_glyph::control::OtaParams;
 use std::fs::{remove_file, File};
-use std::io::BufWriter;
 use std::io::Write;
+use std::io::{BufReader, BufWriter};
 
 const BUFFER_LEN: usize = 1024;
 const UPDATE_BIN_PATH: &str = "/sdcard/update.bin";
@@ -61,10 +62,25 @@ fn get_update(params: OtaParams) -> Result<()> {
     Ok(())
 }
 
+fn check_integrity(params: OtaParams) -> Result<()> {
+    let f = File::open(UPDATE_BIN_PATH)?;
+    let mut reader = BufReader::new(f);
+    let mut engine = hashes::sha256::HashEngine::default();
+    std::io::copy(&mut reader, &mut engine)?;
+    let hash = hashes::sha256::Hash::from_engine(engine);
+    if hash.to_string() == params.sha256_hash {
+        Ok(())
+    } else {
+        Err(anyhow!("Integrity check failed!"))
+    }
+}
+
 pub fn update_sphinx_key(params: OtaParams) -> Result<()> {
     info!("Getting the update...");
-    get_update(params)?;
-    info!("Update written to sd card, performing factory reset");
+    get_update(params.clone())?;
+    info!("Update written to sd card, checking integrity...");
+    check_integrity(params)?;
+    info!("Integrity check passed, performing factory reset...");
     factory_reset()?;
     info!("Factory reset completed!");
     Ok(())

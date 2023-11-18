@@ -21,9 +21,9 @@ serde_urlencoded = "0.7.1"
 url              = "2"
 
 # sphinx-rs
-lss-connector  = { git = "https://github.com/stakwork/sphinx-rs.git", default-features = false, rev = "55c4b00dc079d21353904fec45b10c7f09ec8f85" }
-sphinx-crypter = { git = "https://github.com/stakwork/sphinx-rs.git", rev = "55c4b00dc079d21353904fec45b10c7f09ec8f85" }
-sphinx-signer  = { git = "https://github.com/stakwork/sphinx-rs.git", optional = true, rev = "55c4b00dc079d21353904fec45b10c7f09ec8f85" }
+lss-connector  = { git = "https://github.com/stakwork/sphinx-rs.git", default-features = false, rev = "db9f902750742c1aa4dc96ebc97f7c0e69b015a5" }
+sphinx-crypter = { git = "https://github.com/stakwork/sphinx-rs.git", rev = "db9f902750742c1aa4dc96ebc97f7c0e69b015a5" }
+sphinx-signer  = { git = "https://github.com/stakwork/sphinx-rs.git", optional = true, rev = "db9f902750742c1aa4dc96ebc97f7c0e69b015a5" }
 # local
 # lss-connector  = { path = "../../sphinx-rs/lss-connector", default-features = false }
 # sphinx-crypter  = { path = "../../sphinx-rs/crypter" }
