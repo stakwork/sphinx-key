@@ -20,6 +20,7 @@ async fn main() -> anyhow::Result<()> {
     let nonce: u64 = nonce_string.parse::<u64>().expect("failed to parse nonce");
 
     let broker_url: String = env::var("BROKER_URL").unwrap_or(DEFAULT_URL.to_string());
+    println!("{}", broker_url);
 
     let seed_string: String = env::var("SEED").expect("no seed");
     let seed = hex::decode(seed_string).expect("yo");
@@ -37,7 +38,7 @@ async fn main() -> anyhow::Result<()> {
         .expect("couldnt build reqwest client");
 
     let res = client
-        .post(format!("{}/control?msg={}&cid={}", broker_url, msg_hex, "2a79fae7f7c5349621242192f8a4a11d"))
+        .post(format!("{}/control?msg={}&cid={}", broker_url, msg_hex, "df106bf2092378bba4f49058cdbec2bf"))
         .header("Content-Type", "application/json")
         .send()
         .await?;

@@ -1,15 +1,3 @@
-# MODE=debug
-MODE=release
-
-BIN=sphinx-key
-
-if [[ $1 = "clear" ]]
-then
-BIN=clear
-fi
-
-echo "building and flashing $BIN"
-
 check_exists() {
     command -v "$1" > /dev/null
 }
@@ -49,42 +37,15 @@ then
     echo "Please set PASS to a password longer than 7 characters."
     exit 1
 fi
-for FILE in /dev/tty.*
-do
-    # Check for port on macOS
-    if check_port $FILE 
-    then
-        PORT=$FILE
-        break
-    fi
-done
-if [ -z "$PORT" ]
-then
-    # Check for port on linux
-    if check_port /dev/ttyUSB0
-    then
-        PORT=/dev/ttyUSB0
-    fi
-fi
-if [ -z "$PORT" ]
-then
-    echo "ESP likely not connected! Exiting now."
-    echo "Make sure the ESP is connected with a data USB cable, and try again."
-    exit 1
-fi
-esptool.py erase_flash &&
+cargo espflash erase-flash
 git pull &&
 cd factory &&
-cargo espflash flash --release --port $PORT &&
+cargo espflash flash --release &&
+cargo espflash save-image --release --chip esp32c3 factory.bin &&
+espsecure.py sign_data factory.bin --version 2 --keyfile ../secure_boot_signing_key.pem &&
+espflash write-bin 0x10000 factory.bin &&
 cd ../sphinx-key &&
-
-if [ $MODE = "release" ]
-then
-    cargo build --release --bin $BIN
-else
-    cargo build --bin $BIN
-fi &&
-
-esptool.py --chip esp32-c3 elf2image target/riscv32imc-esp-espidf/$MODE/$BIN &&
-esptool.py --chip esp32c3 -b 460800 --before=default_reset --after=hard_reset write_flash --flash_mode dio --flash_freq 40m --flash_size 4MB 0x50000 target/riscv32imc-esp-espidf/$MODE/$BIN.bin &&
-cargo espflash monitor --port $PORT
+cargo espflash save-image --bin sphinx-key --release --chip esp32c3 sphinx-key.bin &&
+espsecure.py sign_data sphinx-key.bin --version 2 --keyfile ../secure_boot_signing_key.pem &&
+espflash write-bin 0x50000 sphinx-key.bin &&
+cargo espflash monitor

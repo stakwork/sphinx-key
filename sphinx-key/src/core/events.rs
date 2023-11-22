@@ -249,7 +249,7 @@ pub fn make_event_loop(
                 let mut bb = ByteBuf::new();
                 serialize_controlresponse(&mut bb, &res).expect("failed serialize_lssresponse");
                 mqtt_pub(&mut mqtt, &client_id, topics::CONTROL_RES, bb.as_slice());
-                if let ControlResponse::OtaConfirm(params) = res {
+                if let ControlResponse::OtaConfirm(ref params) = res {
                     if let Err(e) = update_sphinx_key(params) {
                         log::error!("OTA update failed {:?}", e.to_string());
                     } else {
@@ -332,7 +332,7 @@ fn handle_control_response(
                         }
                     }
                 }
-                ControlMessage::Ota(params) => {
+                ControlMessage::Ota(ref params) => {
                     if let Err(e) = validate_ota_message(params) {
                         log::error!("OTA update cannot launch {:?}", e.to_string());
                         control_res =

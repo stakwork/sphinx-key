@@ -2,6 +2,7 @@
   "Ota": {
     "url": "https://jolliness.ddns.net/sphinx-update-",
     "version": 0,
-    "sha256_hash": "f3da0b52a0d6b3de68c042ab8209179766021c7420fe631e5e487ebedfd9a10b"
+    "sha256_hash": "bbd3e4a74564278bad1b9248799749ce64620dea34c3a5ca31fb3a8879f63aec",
+    "schnorr_sig": "2949f14399ddab8a59ddea33cc3e04079298fb9ffb5bb826537ed2a10fce4917f4e70e739bf8da6ecf29a5ed9221eb855828306b3918790838173fd9110658ea"
   }
 }

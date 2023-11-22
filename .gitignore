@@ -10,3 +10,8 @@ test-flash
 .env
 teststore
 teststore2
+*.pem
+*.txt
+*.bin
+*.md
+*.diff

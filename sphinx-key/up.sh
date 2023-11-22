@@ -1,5 +1,3 @@
-# MODE=debug
-MODE=release
 check_exists() {
     command -v "$1" > /dev/null
 }
@@ -39,35 +37,8 @@ then
     echo "Please set PASS to a password longer than 7 characters."
     exit 1
 fi
-for FILE in /dev/tty.*
-do
-    # Check for port on macOS
-    if check_port $FILE 
-    then
-        PORT=$FILE
-        break
-    fi
-done
-if [ -z "$PORT" ]
-then
-    # Check for port on linux
-    if check_port /dev/ttyUSB0
-    then
-        PORT=/dev/ttyUSB0
-    fi
-fi
-if [ -z "$PORT" ]
-then
-    echo "ESP likely not connected! Exiting now."
-    echo "Make sure the ESP is connected with a data USB cable, and try again."
-    exit 1
-fi
-if [ $MODE = "release" ]
-then
-    cargo build --release --bin sphinx-key
-else
-    cargo build --bin sphinx-key
-fi &&
-esptool.py --chip esp32-c3 elf2image target/riscv32imc-esp-espidf/$MODE/sphinx-key &&
-esptool.py --chip esp32c3 -b 460800 --before=default_reset --after=hard_reset write_flash --flash_mode dio --flash_freq 40m --flash_size 4MB 0x50000 target/riscv32imc-esp-espidf/$MODE/sphinx-key.bin &&
+cargo build --release --bin sphinx-key &&
+cargo espflash save-image --bin sphinx-key --release --chip esp32c3 sphinx-key.bin &&
+espsecure.py sign_data sphinx-key.bin --version 2 --keyfile ../secure_boot_signing_key.pem &&
+espflash write-bin 0x50000 sphinx-key.bin &&
 cargo espflash monitor --port $PORT
