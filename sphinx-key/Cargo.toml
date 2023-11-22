@@ -21,9 +21,9 @@ serde_urlencoded = "0.7.1"
 url              = "2"
 
 # sphinx-rs
-lss-connector  = { git = "https://github.com/stakwork/sphinx-rs.git", default-features = false, rev = "9dd17b98fbe6ce1e60969ef8ba32bb2313d55e1e" }
-sphinx-crypter = { git = "https://github.com/stakwork/sphinx-rs.git", rev = "9dd17b98fbe6ce1e60969ef8ba32bb2313d55e1e" }
-sphinx-signer  = { git = "https://github.com/stakwork/sphinx-rs.git", optional = true, rev = "9dd17b98fbe6ce1e60969ef8ba32bb2313d55e1e" }
+lss-connector  = { git = "https://github.com/stakwork/sphinx-rs.git", default-features = false, rev = "da0aeebc7a51ea7440fb8b23b602c12c0795c26b" }
+sphinx-crypter = { git = "https://github.com/stakwork/sphinx-rs.git", rev = "da0aeebc7a51ea7440fb8b23b602c12c0795c26b" }
+sphinx-signer  = { git = "https://github.com/stakwork/sphinx-rs.git", optional = true, rev = "da0aeebc7a51ea7440fb8b23b602c12c0795c26b" }
 # local
 # lss-connector  = { path = "../../sphinx-rs/lss-connector", default-features = false }
 # sphinx-crypter  = { path = "../../sphinx-rs/crypter" }
@@ -33,6 +33,7 @@ anyhow       = { version = "1", features = ["backtrace"] }
 bitflags     = "1.3.2"
 esp-idf-svc  = { version = "0.47.1", features = ["experimental", "alloc", "binstart"] }
 log          = "0.4.17"
+base64       = "0.21.5"
 
 [build-dependencies]
 embuild      = "0.31.2"

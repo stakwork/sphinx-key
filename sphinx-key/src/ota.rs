@@ -1,23 +1,25 @@
 use anyhow::{anyhow, Result};
+use base64::{engine::general_purpose::STANDARD, Engine as _};
 use esp_idf_svc::http::client::Configuration;
 use esp_idf_svc::http::client::EspHttpConnection;
 use esp_idf_svc::http::client::FollowRedirectsPolicy::FollowNone;
 use esp_idf_svc::http::Method;
 use esp_idf_svc::ota::EspOta;
 use log::{error, info};
-use sphinx_signer::lightning_signer::bitcoin::hashes::{sha256, Hash};
-use sphinx_signer::lightning_signer::bitcoin::secp256k1::{
-    schnorr::Signature, Message, PublicKey, Secp256k1,
+use sphinx_signer::lightning_signer::bitcoin::{
+    hashes::{sha256, Hash},
+    secp256k1::Secp256k1,
+    util::misc::{signed_msg_hash, MessageSignature},
+    Address,
 };
 use sphinx_signer::sphinx_glyph::control::OtaParams;
 use std::fs::{remove_file, File};
 use std::io::Write;
 use std::io::{BufReader, BufWriter};
-use std::str::FromStr;
 
 const BUFFER_LEN: usize = 1024;
 const UPDATE_BIN_PATH: &str = "/sdcard/update.bin";
-const PUBLIC: &str = "039707459d92b1809a9f6f78feebf6f518e7319b851fe474a31d64307b86aaf38a";
+const ADDRESS: &str = "1K51sSTyoVxHhKFtwWpzMZsoHvLshtw3Dp";
 
 fn factory_reset() -> Result<()> {
     let mut ota = EspOta::new()?;
@@ -68,13 +70,17 @@ fn get_update(params: &OtaParams) -> Result<()> {
 }
 
 fn check_signature(params: &OtaParams) -> Result<()> {
-    let msg = Message::from_hashed_data::<sha256::Hash>(params.sha256_hash.as_bytes());
-    let sig = Signature::from_str(&params.schnorr_sig).unwrap();
-    let pbk = PublicKey::from_str(PUBLIC).unwrap().x_only_public_key().0;
+    let add = ADDRESS.parse::<Address>()?;
+    let sig = STANDARD.decode(&params.message_sig)?;
+    let sig = MessageSignature::from_slice(&sig)?;
     let secp = Secp256k1::verification_only();
-    secp.verify_schnorr(&sig, &msg, &pbk).unwrap();
-    Ok(())
+    let signed = sig.is_signed_by_address(&secp, &add, signed_msg_hash(&params.sha256_hash))?;
+    match signed {
+        true => Ok(()),
+        false => Err(anyhow!("Failed signature check")),
+    }
 }
+
 fn check_integrity(params: &OtaParams) -> Result<()> {
     let f = File::open(UPDATE_BIN_PATH)?;
     let mut reader = BufReader::new(f);
