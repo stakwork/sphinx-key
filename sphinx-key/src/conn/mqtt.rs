@@ -29,10 +29,7 @@ pub fn make_client(
         ..Default::default()
     };
 
-    if cfg!(feature = "tls") {
-        conf.crt_bundle_attach = Some(esp_idf_svc::sys::esp_crt_bundle_attach);
-    }
-
+    conf.crt_bundle_attach = Some(esp_idf_svc::sys::esp_crt_bundle_attach);
     let mut mqtturl = broker.to_string();
     if !(mqtturl.starts_with("mqtt://") || mqtturl.starts_with("mqtts://")) {
         let scheme = if mqtturl.contains("8883") {

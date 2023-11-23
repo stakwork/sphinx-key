@@ -7,7 +7,7 @@ version      = "0.1.0"
 resolver     = "2"
 
 [features]
-default    = ["std", "tls"]
+default    = ["std"]
 no_persist = []
 pingpong   = []
 std        = ["sphinx-signer"]
