@@ -22,6 +22,12 @@ then
     echo "install with this command: cargo install cargo-espflash"
     exit 1
 fi
+if ! check_exists espflash
+then
+    echo "espflash not installed!"
+    echo "install with this command: cargo install espflash"
+    exit 1
+fi
 if [ -z "$SSID" ]
 then
     echo "Please set environment variable SSID to the SSID of the wifi you'll use to configure your sphinx-key."

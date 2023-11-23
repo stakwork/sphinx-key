@@ -22,6 +22,12 @@ then
     echo "install with this command: cargo install cargo-espflash"
     exit 1
 fi
+if ! check_exists espflash
+then
+    echo "espflash not installed!"
+    echo "install with this command: cargo install espflash"
+    exit 1
+fi
 if [ -z "$SSID" ]
 then
     echo "Please set environment variable SSID to the SSID of the wifi you'll use to configure your sphinx-key."
@@ -37,7 +43,6 @@ then
     echo "Please set PASS to a password longer than 7 characters."
     exit 1
 fi
-cargo build --release --bin sphinx-key &&
 cargo espflash save-image --bin sphinx-key --release --chip esp32c3 sphinx-key.bin &&
 espsecure.py sign_data sphinx-key.bin --version 2 --keyfile ../secure_boot_signing_key.pem &&
 espflash write-bin 0x50000 sphinx-key.bin &&
