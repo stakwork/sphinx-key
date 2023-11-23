@@ -42,10 +42,6 @@ embuild      = "0.31.2"
 name = "clear"
 path = "src/clear.rs"
 
-[[bin]]
-name = "btn"
-path = "src/btn.rs"
-
 [profile.release]
 codegen-units = 1
 lto           = true

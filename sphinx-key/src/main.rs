@@ -1,15 +1,17 @@
+mod button;
 mod conn;
 mod core;
+mod led;
 mod ota;
-mod periph;
+mod sd;
 mod status;
 
+use crate::button::button_loop;
 use crate::core::control::controller_from_seed;
 use crate::core::{config::*, events::*, FlashPersister};
-use crate::periph::button::button_loop;
-use crate::periph::led::led_control_loop;
+use crate::led::led_control_loop;
 #[allow(unused_imports)]
-use crate::periph::sd::{mount_sd_card, simple_fs_test};
+use crate::sd::{mount_sd_card, simple_fs_test};
 use crate::status::Status;
 use anyhow::Result;
 use esp_idf_svc::hal::gpio::{Gpio0, Gpio9};

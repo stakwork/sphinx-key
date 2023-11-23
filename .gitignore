@@ -13,5 +13,4 @@ teststore2
 *.pem
 *.txt
 *.bin
-*.md
 *.diff

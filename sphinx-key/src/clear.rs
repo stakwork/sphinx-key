@@ -1,17 +1,7 @@
-mod conn;
-mod core;
-mod ota;
-mod periph;
-mod status;
+mod sd;
 
-#[allow(unused_imports)]
-use crate::periph::sd::mount_sd_card;
-
+use crate::sd::mount_sd_card;
 use esp_idf_svc as _; // If using the `binstart` feature of `esp-idf-sys`, always keep this module imported
-
-// use esp_idf_svc::nvs::EspNvs;
-// use esp_idf_svc::nvs::*;
-
 use std::fs;
 use std::path::Path;
 
