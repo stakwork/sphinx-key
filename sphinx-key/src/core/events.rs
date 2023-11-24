@@ -3,13 +3,13 @@ use crate::core::lss;
 use crate::ota::{update_sphinx_key, validate_ota_message};
 use crate::status::Status;
 
+use crate::bitcoin::Network;
 use glyph::control::{Config, ControlMessage, ControlResponse, Controller, Policy, Velocity};
 use glyph::error::Error as GlyphError;
 use glyph::ser::{serialize_controlresponse, ByteBuf};
 use glyph::topics;
 use lss_connector::secp256k1::PublicKey;
 use sphinx_signer::approver::SphinxApprover;
-use sphinx_signer::lightning_signer::bitcoin::Network;
 //use sphinx_signer::lightning_signer::persist::DummyPersister;
 use sphinx_signer::kvv::{CloudKVVStore, FsKVVStore};
 use sphinx_signer::lightning_signer::persist::Persist;

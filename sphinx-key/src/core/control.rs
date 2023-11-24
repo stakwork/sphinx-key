@@ -1,9 +1,9 @@
+use crate::bitcoin::Network;
 use crate::ID_LEN;
 use anyhow::{anyhow, Context, Result};
 use esp_idf_svc::nvs::{EspDefaultNvs, EspDefaultNvsPartition};
 use glyph::control::{Config, ControlPersist, Controller, FlashKey, Policy, Velocity};
 use glyph::ser::*;
-use sphinx_signer::lightning_signer::bitcoin::Network;
 use sphinx_signer::sphinx_glyph as glyph;
 use std::convert::TryInto;
 use std::sync::{Arc, Mutex};

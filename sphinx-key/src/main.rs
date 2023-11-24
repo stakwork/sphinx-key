@@ -1,3 +1,4 @@
+mod bitcoin_utils;
 mod button;
 mod conn;
 mod core;
@@ -6,6 +7,9 @@ mod ota;
 mod sd;
 mod status;
 
+pub(crate) use sphinx_signer::lightning_signer::bitcoin;
+
+use crate::bitcoin::Network;
 use crate::button::button_loop;
 use crate::core::control::controller_from_seed;
 use crate::core::{config::*, events::*, FlashPersister};
@@ -20,7 +24,6 @@ use esp_idf_svc::hal::peripherals::Peripherals;
 use esp_idf_svc::nvs::EspDefaultNvsPartition;
 #[allow(unused_imports)]
 use esp_idf_svc::sys as _;
-use sphinx_signer::lightning_signer::bitcoin::Network;
 use sphinx_signer::sphinx_glyph::control::{Config, ControlPersist, Policy, Velocity};
 use std::sync::{mpsc, Arc, Mutex};
 use std::thread;
