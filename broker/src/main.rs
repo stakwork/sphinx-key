@@ -9,6 +9,8 @@ mod routes;
 mod run_test;
 mod util;
 
+pub(crate) use sphinx_signer::lightning_signer::bitcoin::{self, secp256k1};
+
 use crate::chain_tracker::MqttSignerPort;
 use crate::conn::{conns_set_pubkey, current_pubkey, new_connection, ChannelRequest, LssReq};
 use crate::looper::SignerLoop;

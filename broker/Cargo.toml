@@ -10,7 +10,6 @@ strip = "debuginfo"
 [dependencies]
 anyhow            = { version = "1", features = ["backtrace"] }
 async-trait       = "0.1"
-bitcoin           = "0.29.0"
 chrono            = "0.4"
 clap              = "3.2"
 clap_derive       = "3.2"
@@ -23,7 +22,6 @@ pretty_env_logger = "0.4.0"
 rocket            = { version = "0.5.0-rc.2", features = ["json"] }
 rumqttc           = "0.12.0"
 rumqttd           = { git = "https://github.com/Evanfeenstra/rumqtt", branch = "sphinx-asdf", features = ["websocket"] }
-secp256k1         = { version = "0.24.0", features = ["rand-std", "bitcoin_hashes"] }
 serde             = { version = "1.0", features = ["derive"] }
 serde_json        = "1.0"
 thiserror         = "1.0.31"

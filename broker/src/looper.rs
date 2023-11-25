@@ -1,10 +1,10 @@
+use crate::bitcoin::blockdata::constants::ChainHash;
+use crate::bitcoin::Network;
 use crate::conn::{ChannelRequest, LssReq};
 use crate::handle::handle_message;
-use bitcoin::blockdata::constants::ChainHash;
-use bitcoin::Network;
+use crate::secp256k1::PublicKey;
 use log::*;
 use rocket::tokio::sync::mpsc;
-use secp256k1::PublicKey;
 use std::thread;
 use vls_protocol::{msgs, msgs::Message, Error, Result};
 use vls_proxy::client::Client;

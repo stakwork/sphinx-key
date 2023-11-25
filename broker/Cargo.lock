@@ -3309,7 +3309,6 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
- "bitcoin",
  "chrono",
  "clap 3.2.25",
  "clap_derive 3.2.25",
@@ -3323,7 +3322,6 @@ dependencies = [
  "rocket",
  "rumqttc",
  "rumqttd",
- "secp256k1",
  "serde",
  "serde_json",
  "sphinx-signer",

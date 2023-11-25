@@ -1,4 +1,4 @@
-use bitcoin::Network;
+use crate::bitcoin::Network;
 use std::default::Default;
 use std::env;
 use std::fs;
