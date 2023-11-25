@@ -1,9 +1,6 @@
 check_exists() {
     command -v "$1" > /dev/null
 }
-check_port() {
-    cargo espflash board-info --port "$1" &> /dev/null
-}
 if ! check_exists esptool.py
 then
     echo "esptool.py not installed!"
@@ -26,21 +23,6 @@ if ! check_exists espflash
 then
     echo "espflash not installed!"
     echo "install with this command: cargo install espflash"
-    exit 1
-fi
-if [ -z "$SSID" ]
-then
-    echo "Please set environment variable SSID to the SSID of the wifi you'll use to configure your sphinx-key."
-    exit 1
-fi
-if [ -z "$PASS" ]
-then
-    echo "Please set environment variable PASS to the password of the wifi you'll use to configure your sphinx-key."
-    exit 1
-fi
-if [ ${#PASS} -lt 8 ]
-then
-    echo "Please set PASS to a password longer than 7 characters."
     exit 1
 fi
 cargo espflash erase-flash

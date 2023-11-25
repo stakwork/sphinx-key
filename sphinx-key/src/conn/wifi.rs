@@ -9,6 +9,10 @@ use esp_idf_svc::wifi::{
 };
 use log::*;
 use sphinx_signer::sphinx_glyph::control::Config;
+use std::fs;
+
+const SSID_FILE: &str = "/sdcard/ssid.txt";
+const PASS_FILE: &str = "/sdcard/password.txt";
 
 pub fn start_client(
     modem: impl peripheral::Peripheral<P = esp_idf_svc::hal::modem::Modem> + 'static,
@@ -89,15 +93,30 @@ pub fn start_access_point(
         sysloop,
     )?;
 
-    let ssid: &'static str = env!("SSID");
-    let password: &'static str = env!("PASS");
+    let ssid = match fs::read_to_string(SSID_FILE) {
+        Ok(ssid) => ssid.trim().to_string(),
+        Err(_) => {
+            warn!("Could not read ssid from sd card, using default setting");
+            "sphinx".to_string()
+        }
+    };
+    let password = match fs::read_to_string(PASS_FILE) {
+        Ok(password) => password.trim().to_string(),
+        Err(_) => {
+            warn!("Could not read password from sd card, using default setting");
+            "sphinxkey".to_string()
+        }
+    };
     if password.len() < 8 {
-        return Err(anyhow::anyhow!("Password error!\nCurrent password: {}\nYour wifi password must be >= 8 characters. Compile this software again with a longer password.", password));
+        return Err(anyhow::anyhow!(
+            "Password error!\nCurrent password: {}\nYour wifi password must be >= 8 characters",
+            password
+        ));
     }
 
     wifi.set_configuration(&Configuration::AccessPoint(AccessPointConfiguration {
-        ssid: ssid.into(),
-        password: password.into(),
+        ssid: ssid.as_str().into(),
+        password: password.as_str().into(),
         channel: 6,
         auth_method: AuthMethod::WPA2Personal,
         ..Default::default()
