@@ -1,4 +1,3 @@
-// #![feature(once_cell)]
 mod chain_tracker;
 mod conn;
 mod error_log;
@@ -20,7 +19,7 @@ use rocket::tokio::{
     self,
     sync::{broadcast, mpsc},
 };
-use rumqttd::{oneshot as std_oneshot, AuthMsg};
+use rumqttd::{oneshot as std_oneshot, AuthMsg, AuthType};
 use std::env;
 use std::sync::Arc;
 use url::Url;
@@ -133,11 +132,14 @@ pub fn broker_setup(
     std::thread::spawn(move || {
         while let Ok(am) = auth_rx.recv() {
             let pubkey = current_pubkey();
-            let (ok, new_pubkey) = check_auth(&am.username, &am.password, &pubkey);
+            let (ok, new_pubkey) = match am.msg {
+                AuthType::Login(login) => check_auth(&login.username, &login.password, &pubkey),
+                _ => (true, None),
+            };
             if let Some(np) = new_pubkey {
                 conns_set_pubkey(np);
             }
-            let _ = am.reply.send(ok);
+            let _ = am.tx.send(ok);
         }
     });
 

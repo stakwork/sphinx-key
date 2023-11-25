@@ -20,18 +20,15 @@ pub fn start_broker(
     let conf = config(settings);
     // println!("CONF {:?}", conf);
 
-    let mut broker = Broker::new(conf);
+    let mut broker = Broker::new(conf, Some(auth_sender));
 
     let (mut link_tx, mut link_rx) = broker.link("localclient")?;
 
     let _ = link_tx.subscribe(format!("+/{}", topics::HELLO));
     let _ = link_tx.subscribe(format!("+/{}", topics::BYE));
 
-    let auth_sender_ = auth_sender;
     std::thread::spawn(move || {
-        broker
-            .start(Some(auth_sender_))
-            .expect("could not start broker");
+        broker.start().expect("could not start broker");
     });
 
     // connected/disconnected status alerts
