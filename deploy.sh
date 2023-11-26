@@ -26,7 +26,6 @@ then
     exit 1
 fi
 cargo espflash erase-flash
-git pull &&
 cd factory &&
 cargo espflash flash --release &&
 cargo espflash save-image --release --chip esp32c3 factory.bin &&
