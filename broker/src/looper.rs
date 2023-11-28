@@ -4,10 +4,23 @@ use crate::conn::{ChannelRequest, LssReq};
 use crate::handle::handle_message;
 use crate::secp256k1::PublicKey;
 use log::*;
+use lru::LruCache;
 use rocket::tokio::sync::mpsc;
+use sphinx_signer::lightning_signer::bitcoin::hashes::{sha256::Hash as Sha256Hash, Hash};
+use std::num::NonZeroUsize;
 use std::thread;
+use std::time::Duration;
+use std::time::SystemTime;
 use vls_protocol::{msgs, msgs::Message, Error, Result};
 use vls_proxy::client::Client;
+
+const PREAPPROVE_CACHE_TTL: Duration = Duration::from_secs(60);
+const PREAPPROVE_CACHE_SIZE: usize = 6;
+
+struct PreapprovalCacheEntry {
+    tstamp: SystemTime,
+    reply_bytes: Vec<u8>,
+}
 
 #[derive(Clone, Debug)]
 pub struct ClientId {
@@ -22,6 +35,7 @@ pub struct SignerLoop<C: 'static + Client> {
     vls_tx: mpsc::Sender<ChannelRequest>,
     lss_tx: mpsc::Sender<LssReq>,
     client_id: Option<ClientId>,
+    preapproval_cache: LruCache<Sha256Hash, PreapprovalCacheEntry>,
 }
 
 impl<C: 'static + Client> SignerLoop<C> {
@@ -32,12 +46,14 @@ impl<C: 'static + Client> SignerLoop<C> {
         lss_tx: mpsc::Sender<LssReq>,
     ) -> Self {
         let log_prefix = format!("{}/{}", std::process::id(), client.id());
+        let preapproval_cache = LruCache::new(NonZeroUsize::new(PREAPPROVE_CACHE_SIZE).unwrap());
         Self {
             client,
             log_prefix,
             vls_tx,
             lss_tx,
             client_id: None,
+            preapproval_cache,
         }
     }
 
@@ -49,12 +65,14 @@ impl<C: 'static + Client> SignerLoop<C> {
         client_id: ClientId,
     ) -> Self {
         let log_prefix = format!("{}/{}", std::process::id(), client.id());
+        let preapproval_cache = LruCache::new(NonZeroUsize::new(PREAPPROVE_CACHE_SIZE).unwrap());
         Self {
             client,
             log_prefix,
             vls_tx,
             lss_tx,
             client_id: Some(client_id),
+            preapproval_cache,
         }
     }
 
@@ -98,7 +116,7 @@ impl<C: 'static + Client> SignerLoop<C> {
                     self.client.write(reply)?;
                 }
                 msg => {
-                    if let Message::HsmdInit(m) = msg {
+                    if let Message::HsmdInit(ref m) = msg {
                         if let Some(net) = network {
                             if ChainHash::using_genesis_block(net).as_bytes()
                                 != m.chain_params.as_ref()
@@ -109,10 +127,65 @@ impl<C: 'static + Client> SignerLoop<C> {
                             log::error!("No Network provided");
                         }
                     }
-                    let reply =
-                        handle_message(&self.client_id, raw_msg, &self.vls_tx, &self.lss_tx);
-                    // Write the reply to CLN
-                    self.client.write_vec(reply)?;
+                    // check if we got the same preapprove message less than PREAPPROVE_CACHE_TTL seconds ago
+                    if let Message::PreapproveInvoice(_) | Message::PreapproveKeysend(_) = msg {
+                        let now = SystemTime::now();
+                        let req_hash = Sha256Hash::hash(&raw_msg);
+                        if let Some(entry) = self.preapproval_cache.get(&req_hash) {
+                            let age = now.duration_since(entry.tstamp).expect("age");
+                            if age < PREAPPROVE_CACHE_TTL {
+                                debug!("{} found in preapproval cache", self.log_prefix);
+                                let reply = entry.reply_bytes.clone();
+                                self.client.write_vec(reply)?;
+                                continue;
+                            }
+                        }
+                    }
+
+                    let reply_bytes = handle_message(
+                        &self.client_id,
+                        raw_msg.clone(),
+                        &self.vls_tx,
+                        &self.lss_tx,
+                    );
+
+                    // post signer response processing
+                    let reply = msgs::from_vec(reply_bytes.clone()).expect("parse reply failed");
+                    match reply {
+                        // did we just preapprove a keysend ? if so add it to the cache
+                        Message::PreapproveKeysendReply(pkr) => {
+                            if pkr.result {
+                                debug!("{} adding keysend to preapproval cache", self.log_prefix);
+                                let now = SystemTime::now();
+                                let req_hash = Sha256Hash::hash(&raw_msg);
+                                self.preapproval_cache.put(
+                                    req_hash,
+                                    PreapprovalCacheEntry {
+                                        tstamp: now,
+                                        reply_bytes: reply_bytes.clone(),
+                                    },
+                                );
+                            }
+                        }
+                        // did we just preapprove an invoice ? if so add it to the cache
+                        Message::PreapproveInvoiceReply(pir) => {
+                            if pir.result {
+                                debug!("{} adding invoice to preapproval cache", self.log_prefix);
+                                let now = SystemTime::now();
+                                let req_hash = Sha256Hash::hash(&raw_msg);
+                                self.preapproval_cache.put(
+                                    req_hash,
+                                    PreapprovalCacheEntry {
+                                        tstamp: now,
+                                        reply_bytes: reply_bytes.clone(),
+                                    },
+                                );
+                            }
+                        }
+                        _ => {} // for future messages needing post signer response processing
+                    }
+                    // write the reply to CLN
+                    self.client.write_vec(reply_bytes)?;
                 }
             }
         }

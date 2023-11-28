@@ -1688,6 +1688,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "lru"
+version = "0.12.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2994eeba8ed550fd9b47a0b38f0242bc3344e496483c6180b69139cc2fa5d1d7"
+dependencies = [
+ "hashbrown 0.14.0",
+]
+
+[[package]]
 name = "lss-connector"
 version = "0.1.0"
 source = "git+https://github.com/stakwork/sphinx-rs?rev=05786c02ae213a16ded24608a8858f8e9c6688e0#05786c02ae213a16ded24608a8858f8e9c6688e0"
@@ -3316,6 +3325,7 @@ dependencies = [
  "fern",
  "hex",
  "log",
+ "lru 0.12.1",
  "lss-connector",
  "once_cell",
  "pretty_env_logger",
@@ -4149,7 +4159,7 @@ dependencies = [
  "hyper",
  "lightning-storage-server",
  "log",
- "lru",
+ "lru 0.11.0",
  "nix",
  "prost",
  "serde",
