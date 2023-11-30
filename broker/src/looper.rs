@@ -289,6 +289,11 @@ fn vls_cmd(msg: &Message) -> String {
         Message::SignHtlcTxMingleReply(_) => "SignHtlcTxMingleReply",
         Message::BlockChunk(_) => "BlockChunk",
         Message::BlockChunkReply(_) => "BlockChunkReply",
+        Message::SignerError(_) => "SignerError",
+        Message::CheckOutpoint(_) => "CheckOutpoint",
+        Message::CheckOutpointReply(_) => "CheckOutpointReply",
+        Message::LockOutpoint(_) => "LockOutpoint",
+        Message::LockOutpointReply(_) => "LockOutpointReply",
     };
     m.to_string()
 }
