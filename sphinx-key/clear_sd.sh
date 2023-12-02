@@ -1,8 +1,9 @@
+#!/bin/bash
+
+set -e
+
 check_exists() {
     command -v "$1" > /dev/null
-}
-check_port() {
-    cargo espflash board-info --port "$1" &> /dev/null
 }
 if ! check_exists esptool.py
 then
@@ -28,7 +29,7 @@ then
     echo "install with this command: cargo install espflash"
     exit 1
 fi
-cargo espflash save-image --bin clear --release --chip esp32c3 clear.bin &&
-espsecure.py sign_data clear.bin --version 2 --keyfile ../secure_boot_signing_key.pem &&
-espflash write-bin 0x50000 clear.bin &&
+cargo espflash save-image --bin clear --release --chip esp32c3 clear.bin
+espsecure.py sign_data clear.bin --version 2 --keyfile ../secure_boot_signing_key.pem
+espflash write-bin 0x50000 clear.bin
 cargo espflash monitor
