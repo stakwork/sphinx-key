@@ -30,6 +30,5 @@ then
     exit 1
 fi
 cargo espflash save-image --bin clear --release --chip esp32c3 clear.bin
-espsecure.py sign_data clear.bin --version 2 --keyfile ../secure_boot_signing_key.pem
 espflash write-bin 0x50000 clear.bin
 cargo espflash monitor
