@@ -45,11 +45,12 @@ pub fn make_client(
 
     info!("MQTT client started");
 
-    let builder = thread::Builder::new().stack_size(1524);
+    let builder = thread::Builder::new().stack_size(2048);
     builder.spawn(move || {
         info!("MQTT Listening for messages");
         let mut inflight = Vec::new();
         let mut inflight_topic = "".to_string();
+        let mut inflight_len = 0usize;
         while let Some(msg) = connection.next() {
             match msg {
                 Err(e) => match e.to_string().as_ref() {
@@ -74,26 +75,30 @@ pub fn make_client(
                     Event::Unsubscribed(_mes_id) => info!("RECEIVED Unsubscribed MESSAGE"),
                     Event::Published(_mes_id) => info!("RECEIVED Published MESSAGE"),
                     Event::Received(msg) => {
-                        let incoming_message: Option<(String, Vec<u8>)> = match msg.details() {
+                        let incoming_message: Option<(String, Vec<Vec<u8>>)> = match msg.details() {
                             Details::Complete => msg
                                 .topic()
-                                .map(|topic| (topic.to_string(), msg.data().to_vec())),
+                                .map(|topic| (topic.to_string(), vec![msg.data().to_vec()])),
                             Details::InitialChunk(chunk_info) => {
                                 if let Some(topic) = msg.topic() {
-                                    inflight = Vec::with_capacity(chunk_info.total_data_size);
+                                    inflight =
+                                        Vec::with_capacity(chunk_info.total_data_size / 1024 + 1);
                                     inflight_topic = topic.to_string();
-                                    inflight.extend_from_slice(msg.data());
+                                    inflight.push(msg.data().to_vec());
+                                    inflight_len += msg.data().len();
                                     None
                                 } else {
                                     None
                                 }
                             }
                             Details::SubsequentChunk(chunk_data) => {
-                                inflight.extend_from_slice(msg.data());
-                                if inflight.len() == chunk_data.total_data_size {
+                                inflight.push(msg.data().to_vec());
+                                inflight_len += msg.data().len();
+                                if inflight_len == chunk_data.total_data_size {
                                     let ret = Some((inflight_topic, inflight));
                                     inflight_topic = String::new();
                                     inflight = Vec::new();
+                                    inflight_len = 0usize;
                                     ret
                                 } else {
                                     None
@@ -110,10 +115,13 @@ pub fn make_client(
                                 || topic.ends_with(topics::INIT_2_MSG)
                                 || topic.ends_with(topics::LSS_CONFLICT)
                             {
-                                log::debug!("received data len {}", data.len());
+                                let data: Vec<u8> =
+                                    data.into_iter().flat_map(|v| v.into_iter()).collect();
                                 tx.send(CoreEvent::LssMessage(data))
                                     .expect("couldnt send Event::LssMessage");
                             } else if topic.ends_with(topics::CONTROL) {
+                                let data: Vec<u8> =
+                                    data.into_iter().flat_map(|v| v.into_iter()).collect();
                                 tx.send(CoreEvent::Control(data))
                                     .expect("couldnt send Event::Control");
                             } else {

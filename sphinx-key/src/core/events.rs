@@ -27,7 +27,7 @@ use esp_idf_svc::sys::EspError;
 pub enum Event {
     Connected,
     Disconnected,
-    VlsMessage(Vec<u8>),
+    VlsMessage(Vec<Vec<u8>>),
     LssMessage(Vec<u8>),
     Control(Vec<u8>),
 }
