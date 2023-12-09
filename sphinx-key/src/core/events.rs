@@ -11,6 +11,7 @@ use glyph::topics;
 use lss_connector::secp256k1::PublicKey;
 use sphinx_signer::approver::SphinxApprover;
 //use sphinx_signer::lightning_signer::persist::DummyPersister;
+use crate::conn::mqtt::MsgBytes;
 use sphinx_signer::kvv::{CloudKVVStore, FsKVVStore};
 use sphinx_signer::lightning_signer::persist::Persist;
 use sphinx_signer::root::VlsHandlerError;
@@ -23,11 +24,10 @@ use std::thread;
 use esp_idf_svc::mqtt::client::*;
 use esp_idf_svc::sys::EspError;
 
-#[derive(Debug)]
 pub enum Event {
     Connected,
     Disconnected,
-    VlsMessage(Vec<u8>),
+    VlsMessage(MsgBytes),
     LssMessage(Vec<u8>),
     Control(Vec<u8>),
 }

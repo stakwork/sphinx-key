@@ -5,6 +5,7 @@ use anyhow::Result;
 use esp_idf_svc::mqtt::client::*;
 use esp_idf_svc::sys::EspError;
 use log::*;
+pub(crate) use sphinx_signer::root::MsgBytes;
 use std::sync::mpsc;
 use std::thread;
 
@@ -45,10 +46,10 @@ pub fn make_client(
 
     info!("MQTT client started");
 
-    let builder = thread::Builder::new().stack_size(1524);
+    let builder = thread::Builder::new().stack_size(2048);
     builder.spawn(move || {
         info!("MQTT Listening for messages");
-        let mut inflight = Vec::new();
+        let mut inflight = MsgBytes::new();
         let mut inflight_topic = "".to_string();
         while let Some(msg) = connection.next() {
             match msg {
@@ -74,26 +75,27 @@ pub fn make_client(
                     Event::Unsubscribed(_mes_id) => info!("RECEIVED Unsubscribed MESSAGE"),
                     Event::Published(_mes_id) => info!("RECEIVED Published MESSAGE"),
                     Event::Received(msg) => {
-                        let incoming_message: Option<(String, Vec<u8>)> = match msg.details() {
-                            Details::Complete => msg
-                                .topic()
-                                .map(|topic| (topic.to_string(), msg.data().to_vec())),
-                            Details::InitialChunk(chunk_info) => {
+                        let incoming_message: Option<(String, MsgBytes)> = match msg.details() {
+                            Details::Complete => {
+                                let mut buf = MsgBytes::new();
+                                buf.write(msg.data());
+                                msg.topic().map(|topic| (topic.to_string(), buf))
+                            }
+                            Details::InitialChunk(_chunk_info) => {
                                 if let Some(topic) = msg.topic() {
-                                    inflight = Vec::with_capacity(chunk_info.total_data_size);
                                     inflight_topic = topic.to_string();
-                                    inflight.extend_from_slice(msg.data());
+                                    inflight.write(msg.data());
                                     None
                                 } else {
                                     None
                                 }
                             }
                             Details::SubsequentChunk(chunk_data) => {
-                                inflight.extend_from_slice(msg.data());
+                                inflight.write(msg.data());
                                 if inflight.len() == chunk_data.total_data_size {
                                     let ret = Some((inflight_topic, inflight));
                                     inflight_topic = String::new();
-                                    inflight = Vec::new();
+                                    inflight = MsgBytes::new();
                                     ret
                                 } else {
                                     None
@@ -111,10 +113,10 @@ pub fn make_client(
                                 || topic.ends_with(topics::LSS_CONFLICT)
                             {
                                 log::debug!("received data len {}", data.len());
-                                tx.send(CoreEvent::LssMessage(data))
+                                tx.send(CoreEvent::LssMessage(data.to_vec()))
                                     .expect("couldnt send Event::LssMessage");
                             } else if topic.ends_with(topics::CONTROL) {
-                                tx.send(CoreEvent::Control(data))
+                                tx.send(CoreEvent::Control(data.to_vec()))
                                     .expect("couldnt send Event::Control");
                             } else {
                                 log::warn!("unrecognized topic {}", topic);

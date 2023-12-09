@@ -91,10 +91,12 @@ fn run_main(parent_fd: i32) -> rocket::Rocket<rocket::Build> {
         let signer_port = MqttSignerPort::new(mqtt_tx.clone(), lss_tx.clone());
         let port_front = SignerPortFront::new(Arc::new(signer_port), settings.network);
         let source_factory = Arc::new(SourceFactory::new(".", settings.network));
+        let (_trigger, listener) = triggered::trigger();
         let frontend = Frontend::new(
             Arc::new(port_front),
             source_factory,
             Url::parse(&btc_url).expect("malformed btc rpc url"),
+            listener,
         );
         tokio::spawn(async move {
             frontend.start();

@@ -294,6 +294,8 @@ fn vls_cmd(msg: &Message) -> String {
         Message::CheckOutpointReply(_) => "CheckOutpointReply",
         Message::LockOutpoint(_) => "LockOutpoint",
         Message::LockOutpointReply(_) => "LockOutpointReply",
+        Message::ForgetChannel(_) => "ForgetChannel",
+        Message::ForgetChannelReply(_) => "ForgetChannelReply",
     };
     m.to_string()
 }

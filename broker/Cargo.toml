@@ -24,19 +24,20 @@ serde             = { version = "1.0", features = ["derive"] }
 serde_json        = "1.0"
 thiserror         = "1.0.31"
 toml              = "0.5.9"
+triggered         = "0.1.2"
 url               = { version = "2.2" }
 
-vls-frontend        = { git = "https://gitlab.com/lightning-signer/validating-lightning-signer.git", rev = "9708f5281afe27a2ac5460679ba62a28567b79dc" }
-vls-protocol        = { git = "https://gitlab.com/lightning-signer/validating-lightning-signer.git", rev = "9708f5281afe27a2ac5460679ba62a28567b79dc" }
-vls-protocol-client = { git = "https://gitlab.com/lightning-signer/validating-lightning-signer.git", rev = "9708f5281afe27a2ac5460679ba62a28567b79dc" }
-vls-proxy           = { git = "https://gitlab.com/lightning-signer/validating-lightning-signer.git", rev = "9708f5281afe27a2ac5460679ba62a28567b79dc" }
+vls-frontend        = { git = "https://gitlab.com/lightning-signer/validating-lightning-signer.git", rev = "300495658a1903a45a081771fdf2fe6883b057a7" }
+vls-protocol        = { git = "https://gitlab.com/lightning-signer/validating-lightning-signer.git", rev = "300495658a1903a45a081771fdf2fe6883b057a7" }
+vls-protocol-client = { git = "https://gitlab.com/lightning-signer/validating-lightning-signer.git", rev = "300495658a1903a45a081771fdf2fe6883b057a7" }
+vls-proxy           = { git = "https://gitlab.com/lightning-signer/validating-lightning-signer.git", rev = "300495658a1903a45a081771fdf2fe6883b057a7" }
 # vls-frontend        = { path = "../../vls/vls-frontend" }
 # vls-protocol        = { path = "../../vls/vls-protocol" }
 # vls-protocol-client = { path = "../../vls/vls-protocol-client" }
 # vls-proxy           = { path = "../../vls/vls-proxy" }
 
-lss-connector = { git = "https://github.com/stakwork/sphinx-rs", rev = "3a35b8fffb51a03b7a81b2f914b16540653b1d1f" }
-sphinx-signer = { git = "https://github.com/stakwork/sphinx-rs", rev = "3a35b8fffb51a03b7a81b2f914b16540653b1d1f" }
+lss-connector = { git = "https://github.com/stakwork/sphinx-rs", rev = "197a835c0cd1e060b591433aced242a2ed0ad4a7" }
+sphinx-signer = { git = "https://github.com/stakwork/sphinx-rs", rev = "197a835c0cd1e060b591433aced242a2ed0ad4a7" }
 # lss-connector = { path = "../../sphinx-rs/lss-connector" }
 # sphinx-signer = { path = "../../sphinx-rs/signer" }
 
