@@ -155,8 +155,8 @@ pub fn make_event_loop(
                 current_status = update_led(current_status, Status::Connected, &led_tx);
             }
             Event::Disconnected => {
-                current_status = update_led(current_status, Status::ConnectingToMqtt, &led_tx);
                 log::info!("GOT A Event::Disconnected msg!");
+                unsafe { esp_idf_svc::sys::esp_restart() };
             }
             Event::VlsMessage(msg_bytes) => {
                 current_status = update_led(current_status, Status::Signing, &led_tx);
