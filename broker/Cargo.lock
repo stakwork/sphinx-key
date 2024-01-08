@@ -342,6 +342,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d86b93f97252c47b41663388e6d155714a9d0c398b99f1005cbc5f978b29f445"
 
 [[package]]
+name = "beef"
+version = "0.5.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3a8241f3ebb85c056b509d4327ad0358fbbba6ffb340bf388f26350aeda225b1"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "binascii"
 version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -431,6 +440,15 @@ dependencies = [
 
 [[package]]
 name = "block-buffer"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4152116fd6e9dadb291ae18fc1ec3575ed6d84c29642d97890f4b4a3417297e4"
+dependencies = [
+ "generic-array",
+]
+
+[[package]]
+name = "block-buffer"
 version = "0.10.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3078c7629b62d3f0439517fa394996acacc5cbc91c5a20d8c658e77abd503a71"
@@ -441,7 +459,7 @@ dependencies = [
 [[package]]
 name = "bolt-derive"
 version = "0.2.0"
-source = "git+https://gitlab.com/lightning-signer/validating-lightning-signer.git?rev=300495658a1903a45a081771fdf2fe6883b057a7#300495658a1903a45a081771fdf2fe6883b057a7"
+source = "git+https://gitlab.com/lightning-signer/validating-lightning-signer.git?rev=a28153e0f1b6598e6538d32b3c5bfb9c7657d565#a28153e0f1b6598e6538d32b3c5bfb9c7657d565"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -850,11 +868,20 @@ dependencies = [
 
 [[package]]
 name = "digest"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d3dd60d1080a57a05ab032377049e0591415d2b31afd7028356dbf3cc6dcb066"
+dependencies = [
+ "generic-array",
+]
+
+[[package]]
+name = "digest"
 version = "0.10.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9ed9a281f7bc9b7576e61468ba615a66a5c8cfdff42420a70aa82701a3b1e292"
 dependencies = [
- "block-buffer",
+ "block-buffer 0.10.4",
  "crypto-common",
  "subtle",
 ]
@@ -1259,7 +1286,7 @@ version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6c49c37c09c17a53d937dfbb742eb3a961d65a994e6bcdcf37e7399d0cc8ab5e"
 dependencies = [
- "digest",
+ "digest 0.10.7",
 ]
 
 [[package]]
@@ -1505,6 +1532,77 @@ dependencies = [
 ]
 
 [[package]]
+name = "jsonrpsee"
+version = "0.21.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9579d0ca9fb30da026bac2f0f7d9576ec93489aeb7cd4971dd5b4617d82c79b2"
+dependencies = [
+ "jsonrpsee-core",
+ "jsonrpsee-server",
+ "jsonrpsee-types",
+ "tokio",
+]
+
+[[package]]
+name = "jsonrpsee-core"
+version = "0.21.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "776d009e2f591b78c038e0d053a796f94575d66ca4e77dd84bfc5e81419e436c"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "beef",
+ "futures-util",
+ "hyper",
+ "jsonrpsee-types",
+ "parking_lot 0.12.1",
+ "rand",
+ "rustc-hash",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
+name = "jsonrpsee-server"
+version = "0.21.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5cc7c6d1a2c58f6135810284a390d9f823d0f508db74cd914d8237802de80f98"
+dependencies = [
+ "futures-util",
+ "http",
+ "hyper",
+ "jsonrpsee-core",
+ "jsonrpsee-types",
+ "pin-project",
+ "route-recognizer",
+ "serde",
+ "serde_json",
+ "soketto",
+ "thiserror",
+ "tokio",
+ "tokio-stream",
+ "tokio-util",
+ "tower",
+ "tracing",
+]
+
+[[package]]
+name = "jsonrpsee-types"
+version = "0.21.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3266dfb045c9174b24c77c2dfe0084914bb23a6b2597d70c9dc6018392e1cd1b"
+dependencies = [
+ "anyhow",
+ "beef",
+ "serde",
+ "serde_json",
+ "thiserror",
+]
+
+[[package]]
 name = "lazy_static"
 version = "1.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1566,7 +1664,7 @@ dependencies = [
 [[package]]
 name = "lightning-storage-server"
 version = "0.3.0"
-source = "git+https://gitlab.com/lightning-signer/validating-lightning-signer.git?rev=300495658a1903a45a081771fdf2fe6883b057a7#300495658a1903a45a081771fdf2fe6883b057a7"
+source = "git+https://gitlab.com/lightning-signer/validating-lightning-signer.git?rev=a28153e0f1b6598e6538d32b3c5bfb9c7657d565#a28153e0f1b6598e6538d32b3c5bfb9c7657d565"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -1660,7 +1758,7 @@ dependencies = [
 [[package]]
 name = "lss-connector"
 version = "0.1.0"
-source = "git+https://github.com/stakwork/sphinx-rs?rev=197a835c0cd1e060b591433aced242a2ed0ad4a7#197a835c0cd1e060b591433aced242a2ed0ad4a7"
+source = "git+https://github.com/stakwork/sphinx-rs?rev=b461de86bdd8945254f38410902908f4c798da57#b461de86bdd8945254f38410902908f4c798da57"
 dependencies = [
  "anyhow",
  "lightning-storage-server",
@@ -1704,7 +1802,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d89e7ee0cfbedfc4da3340218492196241d89eefb6dab27de5df917a6d2e78cf"
 dependencies = [
  "cfg-if",
- "digest",
+ "digest 0.10.7",
 ]
 
 [[package]]
@@ -1985,6 +2083,12 @@ checksum = "6f6640c6bda7731b1fdbab747981a0f896dd1fedaf9f4a53fa237a04a84431f4"
 dependencies = [
  "loom",
 ]
+
+[[package]]
+name = "opaque-debug"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "624a8340c38c1b80fd549087862da4ba43e08858af025b236e509b6649fc13d5"
 
 [[package]]
 name = "openssl-probe"
@@ -2656,7 +2760,7 @@ dependencies = [
 [[package]]
 name = "rmp-utils"
 version = "0.1.0"
-source = "git+https://github.com/stakwork/sphinx-rs?rev=197a835c0cd1e060b591433aced242a2ed0ad4a7#197a835c0cd1e060b591433aced242a2ed0ad4a7"
+source = "git+https://github.com/stakwork/sphinx-rs?rev=b461de86bdd8945254f38410902908f4c798da57#b461de86bdd8945254f38410902908f4c798da57"
 dependencies = [
  "anyhow",
  "log",
@@ -2757,6 +2861,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "route-recognizer"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "afab94fb28594581f62d981211a9a4d53cc8130bbcbbb89a0440d9b8e81a7746"
+
+[[package]]
 name = "rumqttd"
 version = "0.15.0"
 source = "git+https://github.com/Evanfeenstra/rumqtt?branch=sphinx-asdf#536ab5e8436c2f0a05fc51cac24ac1559dcf574d"
@@ -2802,6 +2912,12 @@ name = "rustc-demangle"
 version = "0.1.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d626bb9dae77e28219937af045c257c28bfd3f69333c512553507f5f9798cb76"
+
+[[package]]
+name = "rustc-hash"
+version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "08d43f7aa6b08d49f382cde6a7982047c3426db949b1424bc4b7ec9ae12c6ce2"
 
 [[package]]
 name = "rustc_version"
@@ -3105,6 +3221,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "sha-1"
+version = "0.9.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "99cd6713db3cf16b6c84e06321e049a9b9f699826e16096d23bbcc44d15d51a6"
+dependencies = [
+ "block-buffer 0.9.0",
+ "cfg-if",
+ "cpufeatures",
+ "digest 0.9.0",
+ "opaque-debug",
+]
+
+[[package]]
 name = "sha1"
 version = "0.10.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3112,7 +3241,7 @@ checksum = "e3bf829a2d51ab4a5ddf1352d8470c140cadc8301b2ae1789db023f01cedd6ba"
 dependencies = [
  "cfg-if",
  "cpufeatures",
- "digest",
+ "digest 0.10.7",
 ]
 
 [[package]]
@@ -3123,7 +3252,7 @@ checksum = "793db75ad2bcafc3ffa7c68b215fee268f537982cd901d132f89c6343f3a3dc8"
 dependencies = [
  "cfg-if",
  "cpufeatures",
- "digest",
+ "digest 0.10.7",
 ]
 
 [[package]]
@@ -3192,9 +3321,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "soketto"
+version = "0.7.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "41d1c5305e39e09653383c2c7244f2f78b3bcae37cf50c64cb4789c9f5096ec2"
+dependencies = [
+ "base64 0.13.1",
+ "bytes",
+ "futures",
+ "http",
+ "httparse",
+ "log",
+ "rand",
+ "sha-1",
+]
+
+[[package]]
 name = "sphinx-auther"
 version = "0.1.12"
-source = "git+https://github.com/stakwork/sphinx-rs?rev=197a835c0cd1e060b591433aced242a2ed0ad4a7#197a835c0cd1e060b591433aced242a2ed0ad4a7"
+source = "git+https://github.com/stakwork/sphinx-rs?rev=b461de86bdd8945254f38410902908f4c798da57#b461de86bdd8945254f38410902908f4c798da57"
 dependencies = [
  "anyhow",
  "base64 0.21.5",
@@ -3206,7 +3351,7 @@ dependencies = [
 [[package]]
 name = "sphinx-glyph"
 version = "0.1.2"
-source = "git+https://github.com/stakwork/sphinx-rs?rev=197a835c0cd1e060b591433aced242a2ed0ad4a7#197a835c0cd1e060b591433aced242a2ed0ad4a7"
+source = "git+https://github.com/stakwork/sphinx-rs?rev=b461de86bdd8945254f38410902908f4c798da57#b461de86bdd8945254f38410902908f4c798da57"
 dependencies = [
  "anyhow",
  "hex",
@@ -3249,7 +3394,7 @@ dependencies = [
 [[package]]
 name = "sphinx-signer"
 version = "0.1.0"
-source = "git+https://github.com/stakwork/sphinx-rs?rev=197a835c0cd1e060b591433aced242a2ed0ad4a7#197a835c0cd1e060b591433aced242a2ed0ad4a7"
+source = "git+https://github.com/stakwork/sphinx-rs?rev=b461de86bdd8945254f38410902908f4c798da57#b461de86bdd8945254f38410902908f4c798da57"
 dependencies = [
  "anyhow",
  "bip39",
@@ -3578,6 +3723,7 @@ checksum = "5419f34732d9eb6ee4c3578b7989078579b7f039cbbb9ca2c4da015749371e15"
 dependencies = [
  "bytes",
  "futures-core",
+ "futures-io",
  "futures-sink",
  "pin-project-lite",
  "tokio",
@@ -3954,7 +4100,7 @@ checksum = "49874b5167b65d7193b8aba1567f5c7d93d001cafc34600cee003eda787e483f"
 [[package]]
 name = "vls-core"
 version = "0.11.0-rc.1"
-source = "git+https://gitlab.com/lightning-signer/validating-lightning-signer.git?rev=300495658a1903a45a081771fdf2fe6883b057a7#300495658a1903a45a081771fdf2fe6883b057a7"
+source = "git+https://gitlab.com/lightning-signer/validating-lightning-signer.git?rev=a28153e0f1b6598e6538d32b3c5bfb9c7657d565#a28153e0f1b6598e6538d32b3c5bfb9c7657d565"
 dependencies = [
  "anyhow",
  "backtrace",
@@ -3980,7 +4126,7 @@ dependencies = [
 [[package]]
 name = "vls-frontend"
 version = "0.11.0-rc.1"
-source = "git+https://gitlab.com/lightning-signer/validating-lightning-signer.git?rev=300495658a1903a45a081771fdf2fe6883b057a7#300495658a1903a45a081771fdf2fe6883b057a7"
+source = "git+https://gitlab.com/lightning-signer/validating-lightning-signer.git?rev=a28153e0f1b6598e6538d32b3c5bfb9c7657d565#a28153e0f1b6598e6538d32b3c5bfb9c7657d565"
 dependencies = [
  "async-trait",
  "lightning-storage-server",
@@ -3995,7 +4141,7 @@ dependencies = [
 [[package]]
 name = "vls-persist"
 version = "0.11.0-rc.1"
-source = "git+https://gitlab.com/lightning-signer/validating-lightning-signer.git?rev=300495658a1903a45a081771fdf2fe6883b057a7#300495658a1903a45a081771fdf2fe6883b057a7"
+source = "git+https://gitlab.com/lightning-signer/validating-lightning-signer.git?rev=a28153e0f1b6598e6538d32b3c5bfb9c7657d565#a28153e0f1b6598e6538d32b3c5bfb9c7657d565"
 dependencies = [
  "hex",
  "log",
@@ -4010,7 +4156,7 @@ dependencies = [
 [[package]]
 name = "vls-protocol"
 version = "0.11.0-rc.1"
-source = "git+https://gitlab.com/lightning-signer/validating-lightning-signer.git?rev=300495658a1903a45a081771fdf2fe6883b057a7#300495658a1903a45a081771fdf2fe6883b057a7"
+source = "git+https://gitlab.com/lightning-signer/validating-lightning-signer.git?rev=a28153e0f1b6598e6538d32b3c5bfb9c7657d565#a28153e0f1b6598e6538d32b3c5bfb9c7657d565"
 dependencies = [
  "as-any",
  "bitcoin-consensus-derive",
@@ -4024,7 +4170,7 @@ dependencies = [
 [[package]]
 name = "vls-protocol-client"
 version = "0.11.0-rc.1"
-source = "git+https://gitlab.com/lightning-signer/validating-lightning-signer.git?rev=300495658a1903a45a081771fdf2fe6883b057a7#300495658a1903a45a081771fdf2fe6883b057a7"
+source = "git+https://gitlab.com/lightning-signer/validating-lightning-signer.git?rev=a28153e0f1b6598e6538d32b3c5bfb9c7657d565#a28153e0f1b6598e6538d32b3c5bfb9c7657d565"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -4039,7 +4185,7 @@ dependencies = [
 [[package]]
 name = "vls-protocol-signer"
 version = "0.11.0-rc.1"
-source = "git+https://gitlab.com/lightning-signer/validating-lightning-signer.git?rev=300495658a1903a45a081771fdf2fe6883b057a7#300495658a1903a45a081771fdf2fe6883b057a7"
+source = "git+https://gitlab.com/lightning-signer/validating-lightning-signer.git?rev=a28153e0f1b6598e6538d32b3c5bfb9c7657d565#a28153e0f1b6598e6538d32b3c5bfb9c7657d565"
 dependencies = [
  "bit-vec",
  "log",
@@ -4050,7 +4196,7 @@ dependencies = [
 [[package]]
 name = "vls-proxy"
 version = "0.11.0-rc.1"
-source = "git+https://gitlab.com/lightning-signer/validating-lightning-signer.git?rev=300495658a1903a45a081771fdf2fe6883b057a7#300495658a1903a45a081771fdf2fe6883b057a7"
+source = "git+https://gitlab.com/lightning-signer/validating-lightning-signer.git?rev=a28153e0f1b6598e6538d32b3c5bfb9c7657d565#a28153e0f1b6598e6538d32b3c5bfb9c7657d565"
 dependencies = [
  "anyhow",
  "as-any",
@@ -4065,6 +4211,7 @@ dependencies = [
  "hex",
  "http",
  "hyper",
+ "jsonrpsee",
  "lightning-storage-server",
  "log",
  "lru 0.11.1",

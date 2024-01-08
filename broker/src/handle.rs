@@ -44,12 +44,12 @@ pub fn handle_message(
     let res_bytes = loop {
         let (cid, is_synced) = current_client_and_synced();
         if cid.is_none() {
-            log::info!("no client yet... retry");
+            log::debug!("no client yet... retry");
             thread::sleep(Duration::from_millis(96));
             continue;
         }
         if !is_synced {
-            log::info!("current client still syncing...");
+            log::debug!("current client still syncing...");
             thread::sleep(Duration::from_millis(96));
             continue;
         }

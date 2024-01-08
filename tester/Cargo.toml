@@ -23,8 +23,8 @@ serde_json        = "1.0"
 tokio             = { version = "1.4.0", features = ["rt", "rt-multi-thread", "macros"] }
 urlencoding       = "2.1.0"
 
-sphinx-crypter = { git = "https://github.com/stakwork/sphinx-rs.git", rev = "197a835c0cd1e060b591433aced242a2ed0ad4a7" }
-sphinx-signer = { git = "https://github.com/stakwork/sphinx-rs.git", rev = "197a835c0cd1e060b591433aced242a2ed0ad4a7" }
+sphinx-crypter = { git = "https://github.com/stakwork/sphinx-rs.git", rev = "b461de86bdd8945254f38410902908f4c798da57" }
+sphinx-signer = { git = "https://github.com/stakwork/sphinx-rs.git", rev = "b461de86bdd8945254f38410902908f4c798da57" }
 # sphinx-crypter = { path = "../../sphinx-rs/crypter" }
 # sphinx-signer = { path = "../../sphinx-rs/signer" }
 

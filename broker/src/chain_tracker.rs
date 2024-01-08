@@ -1,4 +1,4 @@
-use crate::conn::{ChannelRequest, LssReq};
+use crate::conn::{current_client_and_synced, ChannelRequest, LssReq};
 use async_trait::async_trait;
 use rocket::tokio;
 use tokio::sync::mpsc;
@@ -23,7 +23,9 @@ impl SignerPort for MqttSignerPort {
     }
 
     fn is_ready(&self) -> bool {
-        true
+        let (cid, is_synced) = current_client_and_synced();
+        let ret = cid.is_some() && is_synced;
+        ret
     }
 }
 
