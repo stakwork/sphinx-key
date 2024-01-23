@@ -237,7 +237,7 @@ checksum = "bef38d45163c2f1dde094a7dfd33ccf595c92905c8f8f4fdc18d06fb1037718a"
 [[package]]
 name = "bolt-derive"
 version = "0.2.0"
-source = "git+https://gitlab.com/lightning-signer/validating-lightning-signer.git?rev=a28153e0f1b6598e6538d32b3c5bfb9c7657d565#a28153e0f1b6598e6538d32b3c5bfb9c7657d565"
+source = "git+https://gitlab.com/lightning-signer/validating-lightning-signer.git?rev=753024b51bf681695490eff76888a4d63241fd7c#753024b51bf681695490eff76888a4d63241fd7c"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -275,9 +275,9 @@ checksum = "a3e2c3daef883ecc1b5d58c15adae93470a91d425f3532ba1695849656af3fc1"
 
 [[package]]
 name = "byteorder"
-version = "1.4.3"
+version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "14c189c53d098945499cdfa7ecc63567cf3886b3332b312a5b4585d8d3a6a610"
+checksum = "1fd0f2584146f6f2ef48085050886acf353beff7305ebd1ae69500e27c67f64b"
 
 [[package]]
 name = "camino"
@@ -1156,7 +1156,7 @@ checksum = "b06a4cde4c0f271a446782e3eff8de789548ce57dbc8eca9292c27f4a42004b4"
 [[package]]
 name = "lss-connector"
 version = "0.1.0"
-source = "git+https://github.com/stakwork/sphinx-rs.git?rev=b461de86bdd8945254f38410902908f4c798da57#b461de86bdd8945254f38410902908f4c798da57"
+source = "git+https://github.com/stakwork/sphinx-rs.git?rev=437728607bce0288908fc8979936a850e52560b7#437728607bce0288908fc8979936a850e52560b7"
 dependencies = [
  "anyhow",
  "log",
@@ -1501,9 +1501,9 @@ dependencies = [
 
 [[package]]
 name = "rmp-serde"
-version = "1.1.1"
+version = "1.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c5b13be192e0220b8afb7222aa5813cb62cc269ebb5cac346ca6487681d2913e"
+checksum = "bffea85eea980d8a74453e5d02a8d93028f3c34725de143085a844ebe953258a"
 dependencies = [
  "byteorder",
  "rmp",
@@ -1513,7 +1513,7 @@ dependencies = [
 [[package]]
 name = "rmp-utils"
 version = "0.1.0"
-source = "git+https://github.com/stakwork/sphinx-rs.git?rev=b461de86bdd8945254f38410902908f4c798da57#b461de86bdd8945254f38410902908f4c798da57"
+source = "git+https://github.com/stakwork/sphinx-rs.git?rev=437728607bce0288908fc8979936a850e52560b7#437728607bce0288908fc8979936a850e52560b7"
 dependencies = [
  "anyhow",
  "log",
@@ -1703,7 +1703,7 @@ checksum = "43b2853a4d09f215c24cc5489c992ce46052d359b5109343cbafbf26bc62f8a3"
 [[package]]
 name = "sphinx-auther"
 version = "0.1.12"
-source = "git+https://github.com/stakwork/sphinx-rs.git?rev=b461de86bdd8945254f38410902908f4c798da57#b461de86bdd8945254f38410902908f4c798da57"
+source = "git+https://github.com/stakwork/sphinx-rs.git?rev=437728607bce0288908fc8979936a850e52560b7#437728607bce0288908fc8979936a850e52560b7"
 dependencies = [
  "anyhow",
  "base64",
@@ -1715,7 +1715,7 @@ dependencies = [
 [[package]]
 name = "sphinx-crypter"
 version = "0.1.0"
-source = "git+https://github.com/stakwork/sphinx-rs.git?rev=b461de86bdd8945254f38410902908f4c798da57#b461de86bdd8945254f38410902908f4c798da57"
+source = "git+https://github.com/stakwork/sphinx-rs.git?rev=437728607bce0288908fc8979936a850e52560b7#437728607bce0288908fc8979936a850e52560b7"
 dependencies = [
  "anyhow",
  "chacha20poly1305",
@@ -1726,7 +1726,7 @@ dependencies = [
 [[package]]
 name = "sphinx-glyph"
 version = "0.1.2"
-source = "git+https://github.com/stakwork/sphinx-rs.git?rev=b461de86bdd8945254f38410902908f4c798da57#b461de86bdd8945254f38410902908f4c798da57"
+source = "git+https://github.com/stakwork/sphinx-rs.git?rev=437728607bce0288908fc8979936a850e52560b7#437728607bce0288908fc8979936a850e52560b7"
 dependencies = [
  "anyhow",
  "hex",
@@ -1758,7 +1758,7 @@ dependencies = [
 [[package]]
 name = "sphinx-signer"
 version = "0.1.0"
-source = "git+https://github.com/stakwork/sphinx-rs.git?rev=b461de86bdd8945254f38410902908f4c798da57#b461de86bdd8945254f38410902908f4c798da57"
+source = "git+https://github.com/stakwork/sphinx-rs.git?rev=437728607bce0288908fc8979936a850e52560b7#437728607bce0288908fc8979936a850e52560b7"
 dependencies = [
  "anyhow",
  "bip39",
@@ -1767,6 +1767,7 @@ dependencies = [
  "log",
  "lss-connector",
  "rand",
+ "rmp-serde",
  "serde",
  "sphinx-glyph",
  "thiserror",
@@ -2009,7 +2010,7 @@ checksum = "49874b5167b65d7193b8aba1567f5c7d93d001cafc34600cee003eda787e483f"
 [[package]]
 name = "vls-core"
 version = "0.11.0-rc.1"
-source = "git+https://gitlab.com/lightning-signer/validating-lightning-signer.git?rev=a28153e0f1b6598e6538d32b3c5bfb9c7657d565#a28153e0f1b6598e6538d32b3c5bfb9c7657d565"
+source = "git+https://gitlab.com/lightning-signer/validating-lightning-signer.git?rev=753024b51bf681695490eff76888a4d63241fd7c#753024b51bf681695490eff76888a4d63241fd7c"
 dependencies = [
  "anyhow",
  "bitcoin",
@@ -2033,7 +2034,7 @@ dependencies = [
 [[package]]
 name = "vls-persist"
 version = "0.11.0-rc.1"
-source = "git+https://gitlab.com/lightning-signer/validating-lightning-signer.git?rev=a28153e0f1b6598e6538d32b3c5bfb9c7657d565#a28153e0f1b6598e6538d32b3c5bfb9c7657d565"
+source = "git+https://gitlab.com/lightning-signer/validating-lightning-signer.git?rev=753024b51bf681695490eff76888a4d63241fd7c#753024b51bf681695490eff76888a4d63241fd7c"
 dependencies = [
  "hex",
  "log",
@@ -2046,7 +2047,7 @@ dependencies = [
 [[package]]
 name = "vls-protocol"
 version = "0.11.0-rc.1"
-source = "git+https://gitlab.com/lightning-signer/validating-lightning-signer.git?rev=a28153e0f1b6598e6538d32b3c5bfb9c7657d565#a28153e0f1b6598e6538d32b3c5bfb9c7657d565"
+source = "git+https://gitlab.com/lightning-signer/validating-lightning-signer.git?rev=753024b51bf681695490eff76888a4d63241fd7c#753024b51bf681695490eff76888a4d63241fd7c"
 dependencies = [
  "as-any",
  "bitcoin-consensus-derive",
@@ -2060,7 +2061,7 @@ dependencies = [
 [[package]]
 name = "vls-protocol-signer"
 version = "0.11.0-rc.1"
-source = "git+https://gitlab.com/lightning-signer/validating-lightning-signer.git?rev=a28153e0f1b6598e6538d32b3c5bfb9c7657d565#a28153e0f1b6598e6538d32b3c5bfb9c7657d565"
+source = "git+https://gitlab.com/lightning-signer/validating-lightning-signer.git?rev=753024b51bf681695490eff76888a4d63241fd7c#753024b51bf681695490eff76888a4d63241fd7c"
 dependencies = [
  "bit-vec",
  "log",

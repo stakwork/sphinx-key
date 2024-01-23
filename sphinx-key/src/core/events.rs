@@ -4,15 +4,14 @@ use crate::ota::{update_sphinx_key, validate_ota_message};
 use crate::status::Status;
 
 use crate::bitcoin::Network;
+use crate::conn::mqtt::MsgBytes;
 use glyph::control::{Config, ControlMessage, ControlResponse, Controller, Policy, Velocity};
 use glyph::error::Error as GlyphError;
 use glyph::ser::{serialize_controlresponse, ByteBuf};
 use glyph::topics;
 use lss_connector::secp256k1::PublicKey;
 use sphinx_signer::approver::SphinxApprover;
-//use sphinx_signer::lightning_signer::persist::DummyPersister;
-use crate::conn::mqtt::MsgBytes;
-use sphinx_signer::kvv::{CloudKVVStore, FsKVVStore};
+use sphinx_signer::kvv::{CloudKVVStore, FsKVVStore, KVVPersister, RmpFormat};
 use sphinx_signer::lightning_signer::persist::Persist;
 use sphinx_signer::root::VlsHandlerError;
 use sphinx_signer::sphinx_glyph as glyph;
@@ -86,8 +85,8 @@ pub fn make_event_loop(
         }
     }
 
-    let kvv_store = FsKVVStore::new(ROOT_STORE, *signer_id, None).0;
-    let fs_persister = CloudKVVStore::new(kvv_store);
+    let kvv_store = FsKVVStore::new(ROOT_STORE, *signer_id, None);
+    let fs_persister = KVVPersister(CloudKVVStore::new(kvv_store), RmpFormat);
 
     let _ = fs_persister.enter();
     let initial_allowlist = match fs_persister.get_nodes() {
@@ -143,7 +142,6 @@ pub fn make_event_loop(
     let mut expected_sequence = None;
     let mut current_status = Status::ConnectingToMqtt;
     while let Ok(event) = rx.recv() {
-        log::info!("new event loop!");
         check_memory();
         match event {
             Event::Connected => {
@@ -161,7 +159,6 @@ pub fn make_event_loop(
             Event::VlsMessage(msg_bytes) => {
                 current_status = update_led(current_status, Status::Signing, &led_tx);
                 let state1 = approver.control().get_state();
-                //log::info!("FULL MSG {:?}", &msg_bytes);
                 match sphinx_signer::root::handle_with_lss(
                     &root_handler,
                     &lss_signer,
@@ -182,7 +179,6 @@ pub fn make_event_loop(
                                 log::error!("LOCAL COMMIT ERROR! {:?}", e);
                                 unsafe { esp_idf_svc::sys::esp_restart() };
                             }
-                            restart_esp_if_memory_low();
                         }
                         expected_sequence = Some(sequence + 1);
                     }
@@ -220,13 +216,11 @@ pub fn make_event_loop(
                         msgs = None;
                         mqtt_pub(&mut mqtt, &client_id, &ret_topic, &bytes);
                         if ret_topic == topics::VLS_RES {
-                            log::info!("HMACs matched! commit now...");
                             // and commit
                             if let Err(e) = root_handler.node().get_persister().commit() {
                                 log::error!("LOCAL COMMIT ERROR AFTER LSS! {:?}", e);
                                 unsafe { esp_idf_svc::sys::esp_restart() };
                             }
-                            restart_esp_if_memory_low();
                         }
                         if ret_topic == topics::LSS_CONFLICT_RES {
                             log::error!("LSS PUT CONFLICT! RESTART...");
@@ -271,7 +265,7 @@ fn update_led(current: Status, new: Status, led_tx: &mpsc::Sender<Status>) -> St
     }
 }
 
-pub(crate) fn restart_esp_if_memory_low() {
+pub(crate) fn _restart_esp_if_memory_low() {
     unsafe {
         let size = esp_idf_svc::sys::heap_caps_get_free_size(4);
         let block = esp_idf_svc::sys::heap_caps_get_largest_free_block(4);

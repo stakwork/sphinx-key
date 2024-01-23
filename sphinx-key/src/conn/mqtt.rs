@@ -23,8 +23,7 @@ pub fn make_client(
 
     let mut conf = MqttClientConfiguration {
         client_id: Some(&client_id),
-        //buffer_size: 1024,
-        //task_stack: 12288,
+        out_buffer_size: 2 * 1024,
         username: Some(username),
         password: Some(password),
         ..Default::default()
