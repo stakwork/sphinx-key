@@ -78,11 +78,12 @@ fn run_main(parent_fd: i32) -> rocket::Rocket<rocket::Build> {
 
     broker_setup(settings, mqtt_rx, init_rx, conn_tx, error_tx.clone());
 
+    let cln_client_a = UnixClient::new(UnixConnection::new(parent_fd));
     let (lss_tx, lss_rx) = mpsc::channel::<LssReq>(10000);
     // TODO: add a validation here of the uri setting to make sure LSS is running
     if let Ok(lss_uri) = env::var("VLS_LSS") {
         log::info!("Spawning lss tasks...");
-        lss::lss_tasks(lss_uri, lss_rx, conn_rx, init_tx);
+        lss::lss_tasks(lss_uri, lss_rx, conn_rx, init_tx, cln_client_a);
     } else {
         log::warn!("running without LSS");
     }

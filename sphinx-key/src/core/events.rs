@@ -11,11 +11,13 @@ use glyph::ser::{serialize_controlresponse, ByteBuf};
 use glyph::topics;
 use lss_connector::secp256k1::PublicKey;
 use sphinx_signer::approver::SphinxApprover;
-use sphinx_signer::kvv::{CloudKVVStore, FsKVVStore, KVVPersister, RmpFormat};
+use sphinx_signer::kvv::{
+    fs::FsKVVStore, CloudKVVStore, JsonFormat, KVVPersister, MemoryKVVStore, RmpFormat,
+};
 use sphinx_signer::lightning_signer::persist::Persist;
 use sphinx_signer::root::VlsHandlerError;
 use sphinx_signer::sphinx_glyph as glyph;
-use sphinx_signer::{self, Handler, RootHandler};
+use sphinx_signer::{self, Handler, RootHandler, WarningPositiveApprover};
 use std::sync::mpsc;
 use std::sync::Arc;
 use std::thread;
@@ -85,7 +87,8 @@ pub fn make_event_loop(
         }
     }
 
-    let kvv_store = FsKVVStore::new(ROOT_STORE, *signer_id, None);
+    //let kvv_store = FsKVVStore::new(ROOT_STORE, *signer_id, None);
+    let kvv_store = MemoryKVVStore::new([0xcc; 16]);
     let fs_persister = KVVPersister(CloudKVVStore::new(kvv_store), RmpFormat);
 
     let _ = fs_persister.enter();
@@ -111,7 +114,7 @@ pub fn make_event_loop(
     let persister = Arc::new(fs_persister);
 
     // initialize the RootHandler
-    let (rhb, approver) = sphinx_signer::root::builder(
+    let (mut rhb, approver) = sphinx_signer::root::builder(
         seed,
         network,
         policy.clone(),
@@ -120,6 +123,7 @@ pub fn make_event_loop(
         persister,
     )
     .expect("failed to init signer");
+    rhb = rhb.approver(Arc::new(WarningPositiveApprover()));
 
     thread::sleep(std::time::Duration::from_secs(1));
     // send the initial HELLO

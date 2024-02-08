@@ -1,6 +1,6 @@
 use crate::bitcoin::blockdata::constants::ChainHash;
 use crate::bitcoin::Network;
-use crate::conn::{ChannelRequest, LssReq};
+use crate::conn::{ChannelRequest, LssReq, HSMD_INIT};
 use crate::handle::handle_message;
 use crate::secp256k1::PublicKey;
 use log::*;
@@ -126,6 +126,10 @@ impl<C: 'static + Client> SignerLoop<C> {
                         } else {
                             log::error!("No Network provided");
                         }
+                        let mut hsmd_raw = HSMD_INIT.lock().unwrap();
+                        *hsmd_raw = raw_msg;
+                        drop(hsmd_raw);
+                        continue;
                     }
                     // check if we got the same preapprove message less than PREAPPROVE_CACHE_TTL seconds ago
                     if let Message::PreapproveInvoice(_) | Message::PreapproveKeysend(_) = msg {
@@ -296,6 +300,8 @@ fn vls_cmd(msg: &Message) -> String {
         Message::LockOutpointReply(_) => "LockOutpointReply",
         Message::ForgetChannel(_) => "ForgetChannel",
         Message::ForgetChannelReply(_) => "ForgetChannelReply",
+        Message::RevokeCommitmentTx(_) => "RevokeCommitmentTx",
+        Message::RevokeCommitmentTxReply(_) => "RevokeCommitmentTxReply",
     };
     m.to_string()
 }
