@@ -24,8 +24,7 @@ impl SignerPort for MqttSignerPort {
 
     fn is_ready(&self) -> bool {
         let (cid, is_synced) = current_client_and_synced();
-        let ret = cid.is_some() && is_synced;
-        ret
+        cid.is_some() && is_synced
     }
 }
 

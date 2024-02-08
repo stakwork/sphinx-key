@@ -1,5 +1,3 @@
-use crate::bitcoin::blockdata::constants::ChainHash;
-use crate::bitcoin::Network;
 use crate::conn::{ChannelRequest, LssReq};
 use crate::handle::handle_message;
 use crate::secp256k1::PublicKey;
@@ -77,16 +75,16 @@ impl<C: 'static + Client> SignerLoop<C> {
     }
 
     /// Start the read loop
-    pub fn start(&mut self, network: Option<Network>) {
+    pub fn start(&mut self) {
         info!("loop {}: start", self.log_prefix);
-        match self.do_loop(network) {
+        match self.do_loop() {
             Ok(()) => info!("loop {}: done", self.log_prefix),
             Err(Error::Eof) => info!("loop {}: ending", self.log_prefix),
             Err(e) => error!("loop {}: error {:?}", self.log_prefix, e),
         }
     }
 
-    fn do_loop(&mut self, network: Option<Network>) -> Result<()> {
+    fn do_loop(&mut self) -> Result<()> {
         loop {
             let raw_msg = self.client.read_raw()?;
             // debug!("loop {}: got raw", self.log_prefix);
@@ -108,7 +106,7 @@ impl<C: 'static + Client> SignerLoop<C> {
                         self.vls_tx.clone(),
                         client_id,
                     );
-                    thread::spawn(move || new_loop.start(None));
+                    thread::spawn(move || new_loop.start());
                 }
                 Message::Memleak(_) => {
                     // info!("Memleak");
@@ -116,16 +114,8 @@ impl<C: 'static + Client> SignerLoop<C> {
                     self.client.write(reply)?;
                 }
                 msg => {
-                    if let Message::HsmdInit(ref m) = msg {
-                        if let Some(net) = network {
-                            if ChainHash::using_genesis_block(net).as_bytes()
-                                != m.chain_params.as_ref()
-                            {
-                                panic!("The network settings of CLN and broker don't match!");
-                            }
-                        } else {
-                            log::error!("No Network provided");
-                        }
+                    if let Message::HsmdInit(ref _m) = msg {
+                        panic!("HsmdInit should have been handled already!");
                     }
                     // check if we got the same preapprove message less than PREAPPROVE_CACHE_TTL seconds ago
                     if let Message::PreapproveInvoice(_) | Message::PreapproveKeysend(_) = msg {
@@ -296,6 +286,8 @@ fn vls_cmd(msg: &Message) -> String {
         Message::LockOutpointReply(_) => "LockOutpointReply",
         Message::ForgetChannel(_) => "ForgetChannel",
         Message::ForgetChannelReply(_) => "ForgetChannelReply",
+        Message::RevokeCommitmentTx(_) => "RevokeCommitmentTx",
+        Message::RevokeCommitmentTxReply(_) => "RevokeCommitmentTxReply",
     };
     m.to_string()
 }

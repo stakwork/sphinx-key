@@ -7,7 +7,7 @@ use esp_idf_svc::mqtt::client::MessageImpl;
 use esp_idf_svc::sys::EspError;
 use lss_connector::{secp256k1::PublicKey, BrokerMutations, LssSigner, Msg as LssMsg};
 use sphinx_signer::sphinx_glyph::topics;
-use sphinx_signer::{self, RootHandler, RootHandlerBuilder};
+use sphinx_signer::{self, HandlerBuilder, RootHandler};
 use std::sync::mpsc;
 use std::time::Duration;
 
@@ -16,7 +16,7 @@ pub use lss_connector::handle_lss_msg;
 pub fn init_lss(
     signer_id: &[u8; 16],
     rx: &mpsc::Receiver<Event>,
-    handler_builder: RootHandlerBuilder,
+    handler_builder: HandlerBuilder,
     mqtt: &mut EspMqttClient<ConnState<MessageImpl, EspError>>,
 ) -> Result<(RootHandler, LssSigner)> {
     let client_id = hex::encode(signer_id);
@@ -42,11 +42,24 @@ pub fn init_lss(
         }
     };
 
-    let (root_handler, res2) = lss_signer.build_with_lss(created, handler_builder, None)?;
+    let (mut init_handler, res2) = lss_signer.build_with_lss(created, handler_builder, None)?;
     let lss_res_2_topic = format!("{}/{}", client_id, topics::INIT_2_RES);
     mqtt.publish(&lss_res_2_topic, QOS, false, &res2)
         .expect("could not publish LSS response 2");
 
+    let hsmd_init_bytes = loop {
+        match rx.recv_timeout(Duration::from_secs(30))? {
+            Event::LssMessage(hib) => break hib,
+            _ => log::warn!("not an LSS message"),
+        }
+    };
+    let (res3, init, _cmd) =
+        sphinx_signer::root::handle_init(&mut init_handler, hsmd_init_bytes, false).unwrap();
+    let lss_res_3_topic = format!("{}/{}", client_id, topics::INIT_3_RES);
+    mqtt.publish(&lss_res_3_topic, QOS, false, &res3)
+        .expect("could not publish LSS response 3");
+    assert!(init);
+    let root_handler = init_handler.into_root_handler();
     Ok((root_handler, lss_signer))
 }
 
