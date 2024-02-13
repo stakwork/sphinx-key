@@ -4,9 +4,9 @@ use std::{env, fs};
 
 const DEFAULT_ERROR_LOG_PATH: &str = "/root/.lightning/broker_errors.log";
 
-pub fn log_errors(mut error_rx: tokio::sync::broadcast::Receiver<Vec<u8>>) {
+pub fn log_errors(mut error_rx: tokio::sync::broadcast::Receiver<Vec<u8>>, set: &mut tokio::task::JoinSet<()>) {
     // collect errors
-    tokio::spawn(async move {
+    set.spawn(async move {
         let err_log_path =
             env::var("BROKER_ERROR_LOG_PATH").unwrap_or(DEFAULT_ERROR_LOG_PATH.to_string());
         if let Ok(mut file) = fs::OpenOptions::new()
