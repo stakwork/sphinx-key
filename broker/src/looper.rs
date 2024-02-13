@@ -3,10 +3,9 @@ use crate::handle::handle_message;
 use crate::secp256k1::PublicKey;
 use log::*;
 use lru::LruCache;
-use rocket::tokio::sync::mpsc;
+use rocket::tokio::{self, sync::mpsc};
 use sphinx_signer::lightning_signer::bitcoin::hashes::{sha256::Hash as Sha256Hash, Hash};
 use std::num::NonZeroUsize;
-use std::thread;
 use std::time::Duration;
 use std::time::SystemTime;
 use vls_protocol::{msgs, msgs::Message, Error, Result};
@@ -106,7 +105,7 @@ impl<C: 'static + Client> SignerLoop<C> {
                         self.vls_tx.clone(),
                         client_id,
                     );
-                    thread::spawn(move || new_loop.start());
+                    tokio::task::spawn_blocking(move || new_loop.start());
                 }
                 Message::Memleak(_) => {
                     // info!("Memleak");

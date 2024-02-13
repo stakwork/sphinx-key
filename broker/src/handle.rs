@@ -5,7 +5,6 @@ use crate::looper::ClientId;
 use rocket::tokio::sync::mpsc;
 use sphinx_signer::{parser, sphinx_glyph::topics};
 use std::sync::atomic::{AtomicU16, Ordering};
-use std::thread;
 use std::time::Duration;
 use vls_protocol::{Error, Result};
 
@@ -37,7 +36,7 @@ pub fn handle_message(
         if is_my_turn(ticket) {
             break;
         } else {
-            thread::sleep(Duration::from_millis(96));
+            std::thread::sleep(Duration::from_millis(96));
         }
     }
 
@@ -45,12 +44,12 @@ pub fn handle_message(
         let (cid, is_synced) = current_client_and_synced();
         if cid.is_none() {
             log::debug!("no client yet... retry");
-            thread::sleep(Duration::from_millis(96));
+            std::thread::sleep(Duration::from_millis(96));
             continue;
         }
         if !is_synced {
             log::debug!("current client still syncing...");
-            thread::sleep(Duration::from_millis(96));
+            std::thread::sleep(Duration::from_millis(96));
             continue;
         }
         let cid = cid.unwrap();
@@ -62,7 +61,7 @@ pub fn handle_message(
             Err(e) => {
                 log::warn!("error handle_message_inner, trying again... {:?}", e);
                 cycle_clients(&cid);
-                thread::sleep(Duration::from_millis(96));
+                std::thread::sleep(Duration::from_millis(96));
             }
         }
     };

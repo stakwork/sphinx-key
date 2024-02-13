@@ -7,6 +7,7 @@ use rumqttd::oneshot as std_oneshot;
 use sphinx_signer::parser;
 use sphinx_signer::sphinx_glyph::topics;
 use tokio::sync::mpsc;
+use tokio::task::JoinSet;
 use vls_protocol::msgs::{self, Message, SerBolt};
 use vls_proxy::client::{Client, UnixClient};
 
@@ -17,8 +18,9 @@ pub fn lss_tasks(
     init_tx: mpsc::Sender<ChannelRequest>,
     mut cln_client: UnixClient,
     mut hsmd_raw: Vec<u8>,
+    task_set: &mut JoinSet<()>,
 ) {
-    tokio::task::spawn(async move {
+    task_set.spawn(async move {
         // first connection - initializes lssbroker
         let (lss_conn, hsmd_init_reply) = loop {
             let (cid, dance_complete_tx) = conn_rx.recv().await.unwrap();

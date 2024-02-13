@@ -1,6 +1,6 @@
 use crate::conn::{ChannelReply, ChannelRequest};
 use crate::util::Settings;
-use rocket::tokio::{sync::broadcast, sync::mpsc};
+use rocket::tokio::{sync::broadcast, sync::mpsc, task::JoinSet};
 use rumqttd::{local::LinkTx, AuthMsg, Broker, Config, Notification};
 use sphinx_signer::sphinx_glyph::sphinx_auther::token::Token;
 use sphinx_signer::sphinx_glyph::topics;
@@ -16,6 +16,7 @@ pub fn start_broker(
     status_sender: std::sync::mpsc::Sender<(String, bool)>,
     error_sender: broadcast::Sender<Vec<u8>>,
     auth_sender: std::sync::mpsc::Sender<AuthMsg>,
+    task_set: &mut JoinSet<()>,
 ) -> anyhow::Result<()> {
     let conf = config(settings);
     // println!("CONF {:?}", conf);
@@ -27,7 +28,7 @@ pub fn start_broker(
     let _ = link_tx.subscribe(format!("+/{}", topics::HELLO));
     let _ = link_tx.subscribe(format!("+/{}", topics::BYE));
 
-    std::thread::spawn(move || {
+    task_set.spawn_blocking(move || {
         broker.start().expect("could not start broker");
     });
 
@@ -36,7 +37,7 @@ pub fn start_broker(
 
     // track connections
     let link_tx_ = link_tx.clone();
-    let _conns_task = std::thread::spawn(move || {
+    let _conns_task = task_set.spawn_blocking(move || {
         while let Ok((is, cid)) = internal_status_rx.recv() {
             if is {
                 subs(&cid, link_tx_.clone());
@@ -52,7 +53,7 @@ pub fn start_broker(
 
     let mut link_tx_ = link_tx.clone();
     // receive replies from LSS initialization
-    let _init_task = std::thread::spawn(move || {
+    let _init_task = task_set.spawn_blocking(move || {
         while let Some(msg) = init_receiver.blocking_recv() {
             // Retry three times
             pub_and_wait(msg, &init_rx, &mut link_tx_, Some(3));
@@ -63,7 +64,7 @@ pub fn start_broker(
     let (msg_tx, msg_rx) = std::sync::mpsc::channel::<(String, String, Vec<u8>)>();
 
     // receive from CLN, Frontend, Controller, or LSS
-    let _relay_task = std::thread::spawn(move || {
+    let _relay_task = task_set.spawn_blocking(move || {
         while let Some(msg) = receiver.blocking_recv() {
             log::debug!("Received message here: {:?}", msg);
             let retries = if msg.topic == topics::CONTROL {
@@ -78,7 +79,7 @@ pub fn start_broker(
     });
 
     // receive replies back from glyph
-    let _sub_task = std::thread::spawn(move || {
+    let _sub_task = task_set.spawn_blocking(move || {
         while let Ok(message) = link_rx.recv() {
             if message.is_none() {
                 continue;

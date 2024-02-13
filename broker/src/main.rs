@@ -19,9 +19,11 @@ use crate::mqtt::{check_auth, start_broker};
 use crate::util::{read_broker_config, Settings};
 use clap::{arg, App};
 use rocket::tokio::{
-    self,
+    self, select,
     sync::{broadcast, mpsc},
+    task::JoinSet,
 };
+use rocket::{Build, Rocket};
 use rumqttd::{oneshot as std_oneshot, AuthMsg, AuthType};
 use std::env;
 use std::sync::Arc;
@@ -33,8 +35,23 @@ use vls_proxy::connection::{open_parent_fd, UnixConnection};
 use vls_proxy::portfront::SignerPortFront;
 use vls_proxy::util::{add_hsmd_args, handle_hsmd_version};
 
-#[rocket::launch]
-async fn rocket() -> _ {
+#[rocket::main]
+async fn main() {
+    let mut task_set: JoinSet<()> = JoinSet::new();
+    let web_server = rocket(&mut task_set).await;
+    select! {
+        _ = task_set.join_next() => {
+            log::warn!("a spawned task shut down");
+        }
+        _ = web_server.launch() => {
+            log::warn!("the rocket web server shut down");
+        }
+
+    };
+    log::info!("shutting down");
+}
+
+async fn rocket(task_set: &mut JoinSet<()>) -> Rocket<Build> {
     let parent_fd = open_parent_fd();
 
     util::setup_logging("hsmd  ", "info");
@@ -57,7 +74,7 @@ async fn rocket() -> _ {
     } else if matches.is_present("test") {
         run_test::run_test()
     } else {
-        run_main(parent_fd)
+        run_main(parent_fd, task_set)
     }
 }
 
@@ -68,17 +85,24 @@ fn make_clap_app() -> App<'static> {
     add_hsmd_args(app)
 }
 
-fn run_main(parent_fd: i32) -> rocket::Rocket<rocket::Build> {
+fn run_main(parent_fd: i32, task_set: &mut JoinSet<()>) -> rocket::Rocket<rocket::Build> {
     let settings = read_broker_config();
 
     let (mqtt_tx, mqtt_rx) = mpsc::channel(10000);
     let (init_tx, init_rx) = mpsc::channel(10000);
     let (error_tx, error_rx) = broadcast::channel(10000);
-    error_log::log_errors(error_rx);
+    error_log::log_errors(error_rx, task_set);
 
     let (conn_tx, conn_rx) = mpsc::channel::<(String, std_oneshot::Sender<bool>)>(10000);
 
-    broker_setup(settings, mqtt_rx, init_rx, conn_tx, error_tx.clone());
+    broker_setup(
+        settings,
+        mqtt_rx,
+        init_rx,
+        conn_tx,
+        error_tx.clone(),
+        task_set,
+    );
 
     let mut cln_client_a = UnixClient::new(UnixConnection::new(parent_fd));
     let hsmd_raw = cln_client_a.read_raw().unwrap();
@@ -93,7 +117,15 @@ fn run_main(parent_fd: i32) -> rocket::Rocket<rocket::Build> {
     // TODO: add a validation here of the uri setting to make sure LSS is running
     if let Ok(lss_uri) = env::var("VLS_LSS") {
         log::info!("Spawning lss tasks...");
-        lss::lss_tasks(lss_uri, lss_rx, conn_rx, init_tx, cln_client_a, hsmd_raw);
+        lss::lss_tasks(
+            lss_uri,
+            lss_rx,
+            conn_rx,
+            init_tx,
+            cln_client_a,
+            hsmd_raw,
+            task_set,
+        );
     } else {
         log::warn!("running without LSS");
     }
@@ -125,7 +157,7 @@ fn run_main(parent_fd: i32) -> rocket::Rocket<rocket::Build> {
     // TODO pass status_rx into SignerLoop?
     let mut signer_loop = SignerLoop::new(cln_client, mqtt_tx.clone(), lss_tx);
     // spawn CLN listener
-    std::thread::spawn(move || {
+    task_set.spawn_blocking(move || {
         signer_loop.start();
     });
 
@@ -139,12 +171,13 @@ pub fn broker_setup(
     init_rx: mpsc::Receiver<ChannelRequest>,
     conn_tx: mpsc::Sender<(String, std_oneshot::Sender<bool>)>,
     error_tx: broadcast::Sender<Vec<u8>>,
+    task_set: &mut JoinSet<()>,
 ) {
     let (auth_tx, auth_rx) = std::sync::mpsc::channel::<AuthMsg>();
     let (status_tx, status_rx) = std::sync::mpsc::channel();
 
     // authenticator
-    std::thread::spawn(move || {
+    task_set.spawn_blocking(move || {
         while let Ok(am) = auth_rx.recv() {
             let pubkey = current_pubkey();
             let (ok, new_pubkey) = match am.msg {
@@ -160,11 +193,13 @@ pub fn broker_setup(
 
     // broker
     log::info!("=> start broker on network: {}", settings.network);
-    start_broker(settings, mqtt_rx, init_rx, status_tx, error_tx, auth_tx)
-        .expect("BROKER FAILED TO START");
+    start_broker(
+        settings, mqtt_rx, init_rx, status_tx, error_tx, auth_tx, task_set,
+    )
+    .expect("BROKER FAILED TO START");
 
     // client connections state
-    std::thread::spawn(move || {
+    task_set.spawn_blocking(move || {
         log::info!("=> waiting first connection...");
         while let Ok((cid, connected)) = status_rx.recv() {
             log::info!("=> connection status: {}: {}", cid, connected);

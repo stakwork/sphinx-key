@@ -1,7 +1,7 @@
 use crate::conn::ChannelRequest;
 use crate::routes::launch_rocket;
 use crate::util::Settings;
-use rocket::tokio::{self, sync::broadcast, sync::mpsc};
+use rocket::tokio::{self, sync::broadcast, sync::mpsc, task::JoinSet};
 use sphinx_signer::vls_protocol::{msgs, msgs::Message};
 use sphinx_signer::{parser, sphinx_glyph::topics};
 use vls_protocol::serde_bolt::WireString;
@@ -9,6 +9,7 @@ use vls_protocol::serde_bolt::WireString;
 // const CLIENT_ID: &str = "test-1";
 
 pub fn run_test() -> rocket::Rocket<rocket::Build> {
+    let mut task_set = JoinSet::<()>::new();
     log::info!("TEST...");
 
     // let mut id = 0u16;
@@ -20,14 +21,21 @@ pub fn run_test() -> rocket::Rocket<rocket::Build> {
     let (error_tx, error_rx) = broadcast::channel(10000);
     let (conn_tx, _conn_rx) = mpsc::channel(10000);
 
-    crate::error_log::log_errors(error_rx);
+    crate::error_log::log_errors(error_rx, &mut task_set);
 
     // block until connection
-    crate::broker_setup(settings, mqtt_rx, init_rx, conn_tx, error_tx.clone());
+    crate::broker_setup(
+        settings,
+        mqtt_rx,
+        init_rx,
+        conn_tx,
+        error_tx.clone(),
+        &mut task_set,
+    );
     log::info!("=> off to the races!");
 
     let tx_ = mqtt_tx.clone();
-    tokio::spawn(async move {
+    task_set.spawn(async move {
         let mut id = 0;
         let mut sequence = 0;
         loop {
