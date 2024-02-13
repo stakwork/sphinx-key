@@ -1,4 +1,3 @@
-use crate::conn::HSMD_INIT;
 use crate::conn::{ChannelRequest, LssReq};
 use anyhow::{anyhow, Result};
 use lss_connector::{InitResponse, LssBroker, Response, SignerMutations};
@@ -17,12 +16,13 @@ pub fn lss_tasks(
     mut conn_rx: mpsc::Receiver<(String, oneshot::Sender<bool>)>,
     init_tx: mpsc::Sender<ChannelRequest>,
     mut cln_client: UnixClient,
+    mut hsmd_raw: Vec<u8>,
 ) {
     tokio::task::spawn(async move {
         // first connection - initializes lssbroker
         let (lss_conn, hsmd_init_reply) = loop {
             let (cid, dance_complete_tx) = conn_rx.recv().await.unwrap();
-            match try_dance(&cid, &uri, None, &init_tx, dance_complete_tx).await {
+            match try_dance(&cid, &uri, None, &init_tx, dance_complete_tx, &mut hsmd_raw).await {
                 Some(ret) => break ret,
                 None => log::warn!("broker not initialized, try connecting again..."),
             }
@@ -32,7 +32,15 @@ pub fn lss_tasks(
         // connect handler for all subsequent connections
         while let Some((cid, dance_complete_tx)) = conn_rx.recv().await {
             log::info!("CLIENT {} connected!", cid);
-            let _ = try_dance(&cid, &uri, Some(&lss_conn), &init_tx, dance_complete_tx).await;
+            let _ = try_dance(
+                &cid,
+                &uri,
+                Some(&lss_conn),
+                &init_tx,
+                dance_complete_tx,
+                &mut hsmd_raw,
+            )
+            .await;
         }
     });
 }
@@ -58,8 +66,9 @@ async fn try_dance(
     lss_conn: Option<&LssBroker>,
     init_tx: &mpsc::Sender<ChannelRequest>,
     dance_complete_tx: std_oneshot::Sender<bool>,
+    hsmd_raw: &mut Vec<u8>,
 ) -> Option<(LssBroker, Vec<u8>)> {
-    match connect_dance(cid, uri, lss_conn, init_tx).await {
+    match connect_dance(cid, uri, lss_conn, init_tx, hsmd_raw).await {
         Ok(ret) => {
             let _ = dance_complete_tx.send(true);
             // none if lss_conn is some, some otherwise
@@ -78,13 +87,14 @@ async fn connect_dance(
     uri: &str,
     lss_conn_opt: Option<&LssBroker>,
     mqtt_tx: &mpsc::Sender<ChannelRequest>,
+    hsmd_raw: &mut Vec<u8>,
 ) -> Result<Option<(LssBroker, Vec<u8>)>> {
     let (new_broker, ir) = dance_step_1(cid, uri, lss_conn_opt, mqtt_tx).await?;
     let lss_conn = new_broker.as_ref().xor(lss_conn_opt).ok_or(anyhow!(
         "should never happen, either we use the newly initialized, or the one passed in"
     ))?;
     dance_step_2(cid, lss_conn, mqtt_tx, &ir).await?;
-    let hsmd_init_reply = dance_step_3(cid, mqtt_tx).await?;
+    let hsmd_init_reply = dance_step_3(cid, mqtt_tx, hsmd_raw).await?;
     // only some when lss_conn_opt is none
     Ok(new_broker.map(|broker| (broker, hsmd_init_reply)))
 }
@@ -123,19 +133,15 @@ async fn dance_step_2(
     Ok(())
 }
 
-async fn dance_step_3(cid: &str, mqtt_tx: &mpsc::Sender<ChannelRequest>) -> Result<Vec<u8>> {
-    let (hsmd_raw, mut hsmd_init) = loop {
-        let hsmd_raw = HSMD_INIT.lock().unwrap().clone();
-        if hsmd_raw.is_empty() {
-            continue;
-        }
-        if let Message::HsmdInit(hsmd_init) = msgs::from_vec(hsmd_raw.clone()).unwrap() {
-            break (hsmd_raw, hsmd_init);
-        } else {
-            panic!("Not a hsmd init message");
-        }
+async fn dance_step_3(
+    cid: &str,
+    mqtt_tx: &mpsc::Sender<ChannelRequest>,
+    hsmd_raw: &mut Vec<u8>,
+) -> Result<Vec<u8>> {
+    let Message::HsmdInit(mut hsmd_init) = msgs::from_vec(hsmd_raw.clone()).unwrap() else {
+        panic!("Expected a hsmd init message here")
     };
-    let hsmd_init_bytes = parser::raw_request_from_bytes(hsmd_raw, 0, [0u8; 33], 0)?;
+    let hsmd_init_bytes = parser::raw_request_from_bytes(hsmd_raw.clone(), 0, [0u8; 33], 0)?;
     let reply = ChannelRequest::send(cid, topics::INIT_3_MSG, hsmd_init_bytes, mqtt_tx).await?;
     if reply.is_empty() {
         return Err(anyhow!("Hsmd init failed !"));
@@ -145,9 +151,7 @@ async fn dance_step_3(cid: &str, mqtt_tx: &mpsc::Sender<ChannelRequest>) -> Resu
     match msgs::from_vec(hsmd_init_reply.clone()) {
         Ok(Message::HsmdInitReplyV4(hir)) => {
             hsmd_init.hsm_wire_max_version = hir.hsm_version;
-            let mut hsmd_raw = HSMD_INIT.lock().unwrap();
             *hsmd_raw = hsmd_init.as_vec();
-            drop(hsmd_raw);
         }
         _ => panic!("Not a hsmd init reply v4"),
     };

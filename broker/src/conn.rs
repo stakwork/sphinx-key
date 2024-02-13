@@ -7,8 +7,6 @@ use std::sync::Mutex;
 
 pub static CONNS: Lazy<Mutex<Connections>> = Lazy::new(|| Mutex::new(Connections::new()));
 
-pub static HSMD_INIT: Mutex<Vec<u8>> = Mutex::new(Vec::new());
-
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Connections {
     pub pubkey: Option<String>,

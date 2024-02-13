@@ -11,6 +11,7 @@ mod util;
 
 pub(crate) use sphinx_signer::lightning_signer::bitcoin::{self, secp256k1};
 
+use crate::bitcoin::blockdata::constants::ChainHash;
 use crate::chain_tracker::MqttSignerPort;
 use crate::conn::{conns_set_pubkey, current_pubkey, new_connection, ChannelRequest, LssReq};
 use crate::looper::SignerLoop;
@@ -26,7 +27,8 @@ use std::env;
 use std::sync::Arc;
 use url::Url;
 use vls_frontend::{frontend::SourceFactory, Frontend};
-use vls_proxy::client::UnixClient;
+use vls_protocol::{msgs, msgs::Message};
+use vls_proxy::client::{Client, UnixClient};
 use vls_proxy::connection::{open_parent_fd, UnixConnection};
 use vls_proxy::portfront::SignerPortFront;
 use vls_proxy::util::{add_hsmd_args, handle_hsmd_version};
@@ -78,12 +80,20 @@ fn run_main(parent_fd: i32) -> rocket::Rocket<rocket::Build> {
 
     broker_setup(settings, mqtt_rx, init_rx, conn_tx, error_tx.clone());
 
-    let cln_client_a = UnixClient::new(UnixConnection::new(parent_fd));
+    let mut cln_client_a = UnixClient::new(UnixConnection::new(parent_fd));
+    let hsmd_raw = cln_client_a.read_raw().unwrap();
+    let msg = msgs::from_vec(hsmd_raw.clone()).unwrap();
+    let Message::HsmdInit(ref m) = msg else {
+        panic!("Expected a hsmd init message first");
+    };
+    if ChainHash::using_genesis_block(settings.network).as_bytes() != m.chain_params.as_ref() {
+        panic!("The network settings of CLN and broker don't match!");
+    }
     let (lss_tx, lss_rx) = mpsc::channel::<LssReq>(10000);
     // TODO: add a validation here of the uri setting to make sure LSS is running
     if let Ok(lss_uri) = env::var("VLS_LSS") {
         log::info!("Spawning lss tasks...");
-        lss::lss_tasks(lss_uri, lss_rx, conn_rx, init_tx, cln_client_a);
+        lss::lss_tasks(lss_uri, lss_rx, conn_rx, init_tx, cln_client_a, hsmd_raw);
     } else {
         log::warn!("running without LSS");
     }
@@ -116,7 +126,7 @@ fn run_main(parent_fd: i32) -> rocket::Rocket<rocket::Build> {
     let mut signer_loop = SignerLoop::new(cln_client, mqtt_tx.clone(), lss_tx);
     // spawn CLN listener
     std::thread::spawn(move || {
-        signer_loop.start(Some(settings.network));
+        signer_loop.start();
     });
 
     routes::launch_rocket(mqtt_tx, error_tx, settings)
